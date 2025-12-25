@@ -28,6 +28,20 @@ export interface PropertyData {
   notasAdicionales?: string;
   urlImagen?: string;
   createdAt?: string;
+
+  // Datos económicos detallados
+  comunidadAutonoma?: string;
+  esObraNueva?: boolean;
+  itp?: number | null;
+  iva?: number | null;
+  ajd?: number | null;
+  notariaCompra?: number | null;
+  registroCompra?: number | null;
+  reforma?: number | null;
+  comisionAgencia?: number | null;
+  gestoriaHipoteca?: number | null;
+  tasacion?: number | null;
+  comisionApertura?: number | null;
 }
 
 export interface AnalyzePropertyResponse {
@@ -243,4 +257,84 @@ export async function estimateRent(propertyData: PropertyData): Promise<Estimate
       error: 'Error al conectar con el servidor',
     };
   }
+}
+
+export interface CalculateExpensesResponse {
+  success: boolean;
+  expenses?: Partial<PropertyData>;
+  error?: string;
+}
+
+export async function calculateExpenses(propertyData: PropertyData): Promise<CalculateExpensesResponse> {
+  try {
+    const response = await fetch(`${API_URL}/api/calculate-expenses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(propertyData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'Error al calcular gastos',
+      };
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error en calculateExpenses:', error);
+    return {
+      success: false,
+      error: 'Error al conectar con el servidor',
+    };
+  }
+}
+
+// Tabla de ITP por comunidad autónoma (2024)
+export const ITP_BY_COMUNIDAD: { [key: string]: number } = {
+  'Andalucía': 7,
+  'Aragón': 8,
+  'Asturias': 8,
+  'Baleares': 8,
+  'Canarias': 6.5,
+  'Cantabria': 10,
+  'Castilla y León': 8,
+  'Castilla-La Mancha': 9,
+  'Cataluña': 10,
+  'Comunidad Valenciana': 10,
+  'Extremadura': 8,
+  'Galicia': 10,
+  'Madrid': 6,
+  'Murcia': 8,
+  'Navarra': 6,
+  'País Vasco': 4,
+  'La Rioja': 7,
+  'Ceuta': 6,
+  'Melilla': 6,
+};
+
+export function calculateITP(precio: number, comunidadAutonoma: string): number {
+  const porcentaje = ITP_BY_COMUNIDAD[comunidadAutonoma] || 7; // Default 7%
+  return Math.round((precio * porcentaje) / 100);
+}
+
+export function calculateIVA(precio: number): number {
+  return Math.round((precio * 10) / 100); // IVA 10% para vivienda
+}
+
+export function calculateAJD(precio: number, comunidadAutonoma: string): number {
+  // AJD varía entre 0.5% y 1.5% según la comunidad
+  const porcentajes: { [key: string]: number } = {
+    'Madrid': 0.75,
+    'Cataluña': 1.5,
+    'País Vasco': 0.5,
+    'Andalucía': 1.2,
+    'Comunidad Valenciana': 1,
+  };
+  const porcentaje = porcentajes[comunidadAutonoma] || 1;
+  return Math.round((precio * porcentaje) / 100);
 }

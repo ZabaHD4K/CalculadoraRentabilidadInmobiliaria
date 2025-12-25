@@ -428,6 +428,84 @@ Ejemplo: "800-1000€/mes"`;
   }
 });
 
+// Endpoint para calcular gastos de compra con GPT
+app.post('/api/calculate-expenses', async (req, res) => {
+  try {
+    const propertyData = req.body;
+
+    console.log('\n=== Calculando gastos ===');
+    console.log('Propiedad:', propertyData.nombre);
+    console.log('Precio:', propertyData.precio);
+
+    const prompt = `Eres un experto inmobiliario en España. Basándote en los siguientes datos, calcula los gastos de compra de esta propiedad.
+
+DATOS DE LA PROPIEDAD:
+- Precio: ${propertyData.precio}€
+- Ubicación: ${propertyData.direccion}
+- Tipo: ${propertyData.tipoPropiedad}
+- Superficie: ${propertyData.superficie}m²
+
+Calcula y devuelve SOLO un objeto JSON con estos campos (números sin símbolos):
+{
+  "comunidadAutonoma": "nombre de la comunidad autónoma donde está la propiedad",
+  "esObraNueva": true/false (según si es obra nueva o segunda mano),
+  "notariaCompra": "entre 600-900€ típicamente",
+  "registroCompra": "entre 400-600€ típicamente",
+  "comisionAgencia": "si hay comisión de agencia, típicamente 3-5% del precio, si no, 0",
+  "gestoriaHipoteca": "entre 300-500€",
+  "tasacion": "entre 250-400€",
+  "comisionApertura": "típicamente 0-1% del precio de compra"
+}
+
+IMPORTANTE:
+1. Responde SOLO con el objeto JSON, sin texto adicional
+2. Todos los valores numéricos deben ser números, no strings
+3. La comunidadAutonoma debe ser exacta: "Madrid", "Cataluña", "Andalucía", "País Vasco", etc.
+4. esObraNueva: true si es construcción reciente (menos de 2 años), false si es segunda mano`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Eres un experto en gastos de compraventa inmobiliaria en España. Proporciona estimaciones precisas y realistas.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_completion_tokens: 300
+    });
+
+    let gptResponse = completion.choices[0].message.content.trim();
+    console.log('Respuesta GPT:', gptResponse);
+
+    // Limpiar respuesta
+    if (gptResponse.startsWith('```json')) {
+      gptResponse = gptResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    } else if (gptResponse.startsWith('```')) {
+      gptResponse = gptResponse.replace(/```\n?/g, '');
+    }
+
+    const expenses = JSON.parse(gptResponse);
+
+    res.json({
+      success: true,
+      expenses
+    });
+
+  } catch (error) {
+    console.error('Error en /api/calculate-expenses:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al calcular gastos',
+      details: error.message
+    });
+  }
+});
+
 // Endpoint de prueba
 app.get('/', (req, res) => {
   res.json({ message: 'Backend de RealStateAI funcionando correctamente' });
