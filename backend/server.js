@@ -157,6 +157,277 @@ app.get('/api/hello-gpt', async (req, res) => {
   }
 });
 
+// Endpoint para analizar propiedad de Idealista
+app.post('/api/analyze-property', async (req, res) => {
+  // Aumentar timeout para esta ruta específica
+  req.setTimeout(120000); // 2 minutos
+
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        error: 'El campo "url" es requerido'
+      });
+    }
+
+    console.log('\n=== Analizando propiedad ===');
+    console.log('URL:', url);
+    console.log('Esto puede tardar 30-60 segundos...');
+
+    // Usar GPT-5 para extraer información de la propiedad
+    const prompt = `Analiza este enlace de propiedad inmobiliaria de Idealista y extrae TODA la información disponible en formato JSON estricto.
+
+URL: ${url}
+
+Debes extraer:
+- nombre: nombre/título de la propiedad
+- direccion: dirección completa
+- precio: precio de compra/venta (solo el número, sin símbolos)
+- superficie: metros cuadrados (solo el número)
+- habitaciones: número de habitaciones
+- banos: número de baños
+- alquilerMensual: si aparece precio de alquiler estimado
+- gastosAnuales: gastos anuales estimados (IBI, comunidad, etc.)
+- descripcion: descripción completa de la propiedad
+- caracteristicas: array con todas las características (ascensor, terraza, etc.)
+- imagenes: array con URLs de todas las imágenes de la propiedad
+- estado: si está disponible, reservado, vendido, alquilado
+- tipoPropiedad: piso, casa, local, etc.
+
+IMPORTANTE:
+1. Responde SOLO con el objeto JSON, sin texto adicional
+2. Si no encuentras un dato, usa null
+3. Las imágenes deben ser URLs completas y válidas
+4. Los números deben ser números, no strings
+
+Ejemplo de formato:
+{
+  "nombre": "Piso en Calle Mayor",
+  "direccion": "Calle Mayor 123, Madrid",
+  "precio": 250000,
+  "superficie": 80,
+  "habitaciones": 2,
+  "banos": 1,
+  "alquilerMensual": 800,
+  "gastosAnuales": 1500,
+  "descripcion": "Precioso piso...",
+  "caracteristicas": ["ascensor", "terraza", "exterior"],
+  "imagenes": ["https://...jpg", "https://...jpg"],
+  "estado": "disponible",
+  "tipoPropiedad": "piso"
+}`;
+
+    const response = await openai.responses.create({
+      model: 'gpt-5-mini',
+      input: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      text: {
+        format: {
+          type: 'text'
+        },
+        verbosity: 'medium'
+      },
+      reasoning: {
+        effort: 'low'
+      },
+      tools: [
+        {
+          type: 'web_search'
+        }
+      ],
+      store: true,
+      include: [
+        'reasoning.encrypted_content',
+        'web_search_call.action.sources'
+      ]
+    });
+
+    let gptResponse;
+    if (response.output_text) {
+      gptResponse = response.output_text;
+    } else if (response.output && response.output.length > 0) {
+      const messageOutput = response.output.find(item => item.type === 'message');
+      if (messageOutput && messageOutput.content && messageOutput.content.length > 0) {
+        gptResponse = messageOutput.content[0].text;
+      } else {
+        gptResponse = 'Sin respuesta';
+      }
+    } else {
+      gptResponse = 'Sin respuesta en formato desconocido';
+    }
+
+    console.log('Respuesta de GPT:', gptResponse);
+
+    // Intentar parsear el JSON
+    let propertyData;
+    try {
+      // Limpiar la respuesta por si tiene markdown
+      let cleanResponse = gptResponse.trim();
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.replace(/```\n?/g, '');
+      }
+
+      propertyData = JSON.parse(cleanResponse);
+      console.log('Datos parseados correctamente');
+    } catch (parseError) {
+      console.error('Error al parsear JSON:', parseError);
+      return res.status(500).json({
+        success: false,
+        error: 'No se pudo parsear la respuesta como JSON',
+        rawResponse: gptResponse
+      });
+    }
+
+    res.json({
+      success: true,
+      data: propertyData
+    });
+
+  } catch (error) {
+    console.error('Error en /api/analyze-property:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al analizar la propiedad',
+      details: error.message
+    });
+  }
+});
+
+// Almacenamiento temporal de propiedades (en memoria)
+let properties = [];
+
+// Endpoint para guardar una propiedad
+app.post('/api/properties', async (req, res) => {
+  try {
+    const propertyData = req.body;
+
+    // Generar ID único
+    const property = {
+      id: Date.now().toString(),
+      ...propertyData,
+      createdAt: new Date().toISOString()
+    };
+
+    properties.push(property);
+
+    console.log('\n=== Propiedad guardada ===');
+    console.log('ID:', property.id);
+    console.log('Nombre:', property.nombre);
+
+    res.json({
+      success: true,
+      property
+    });
+
+  } catch (error) {
+    console.error('Error al guardar propiedad:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al guardar la propiedad',
+      details: error.message
+    });
+  }
+});
+
+// Endpoint para obtener todas las propiedades
+app.get('/api/properties', (req, res) => {
+  res.json({
+    success: true,
+    properties
+  });
+});
+
+// Endpoint para eliminar una propiedad
+app.delete('/api/properties/:id', (req, res) => {
+  const { id } = req.params;
+  const index = properties.findIndex(p => p.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({
+      success: false,
+      error: 'Propiedad no encontrada'
+    });
+  }
+
+  properties.splice(index, 1);
+
+  res.json({
+    success: true,
+    message: 'Propiedad eliminada'
+  });
+});
+
+// Endpoint para estimar alquiler con GPT
+app.post('/api/estimate-rent', async (req, res) => {
+  try {
+    const propertyData = req.body;
+
+    console.log('\n=== Estimando alquiler ===');
+    console.log('Propiedad:', propertyData.nombre);
+
+    const prompt = `Basándote en los siguientes datos de una propiedad inmobiliaria, estima un rango de precio de alquiler mensual razonable para el mercado español actual.
+
+DATOS DE LA PROPIEDAD:
+- Ubicación: ${propertyData.direccion}
+- Tipo: ${propertyData.tipoPropiedad}
+- Superficie: ${propertyData.superficie}m²
+- Habitaciones: ${propertyData.habitaciones}
+- Baños: ${propertyData.banos}
+- Precio de compra: ${propertyData.precio}€
+${propertyData.descripcion ? `- Descripción: ${propertyData.descripcion}` : ''}
+${propertyData.caracteristicas && propertyData.caracteristicas.length > 0 ? `- Características: ${propertyData.caracteristicas.join(', ')}` : ''}
+
+Proporciona una estimación de alquiler mensual en formato de rango (mínimo-máximo) basándote en:
+1. La ubicación y el mercado inmobiliario de la zona
+2. Las características de la propiedad
+3. El tamaño y número de habitaciones
+4. Precios de alquiler actuales en zonas similares
+
+Responde ÚNICAMENTE con el rango en este formato exacto: "XXX-YYY€/mes"
+Ejemplo: "800-1000€/mes"`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Eres un experto en tasación de propiedades inmobiliarias en España. Proporciona estimaciones de alquiler precisas y realistas.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_completion_tokens: 100
+    });
+
+    const estimate = completion.choices[0].message.content.trim();
+    console.log('Estimación:', estimate);
+
+    res.json({
+      success: true,
+      estimate
+    });
+
+  } catch (error) {
+    console.error('Error en /api/estimate-rent:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al estimar el alquiler',
+      details: error.message
+    });
+  }
+});
+
 // Endpoint de prueba
 app.get('/', (req, res) => {
   res.json({ message: 'Backend de RealStateAI funcionando correctamente' });
