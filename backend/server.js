@@ -373,7 +373,7 @@ app.post('/api/estimate-rent', async (req, res) => {
     console.log('\n=== Estimando alquiler ===');
     console.log('Propiedad:', propertyData.nombre);
 
-    const prompt = `Basándote en los siguientes datos de una propiedad inmobiliaria, estima un rango de precio de alquiler mensual razonable para el mercado español actual.
+    const prompt = `Eres un experto en tasación de alquileres inmobiliarios en España. Analiza EN PROFUNDIDAD esta propiedad y estima un rango de alquiler mensual realista.
 
 DATOS DE LA PROPIEDAD:
 - Ubicación: ${propertyData.direccion}
@@ -382,32 +382,53 @@ DATOS DE LA PROPIEDAD:
 - Habitaciones: ${propertyData.habitaciones}
 - Baños: ${propertyData.banos}
 - Precio de compra: ${propertyData.precio}€
-${propertyData.descripcion ? `- Descripción: ${propertyData.descripcion}` : ''}
-${propertyData.caracteristicas && propertyData.caracteristicas.length > 0 ? `- Características: ${propertyData.caracteristicas.join(', ')}` : ''}
+${propertyData.descripcion ? `- Descripción completa: ${propertyData.descripcion}` : ''}
+${propertyData.caracteristicas && propertyData.caracteristicas.length > 0 ? `- Características específicas: ${propertyData.caracteristicas.join(', ')}` : ''}
 
-Proporciona una estimación de alquiler mensual en formato de rango (mínimo-máximo) basándote en:
-1. La ubicación y el mercado inmobiliario de la zona
-2. Las características de la propiedad
-3. El tamaño y número de habitaciones
-4. Precios de alquiler actuales en zonas similares
+ANÁLISIS REQUERIDO:
+
+1. **Ubicación y zona específica**:
+   - Identifica el barrio, distrito y ciudad exactos
+   - Analiza si es zona premium, céntrica, residencial o periférica
+   - Considera la demanda de alquiler en esa ubicación específica
+   - Valora cercanía a transporte, servicios, comercios
+
+2. **Características de la propiedad**:
+   - Estado de conservación (nuevo, reformado, a reformar)
+   - Calidades (suelos, acabados, materiales)
+   - Servicios del edificio (ascensor, portero, piscina, gimnasio)
+   - Orientación, vistas, luminosidad
+   - Extras (terraza, garaje, trastero, aire acondicionado)
+
+3. **Comparativa de mercado**:
+   - Busca alquileres similares en la misma zona
+   - Considera propiedades con características parecidas
+   - Ajusta según las ventajas/desventajas de esta propiedad
+
+4. **Precio de compra como referencia**:
+   - Usa el precio de ${propertyData.precio}€ para validar la estimación
+   - La rentabilidad típica en alquiler es 3-6% bruto anual
+   - Verifica que el rango sea coherente con el valor del inmueble
+
+Proporciona un rango REALISTA de alquiler mensual actual (diciembre 2024).
 
 Responde ÚNICAMENTE con el rango en este formato exacto: "XXX-YYY€/mes"
-Ejemplo: "800-1000€/mes"`;
+Ejemplo para un piso de 100m² en Madrid centro: "1400-1700€/mes"`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'Eres un experto en tasación de propiedades inmobiliarias en España. Proporciona estimaciones de alquiler precisas y realistas.'
+          content: 'Eres un experto tasador de propiedades inmobiliarias en España con 20 años de experiencia. Conoces en detalle el mercado de alquiler en todas las ciudades españolas. Proporciona estimaciones precisas, realistas y basadas en datos del mercado actual.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.3,
-      max_completion_tokens: 100
+      temperature: 0.2,
+      max_completion_tokens: 150
     });
 
     const estimate = completion.choices[0].message.content.trim();
@@ -502,6 +523,162 @@ IMPORTANTE:
       success: false,
       error: 'Error al calcular gastos',
       details: error.message
+    });
+  }
+});
+
+// Endpoint para calcular gastos de la vivienda con GPT (análisis inteligente)
+app.post('/api/calculate-housing-expenses', async (req, res) => {
+  try {
+    const propertyData = req.body;
+
+    console.log('\n=== Calculando gastos de vivienda con análisis inteligente ===');
+    console.log('Propiedad:', propertyData.nombre);
+    console.log('Ubicación:', propertyData.direccion);
+
+    const prompt = `Eres un experto inmobiliario en España. Analiza en PROFUNDIDAD esta propiedad específica y calcula gastos realistas para la tercera pestaña (Gastos de la Vivienda).
+
+DATOS DE LA PROPIEDAD:
+- Nombre: ${propertyData.nombre}
+- Ubicación: ${propertyData.direccion}
+- Tipo: ${propertyData.tipoPropiedad}
+- Superficie: ${propertyData.superficie}m²
+- Precio: ${propertyData.precio}€
+- Habitaciones: ${propertyData.habitaciones}
+- Baños: ${propertyData.banos}
+- Descripción: ${propertyData.descripcion || 'No disponible'}
+- Características: ${propertyData.caracteristicas && propertyData.caracteristicas.length > 0 ? propertyData.caracteristicas.join(', ') : 'No disponible'}
+
+IMPORTANTE - ANALIZA CUIDADOSAMENTE:
+1. **Comunidad Anual (comunidadAnual)**:
+   - Busca propiedades SIMILARES en la MISMA ZONA específica
+   - Considera si tiene PISCINA, ASCENSOR, PORTERO, GIMNASIO, ZONAS COMUNES
+   - Una piscina comunitaria puede añadir 200-500€ anuales
+   - Ascensor y portero pueden añadir 300-600€ anuales
+   - En edificios antiguos sin servicios: 400-800€/año
+   - En edificios modernos con servicios: 800-1500€/año
+   - Propiedades de lujo: 1500-3000€/año
+
+2. **Seguro del Hogar (seguroHogar)**:
+   - Depende del VALOR de la propiedad y CONTENIDOS
+   - Propiedades hasta 150.000€: 80-120€/año
+   - Propiedades 150.000-300.000€: 120-180€/año
+   - Propiedades 300.000-500.000€: 180-250€/año
+   - Propiedades >500.000€: 250-400€/año
+
+3. **Seguro de Vida Hipoteca (seguroVidaHipoteca)**:
+   - Depende del PRECIO de la propiedad y AÑOS de hipoteca
+   - Propiedades hasta 200.000€: 100-150€/año
+   - Propiedades 200.000-400.000€: 150-250€/año
+   - Propiedades >400.000€: 250-400€/año
+
+4. **IBI (ibi)**:
+   - Investiga el IBI típico de la ZONA ESPECÍFICA
+   - Depende del VALOR CATASTRAL (aproximadamente 40-60% del precio de mercado)
+   - Madrid centro: 0.4-0.5% del valor catastral
+   - Otras ciudades: 0.5-1.1% del valor catastral
+   - Ejemplo: piso 250.000€ → valor catastral ~125.000€ → IBI ~500-1000€/año
+
+Devuelve SOLO un objeto JSON con estos campos (números sin símbolos):
+{
+  "comunidadAnual": número entero,
+  "seguroHogar": número entero,
+  "seguroVidaHipoteca": número entero,
+  "ibi": número entero
+}
+
+RESPONDE SOLO CON EL JSON, sin texto adicional ni markdown.`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Eres un experto en análisis inmobiliario en España. Analiza cada propiedad de forma específica y proporciona estimaciones realistas basadas en sus características únicas.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_completion_tokens: 300
+    });
+
+    let gptResponse = completion.choices[0].message.content.trim();
+    console.log('Respuesta GPT (gastos vivienda):', gptResponse);
+
+    // Limpiar respuesta
+    if (gptResponse.startsWith('```json')) {
+      gptResponse = gptResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    } else if (gptResponse.startsWith('```')) {
+      gptResponse = gptResponse.replace(/```\n?/g, '');
+    }
+
+    const housingExpenses = JSON.parse(gptResponse);
+
+    res.json({
+      success: true,
+      expenses: housingExpenses
+    });
+
+  } catch (error) {
+    console.error('Error en /api/calculate-housing-expenses:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al calcular gastos de vivienda',
+      details: error.message
+    });
+  }
+});
+
+// Endpoint para obtener el Euribor actual
+app.get('/api/euribor', async (req, res) => {
+  try {
+    console.log('\n=== Consultando Euribor actual ===');
+
+    const prompt = `¿Cuál es el valor actual del Euribor a 12 meses hoy, 26 de diciembre de 2024?
+    Busca el dato más reciente y actualizado.
+    Dame solo el número del porcentaje, sin el símbolo %, redondeado a 2 decimales.
+    Ejemplo de respuesta válida: 2.45`;
+
+    // Usar GPT-4o-mini para consulta rápida
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Eres un experto en economía y finanzas. Responde únicamente con el número solicitado.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+    });
+
+    const euriborText = completion.choices[0].message.content.trim();
+    const euribor = parseFloat(euriborText);
+
+    console.log('Euribor obtenido:', euribor);
+
+    if (isNaN(euribor)) {
+      throw new Error('No se pudo obtener un valor válido del Euribor');
+    }
+
+    res.json({
+      success: true,
+      euribor: euribor
+    });
+
+  } catch (error) {
+    console.error('Error al obtener Euribor:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      // Valor de fallback
+      euribor: 2.5
     });
   }
 });

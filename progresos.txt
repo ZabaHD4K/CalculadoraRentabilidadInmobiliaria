@@ -119,3 +119,193 @@ PRÓXIMOS PASOS SUGERIDOS
 - Optimizar prompts para mejor extracción de datos
 
 ================================================================================
+
+
+DIA 2 - 26 de Diciembre de 2024
+================================================================================
+
+SESIÓN 2 - MEJORAS EN CÁLCULOS DE GASTOS Y ESTIMACIÓN DE ALQUILERES
+================================================================================
+
+1. SISTEMA DE PORCENTAJES PARA GASTOS DE VIVIENDA
+   ✅ Convertidos 3 campos de euros fijos a porcentajes dinámicos:
+      - Mantenimiento (recomendado: 10% de renta anual)
+      - Seguro de Impago (recomendado: 5% de renta anual)
+      - Periodos Vacantes (recomendado: 5% de renta anual)
+
+   ✅ Implementación técnica:
+      - Estados separados para porcentajes (porcentajeMantenimiento, etc.)
+      - Cálculo automático de valores en euros basado en porcentaje
+      - Inicialización inteligente en handleOpenDetails() calculando porcentajes desde valores existentes
+      - Sistema de validación de rango (0-100%)
+      - Input tipo number con step="0.1" para precisión decimal
+
+2. SISTEMA DE ADVERTENCIAS INTELIGENTES
+   ✅ Warnings animados cuando se usan porcentajes por debajo del recomendado
+   ✅ Características:
+      - Solo se muestran si el porcentaje es mayor a 0 pero menor al recomendado
+      - No bloquean al usuario (solo recomendaciones)
+      - Animación suave con transición de opacidad y altura
+      - Mensaje claro indicando el porcentaje recomendado
+      - Estados independientes: showMantenimientoWarning, showSeguroImpagoWarning, showPeriodosVacantesWarning
+
+3. MEJORAS EN UX DE INPUTS
+   ✅ Problema resuelto: Campo mostrando "0" al borrar contenido
+   ✅ Solución implementada:
+      - value={porcentaje === 0 ? '' : porcentaje} permite campo vacío
+      - onChange maneja cadena vacía por separado
+      - Placeholder descriptivo ("10%", "5%", etc.)
+      - Usuario puede borrar completamente y escribir nuevo valor sin interferencias
+
+4. VISUALIZACIÓN INTELIGENTE DE VALORES CALCULADOS
+   ✅ Sistema condicional basado en disponibilidad de alquiler mensual:
+      - Si hay alquilerMensual: muestra valor calculado, porcentaje actual y valor recomendado
+      - Si NO hay alquilerMensual: muestra warning indicando que debe establecer primero el alquiler
+   ✅ Formato mejorado:
+      - 💡 Valor calculado con separador de miles
+      - Muestra porcentaje aplicado
+      - Línea adicional con valor recomendado calculado
+      - Color diferenciado (gray-400 para info, yellow-400 para warnings)
+
+5. LÓGICA CONDICIONAL DE BADGES DE ESTADO
+   ✅ Badge "Disponible" solo aparece cuando:
+      - NO está marcado como pisoOcupado
+      - Y NO está marcado como pisoAlquilado
+   ✅ Badges diferenciados por color:
+      - Ocupado: orange-900/30 con borde orange-500/30
+      - Alquilado: blue-900/30 con borde blue-500/30 (muestra precio si existe)
+      - Disponible: green-900/30 con borde green-500/30
+
+6. FUNCIÓN DE ESTIMACIÓN INTELIGENTE DE ALQUILER
+   ✅ Nuevo botón "Calcular alquiler estimado" que:
+      - Solo aparece si la propiedad NO está alquilada
+      - Analiza la propiedad con GPT-4o-mini
+      - Considera ubicación, características, superficie, estado, mercado actual
+      - Devuelve rango de alquiler realista (ej: "1.200-1.600€/mes")
+
+   ✅ Backend mejorado (backend/server.js líneas 368-432):
+      - Endpoint POST /api/estimate-rent
+      - Prompt exhaustivo con análisis de:
+        * Ubicación específica (barrio, distrito, ciudad)
+        * Características detalladas de la propiedad
+        * Comparativa de mercado en la zona
+        * Validación con precio de compra
+        * Demanda en la zona y precios de competencia
+      - Modelo GPT-4o-mini con temperature: 0.2 para precisión
+      - Límite de 150 tokens para respuesta concisa
+      - Sistema experto con 20 años de experiencia simulada
+
+7. DISEÑO DE TARJETA DE ESTIMACIÓN
+   ✅ Resultado mostrado directamente en la tarjeta de propiedad
+   ✅ Diseño visual premium:
+      - Gradiente purple-900/40 → indigo-900/40
+      - Borde doble (2px) con purple-500/50
+      - Icono de verificación SVG en color purple-400
+      - Título "Alquiler Estimado (IA)" con badge
+      - Rango en texto 2xl bold blanco destacado
+      - Descripción explicativa del análisis
+      - Animación fade-in al aparecer
+
+   ✅ Estado de carga profesional:
+      - Spinner animado durante análisis
+      - Texto "Analizando mercado..." con icono
+      - Botón deshabilitado visualmente durante proceso
+      - Estado loadingEstimate controla qué propiedad está procesándose
+
+8. GESTIÓN DE ESTADO PARA MÚLTIPLES PROPIEDADES
+   ✅ Record<string, string> para almacenar estimaciones por ID de propiedad
+   ✅ Persistencia visual de resultados:
+      - Una vez calculado, se muestra siempre
+      - Botón cambia a "Recalcular estimación" después de primer cálculo
+      - Cada propiedad mantiene su estimación independiente
+   ✅ Estado loadingEstimate: string | null para tracking de carga por ID
+
+9. ARQUITECTURA DE COMUNICACIÓN FRONTEND-BACKEND
+   ✅ Nueva función estimateRent() en frontend/src/services/api.ts (líneas 243-270)
+   ✅ Interfaz EstimateRentResponse con success, estimate, error
+   ✅ Manejo robusto de errores:
+      - Captura de errores de conexión
+      - Manejo de respuestas no-ok del servidor
+      - Console.error para debugging
+      - Try-catch en componente React
+
+ARCHIVOS MODIFICADOS
+================================================================================
+📝 frontend/src/app/page.tsx
+   - Líneas 14-15: Nuevos estados loadingEstimate y rentEstimates
+   - Líneas 27-34: Estados para porcentajes y warnings
+   - Líneas ~137-175: Inicialización de porcentajes en handleOpenDetails
+   - Líneas ~535-603: Badge condicional y botón de estimación con tarjeta
+   - Líneas ~1254-1298: Campo Mantenimiento con porcentaje
+   - Similares para Seguro de Impago y Periodos Vacantes
+
+📝 frontend/src/services/api.ts
+   - Líneas 237-242: Interface EstimateRentResponse
+   - Líneas 243-270: Función estimateRent()
+
+📝 backend/server.js
+   - Líneas 368-432: Endpoint /api/estimate-rent con prompt exhaustivo
+
+MEJORAS EN EXPERIENCIA DE USUARIO
+================================================================================
+✅ Inputs más intuitivos: porcentajes en lugar de valores fijos en euros
+✅ Feedback inmediato: cálculos automáticos mientras el usuario escribe
+✅ Guía inteligente: warnings solo cuando es relevante, sin bloquear
+✅ Flexibilidad: usuario puede usar valores menores a los recomendados
+✅ Claridad visual: separación clara entre valores calculados y recomendados
+✅ Información contextual: mensajes que guían al usuario paso a paso
+✅ Estimación inteligente: análisis de mercado con un solo click
+✅ Diseño premium: tarjetas visuales que destacan información importante
+✅ Estados claros: badges diferenciados por color según estado de propiedad
+
+PROBLEMAS RESUELTOS
+================================================================================
+❌ PROBLEMA 1: Campo mostraba "01" en lugar de "1"
+   ✅ Solución: Inicialización correcta calculando porcentajes desde valores existentes
+
+❌ PROBLEMA 2: No se podía borrar el contenido del campo
+   ✅ Solución: value={porcentaje === 0 ? '' : porcentaje} permite campo vacío
+
+❌ PROBLEMA 3: No se mostraba información cuando faltaba alquiler mensual
+   ✅ Solución: Condicional que muestra warning específico
+
+❌ PROBLEMA 4: Badge "Disponible" aparecía siempre
+   ✅ Solución: Condición !pisoOcupado && !pisoAlquilado
+
+❌ PROBLEMA 5: Error TypeScript con setRentEstimates
+   ✅ Solución: result.estimate || '' garantiza tipo string
+
+ESTADO TÉCNICO ACTUAL
+================================================================================
+✅ React 19.0.0 con TypeScript
+✅ Next.js 16.1.1 con Turbopack
+✅ Backend: Express + OpenAI SDK (GPT-4o-mini)
+✅ Sistema de estados robusto con múltiples useState hooks
+✅ Inputs controlados con validación en tiempo real
+✅ Comunicación asíncrona frontend-backend
+✅ Manejo de errores en todos los niveles
+✅ UI responsive con TailwindCSS
+✅ Animaciones CSS con transiciones suaves
+
+ESTADO FINAL DÍA 2
+================================================================================
+✅ Sistema de porcentajes implementado y funcionando
+✅ Warnings inteligentes operativos
+✅ UX de inputs mejorada significativamente
+✅ Estimación de alquiler con IA completamente funcional
+✅ Diseño visual premium para resultados
+✅ Badges de estado con lógica condicional correcta
+✅ Sin errores en consola
+✅ Aplicación estable y lista para uso
+
+PRÓXIMOS PASOS POTENCIALES
+================================================================================
+- Implementar análisis de rentabilidad completo (ROI, TIR, cash flow)
+- Añadir comparativa de propiedades guardadas
+- Gráficos de evolución de gastos e ingresos
+- Sistema de alertas de mercado
+- Exportación de reportes detallados en PDF
+- Integración con APIs de datos de mercado inmobiliario
+- Dashboard con métricas agregadas de portfolio
+
+================================================================================

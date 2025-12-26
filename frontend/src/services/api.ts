@@ -42,6 +42,16 @@ export interface PropertyData {
   gestoriaHipoteca?: number | null;
   tasacion?: number | null;
   comisionApertura?: number | null;
+
+  // Gastos de la vivienda
+  ibi?: number | null;
+  comunidadAnual?: number | null;
+  mantenimiento?: number | null;
+  seguroHogar?: number | null;
+  seguroVidaHipoteca?: number | null;
+  seguroImpago?: number | null;
+  interesesHipoteca?: number | null;
+  periodosVacantes?: number | null;
 }
 
 export interface AnalyzePropertyResponse {
@@ -294,6 +304,35 @@ export async function calculateExpenses(propertyData: PropertyData): Promise<Cal
   }
 }
 
+export async function calculateHousingExpenses(propertyData: PropertyData): Promise<CalculateExpensesResponse> {
+  try {
+    const response = await fetch(`${API_URL}/api/calculate-housing-expenses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(propertyData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'Error al calcular gastos de vivienda',
+      };
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error en calculateHousingExpenses:', error);
+    return {
+      success: false,
+      error: 'Error al conectar con el servidor',
+    };
+  }
+}
+
 // Tabla de ITP por comunidad autónoma (2024)
 export const ITP_BY_COMUNIDAD: { [key: string]: number } = {
   'Andalucía': 7,
@@ -337,4 +376,25 @@ export function calculateAJD(precio: number, comunidadAutonoma: string): number 
   };
   const porcentaje = porcentajes[comunidadAutonoma] || 1;
   return Math.round((precio * porcentaje) / 100);
+}
+
+// Obtener el Euribor actual desde GPT
+export async function getEuribor(): Promise<{ success: boolean; euribor: number; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/euribor`);
+    const data = await response.json();
+
+    return {
+      success: data.success,
+      euribor: data.euribor,
+      error: data.error
+    };
+  } catch (error) {
+    console.error('Error al obtener Euribor:', error);
+    return {
+      success: false,
+      euribor: 2.5, // Valor de fallback
+      error: 'Error de conexión'
+    };
+  }
 }
