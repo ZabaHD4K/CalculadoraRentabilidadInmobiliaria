@@ -416,7 +416,7 @@ Responde ÚNICAMENTE con el rango en este formato exacto: "XXX-YYY€/mes"
 Ejemplo para un piso de 100m² en Madrid centro: "1400-1700€/mes"`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
@@ -635,45 +635,59 @@ RESPONDE SOLO CON EL JSON, sin texto adicional ni markdown.`;
 // Endpoint para obtener el Euribor actual
 app.get('/api/euribor', async (req, res) => {
   try {
-    console.log('\n=== Consultando Euribor actual ===');
+    console.log('\n========================================');
+    console.log('=== CONSULTANDO EURIBOR ACTUAL ===');
+    console.log('========================================');
 
-    const prompt = `¿Cuál es el valor actual del Euribor a 12 meses hoy, 26 de diciembre de 2024?
-    Busca el dato más reciente y actualizado.
-    Dame solo el número del porcentaje, sin el símbolo %, redondeado a 2 decimales.
-    Ejemplo de respuesta válida: 2.45`;
-
-    // Usar GPT-4o-mini para consulta rápida
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Eres un experto en economía y finanzas. Responde únicamente con el número solicitado.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.3,
+    // Obtener la fecha actual
+    const fechaActual = new Date().toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
 
-    const euriborText = completion.choices[0].message.content.trim();
-    const euribor = parseFloat(euriborText);
+    console.log('Fecha de consulta:', fechaActual);
+    console.log('API del Banco de España\n');
 
-    console.log('Euribor obtenido:', euribor);
-
-    if (isNaN(euribor)) {
-      throw new Error('No se pudo obtener un valor válido del Euribor');
+    // Hacer petición a la API del Banco de España
+    const apiUrl = 'https://app.bde.es/bierest/resources/srdatosapp/favoritas?idioma=es&series=D_1NBAF472';
+    
+    console.log('Consultando API del BdE...');
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Error en la API del BdE: ${response.status} ${response.statusText}`);
     }
+
+    const data = await response.json();
+    console.log('Respuesta de la API:');
+    console.log(JSON.stringify(data, null, 2));
+
+    // Extraer el valor del Euribor
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('La API no devolvió datos válidos');
+    }
+
+    const euriborData = data[0];
+    const euribor = euriborData.valor;
+    const fechaValor = new Date(euriborData.fechaValor).toLocaleDateString('es-ES');
+
+    console.log('\n✓ Euribor obtenido exitosamente:', euribor + '%');
+    console.log('Fecha del dato:', fechaValor);
+    console.log('====================\n');
 
     res.json({
       success: true,
-      euribor: euribor
+      euribor: euribor,
+      fecha: fechaValor
     });
 
   } catch (error) {
-    console.error('Error al obtener Euribor:', error);
+    console.error('\n!!! ERROR al obtener Euribor !!!');
+    console.error('Mensaje:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('====================\n');
+    
     res.status(500).json({
       success: false,
       error: error.message,

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { PropertyData, analyzeProperty, saveProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor } from "@/services/api";
 
 export default function Home() {
+  const router = useRouter();
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -25,6 +27,8 @@ export default function Home() {
   const [tipoHipoteca, setTipoHipoteca] = useState<'fija' | 'variable'>('variable');
   const [euriborActual, setEuriborActual] = useState<number>(2.5);
   const [showSeguroImpagoWarning, setShowSeguroImpagoWarning] = useState(false);
+  const [consultingEuribor, setConsultingEuribor] = useState(false);
+  const [consultingRent, setConsultingRent] = useState(false);
 
   // Porcentajes para campos calculados
   const [porcentajeMantenimiento, setPorcentajeMantenimiento] = useState<number>(10);
@@ -313,6 +317,57 @@ export default function Home() {
     if (result.success) {
       setEuriborActual(result.euribor);
       console.log('Euribor actualizado:', result.euribor);
+    }
+  };
+
+  // Consultar Euribor del BCE mediante GPT
+  const consultarEuriborBCE = async () => {
+    setConsultingEuribor(true);
+    await fetchEuribor();
+    setConsultingEuribor(false);
+    // Recalcular el tipo de interés con el nuevo Euribor
+    const interesCalculado = calcularTipoInteres(tipoHipoteca);
+    setTipoInteres(interesCalculado);
+  };
+
+  // Función para estimar alquiler con GPT
+  const estimarAlquiler = async () => {
+    if (!selectedProperty) return;
+
+    setConsultingRent(true);
+    try {
+      const response = await fetch('http://localhost:3000/api/estimate-rent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(selectedProperty),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al estimar el alquiler');
+      }
+
+      const data = await response.json();
+      
+      // Extraer el valor numérico de la respuesta
+      const match = data.estimate.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+      if (match) {
+        // Usar el valor medio del rango
+        const valorMedio = Math.round((parseFloat(match[1]) + parseFloat(match[2])) / 2);
+        setSelectedProperty({ ...selectedProperty, alquilerMensual: valorMedio });
+      } else {
+        // Buscar un solo número
+        const singleMatch = data.estimate.match(/(\d+(?:\.\d+)?)/);
+        if (singleMatch) {
+          setSelectedProperty({ ...selectedProperty, alquilerMensual: Math.round(parseFloat(singleMatch[1])) });
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al estimar el alquiler. Por favor, inténtalo de nuevo.');
+    } finally {
+      setConsultingRent(false);
     }
   };
 
@@ -862,6 +917,23 @@ export default function Home() {
                 </button>
               </div>
 
+              {/* Botón destacado para ir al Dashboard de Análisis Financiero */}
+              <button
+                onClick={() => {
+                  // Guardar propiedad antes de navegar
+                  handleSaveProperty();
+                  setTimeout(() => {
+                    router.push(`/dashboard/${selectedProperty.id}`);
+                  }, 500);
+                }}
+                className="mt-4 w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-bold text-lg shadow-xl transform hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>📈 Análisis Financiero Avanzado</span>
+              </button>
+
               {/* Botón para calcular todos los datos automáticamente */}
               <button
                 onClick={handleCalculateAllExpenses}
@@ -884,7 +956,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6 overflow-hidden">
+            <div className="p-6 space-y-6">
               {/* Precio de la Vivienda Base */}
               <div className="bg-gradient-to-r from-teal-900/30 to-blue-900/30 border border-teal-500/50 rounded-xl p-6">
                 <h3 className="text-xl font-bold text-white mb-2">Precio de la vivienda base</h3>
@@ -1136,9 +1208,9 @@ export default function Home() {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-6">
                         {/* Capital Propio */}
-                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 md:col-span-2">
+                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
                           <label className="block text-sm font-medium text-gray-300 mb-2">Capital Propio (€)</label>
                           <div className="relative">
                             <input
@@ -1166,15 +1238,61 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Plazo (años)</label>
-                          <input
-                            type="number"
-                            value={plazoHipoteca || ''}
-                            onChange={(e) => setPlazoHipoteca(Number(e.target.value))}
-                            placeholder="20, 25, 30..."
-                            className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Plazo (años)</label>
+                            <input
+                              type="number"
+                              value={plazoHipoteca || ''}
+                              onChange={(e) => setPlazoHipoteca(Number(e.target.value))}
+                              placeholder="20, 25, 30..."
+                              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            />
+                            {plazoHipoteca > 35 && (
+                              <p className="mt-2 text-xs text-red-400 font-medium">
+                                ⚠️ Un plazo mayor a 35 años es muy poco común. Lo normal es un máximo de 30 años.
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Euribor Manual con botón de consulta */}
+                          <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Euribor a 12 meses (%)</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={euriborActual || ''}
+                                onChange={(e) => {
+                                  const nuevoEuribor = Number(e.target.value);
+                                  setEuriborActual(nuevoEuribor);
+                                  // Recalcular el tipo de interés con el nuevo Euribor
+                                  const interesCalculado = calcularTipoInteres(tipoHipoteca);
+                                  setTipoInteres(interesCalculado);
+                                }}
+                                step="0.01"
+                                placeholder="2.50"
+                                className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                              />
+                              <button
+                                onClick={consultarEuriborBCE}
+                                disabled={consultingEuribor}
+                                title="Consultar Euribor del día en el BCE"
+                                className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                              >
+                                {consultingEuribor ? (
+                                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                            <p className="mt-2 text-xs text-gray-400">Consulta el dato oficial del BCE o intróduce manualmente</p>
+                          </div>
                         </div>
 
                         {/* Importe de la Hipoteca (calculado) */}
@@ -1192,7 +1310,7 @@ export default function Home() {
                         </div>
 
                         {/* Selector Tipo de Hipoteca */}
-                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 md:col-span-2">
+                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
                           <label className="block text-sm font-medium text-gray-300 mb-3">Tipo de Hipoteca</label>
                           <div className="relative inline-flex w-full bg-slate-700 rounded-lg p-1">
                             {/* Indicador animado de fondo */}
@@ -1230,9 +1348,9 @@ export default function Home() {
                           {/* Info adicional sobre el tipo seleccionado */}
                           <div className="mt-3 text-xs text-gray-400">
                             {tipoHipoteca === 'variable' ? (
-                              <p>💡 Variable: Euribor ({euriborActual.toFixed(2)}%) + Diferencial (0.8%) - Se revisa periódicamente</p>
+                              <p>💡 Variable: Euribor ({euriborActual.toFixed(2)}%) + Diferencial (0.8%) = {(euriborActual + 0.8).toFixed(2)}% - Se revisa periódicamente</p>
                             ) : (
-                              <p>💡 Fija: Euribor ({euriborActual.toFixed(2)}%) + Diferencial (1.5%) - Tipo fijo durante todo el plazo</p>
+                              <p>💡 Fija: Euribor ({euriborActual.toFixed(2)}%) + Diferencial (1.5%) = {(euriborActual + 1.5).toFixed(2)}% - Tipo fijo durante todo el plazo</p>
                             )}
                           </div>
                         </div>
@@ -1301,6 +1419,45 @@ export default function Home() {
                           </svg>
                           <span>Volver a Hipoteca</span>
                         </button>
+                      </div>
+
+                      {/* Campo de Alquiler Mensual con botón de estimación GPT */}
+                      <div className="mb-6 bg-gradient-to-r from-teal-900/30 to-blue-900/30 p-5 rounded-xl border border-teal-500/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-lg font-bold text-white">Alquiler Mensual Estimado</label>
+                          <button
+                            onClick={estimarAlquiler}
+                            disabled={consultingRent}
+                            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-blue-600 text-white rounded-lg hover:from-teal-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium shadow-lg"
+                          >
+                            {consultingRent ? (
+                              <>
+                                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Consultando GPT...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Calcular con GPT
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <input
+                          type="number"
+                          value={selectedProperty.alquilerMensual || ''}
+                          onChange={(e) => setSelectedProperty({ ...selectedProperty, alquilerMensual: parseInt(e.target.value) || null })}
+                          placeholder="Ej: 850€"
+                          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 text-lg font-semibold"
+                        />
+                        <p className="mt-2 text-xs text-gray-400">
+                          💡 Usa el botón para que GPT estime el precio de alquiler según la ubicación y características, o introdúcelo manualmente
+                        </p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1583,7 +1740,7 @@ export default function Home() {
               </div>
 
               {/* Botones de acción */}
-              <div className="flex gap-4 pt-4 border-t border-slate-700">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-700">
                 <button
                   onClick={handleSaveDetails}
                   disabled={loading}
@@ -1599,7 +1756,7 @@ export default function Home() {
                       setShowDetailsModal(false);
                     }
                   }}
-                  className="px-6 py-3 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 text-red-400 rounded-lg font-semibold transition-all"
+                  className="px-6 py-3 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 text-red-400 rounded-lg font-semibold transition-all whitespace-nowrap"
                 >
                   Eliminar Propiedad
                 </button>
