@@ -119,7 +119,7 @@ export default function Home() {
     const result = await analyzeProperty(idealistaUrl);
 
     if (result.success && result.data) {
-      // Si viene con alquilerMensual, marcar automáticamente como alquilado
+      // Si viene con alquilerMensual, marcar automáticamente como alquiladod
       const isRented = !!(result.data.alquilerMensual && result.data.alquilerMensual > 0);
 
       setFormData({
