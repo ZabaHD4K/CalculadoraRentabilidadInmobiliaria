@@ -76,30 +76,30 @@ export default function Home() {
       if (porcentajeMantenimiento > 0) {
         const mantenimientoCalculado = Math.round(rentaAnual * (porcentajeMantenimiento / 100));
         if (selectedProperty.mantenimiento !== mantenimientoCalculado) {
-          setSelectedProperty(prev => ({
+          setSelectedProperty(prev => prev ? ({
             ...prev,
             mantenimiento: mantenimientoCalculado
-          }));
+          }) : null);
         }
       }
       
       if (porcentajeSeguroImpago > 0) {
         const seguroImpagoCalculado = Math.round(rentaAnual * (porcentajeSeguroImpago / 100));
         if (selectedProperty.seguroImpago !== seguroImpagoCalculado) {
-          setSelectedProperty(prev => ({
+          setSelectedProperty(prev => prev ? ({
             ...prev,
             seguroImpago: seguroImpagoCalculado
-          }));
+          }) : null);
         }
       }
       
       if (porcentajePeriodosVacantes > 0) {
         const periodosVacantesCalculado = Math.round(rentaAnual * (porcentajePeriodosVacantes / 100));
         if (selectedProperty.periodosVacantes !== periodosVacantesCalculado) {
-          setSelectedProperty(prev => ({
+          setSelectedProperty(prev => prev ? ({
             ...prev,
             periodosVacantes: periodosVacantesCalculado
-          }));
+          }) : null);
         }
       }
     }
