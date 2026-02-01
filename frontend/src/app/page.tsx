@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PropertyData, analyzeProperty, saveProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor } from "@/services/api";
+import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor } from "@/services/api";
 
 export default function Home() {
   const router = useRouter();
@@ -66,6 +66,44 @@ export default function Home() {
   useEffect(() => {
     loadProperties();
   }, []);
+
+  // Recalcular valores basados en porcentaje cuando cambia el alquiler mensual
+  useEffect(() => {
+    if (selectedProperty && selectedProperty.alquilerMensual) {
+      const rentaAnual = selectedProperty.alquilerMensual * 12;
+      
+      // Solo recalcular si hay un porcentaje configurado (diferente de 0)
+      if (porcentajeMantenimiento > 0) {
+        const mantenimientoCalculado = Math.round(rentaAnual * (porcentajeMantenimiento / 100));
+        if (selectedProperty.mantenimiento !== mantenimientoCalculado) {
+          setSelectedProperty(prev => ({
+            ...prev,
+            mantenimiento: mantenimientoCalculado
+          }));
+        }
+      }
+      
+      if (porcentajeSeguroImpago > 0) {
+        const seguroImpagoCalculado = Math.round(rentaAnual * (porcentajeSeguroImpago / 100));
+        if (selectedProperty.seguroImpago !== seguroImpagoCalculado) {
+          setSelectedProperty(prev => ({
+            ...prev,
+            seguroImpago: seguroImpagoCalculado
+          }));
+        }
+      }
+      
+      if (porcentajePeriodosVacantes > 0) {
+        const periodosVacantesCalculado = Math.round(rentaAnual * (porcentajePeriodosVacantes / 100));
+        if (selectedProperty.periodosVacantes !== periodosVacantesCalculado) {
+          setSelectedProperty(prev => ({
+            ...prev,
+            periodosVacantes: periodosVacantesCalculado
+          }));
+        }
+      }
+    }
+  }, [selectedProperty?.alquilerMensual, porcentajeMantenimiento, porcentajeSeguroImpago, porcentajePeriodosVacantes]);
 
   const loadProperties = async () => {
     const result = await getProperties();
@@ -285,11 +323,16 @@ export default function Home() {
       gastosAnuales: gastosAnualesCalculados
     };
 
-    // Actualizar la propiedad en el backend (necesitaremos crear un endpoint de actualización)
-    // Por ahora, actualizamos localmente
-    setProperties(prev => prev.map(p =>
-      p.id === selectedProperty.id ? propertyToSave : p
-    ));
+    // Actualizar la propiedad en el backend
+    const result = await updateProperty(propertyToSave);
+    
+    if (result.success) {
+      // Recargar propiedades para sincronizar con el backend
+      await loadProperties();
+    } else {
+      console.error('Error al guardar detalles:', result.error);
+      alert('Error al guardar los cambios: ' + result.error);
+    }
 
     setShowDetailsModal(false);
     setLoading(false);
@@ -803,6 +846,75 @@ export default function Home() {
                   />
                 </div>
 
+                <div className="bg-gradient-to-r from-teal-900/30 to-blue-900/30 p-4 rounded-lg border border-teal-500/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-white">Alquiler mensual (€)</label>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setConsultingRent(true);
+                        try {
+                          const response = await fetch('http://localhost:3000/api/estimate-rent', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData),
+                          });
+
+                          if (response.ok) {
+                            const data = await response.json();
+                            const match = data.estimate.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+                            if (match) {
+                              const valorMedio = Math.round((parseFloat(match[1]) + parseFloat(match[2])) / 2);
+                              setFormData({ ...formData, alquilerMensual: valorMedio });
+                            } else {
+                              const singleMatch = data.estimate.match(/(\d+(?:\.\d+)?)/);
+                              if (singleMatch) {
+                                setFormData({ ...formData, alquilerMensual: Math.round(parseFloat(singleMatch[1])) });
+                              }
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error:', error);
+                          alert('Error al estimar el alquiler');
+                        } finally {
+                          setConsultingRent(false);
+                        }
+                      }}
+                      disabled={consultingRent}
+                      className="px-3 py-1.5 bg-gradient-to-r from-teal-600 to-blue-600 text-white rounded-lg hover:from-teal-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-xs font-medium shadow-lg"
+                    >
+                      {consultingRent ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Calculando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span>Calcular con IA</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.alquilerMensual || ""}
+                    onChange={(e) => setFormData({ ...formData, alquilerMensual: parseInt(e.target.value) || null })}
+                    placeholder="850"
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <p className="mt-1.5 text-xs text-gray-400">
+                    💡 Usa IA para estimar según ubicación y características
+                  </p>
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">URL de imagen (opcional)</label>
                   <input
@@ -919,14 +1031,22 @@ export default function Home() {
 
               {/* Botón destacado para ir al Dashboard de Análisis Financiero */}
               <button
-                onClick={() => {
-                  // Guardar propiedad antes de navegar
-                  handleSaveProperty();
-                  setTimeout(() => {
-                    router.push(`/dashboard/${selectedProperty.id}`);
-                  }, 500);
+                onClick={async () => {
+                  // Guardar propiedad actualizada antes de navegar
+                  if (selectedProperty && selectedProperty.id) {
+                    setLoading(true);
+                    const result = await updateProperty(selectedProperty);
+                    if (result.success) {
+                      await loadProperties();
+                      router.push(`/dashboard/${selectedProperty.id}`);
+                    } else {
+                      alert('Error al guardar los cambios: ' + result.error);
+                    }
+                    setLoading(false);
+                  }
                 }}
-                className="mt-4 w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-bold text-lg shadow-xl transform hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+                disabled={loading}
+                className="mt-4 w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-bold text-lg shadow-xl transform hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -957,23 +1077,62 @@ export default function Home() {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Precio de la Vivienda Base */}
-              <div className="bg-gradient-to-r from-teal-900/30 to-blue-900/30 border border-teal-500/50 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-2">Precio de la vivienda base</h3>
-                <p className="text-4xl font-bold text-teal-400">
-                  {(
-                    selectedProperty.precio +
-                    (selectedProperty.itp || 0) +
-                    (selectedProperty.iva || 0) +
-                    (selectedProperty.notariaCompra || 0) +
-                    (selectedProperty.registroCompra || 0) +
-                    (selectedProperty.reforma || 0) +
-                    (selectedProperty.comisionAgencia || 0) +
-                    (selectedProperty.gestoriaHipoteca || 0) +
-                    (selectedProperty.tasacion || 0) +
-                    (selectedProperty.comisionApertura || 0)
-                  ).toLocaleString()}€
-                </p>
+              {/* Grid para Precio y Alquiler - Siempre visible */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Precio de la Vivienda Base */}
+                <div className="bg-gradient-to-r from-teal-900/30 to-blue-900/30 border border-teal-500/50 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-2">Precio de la vivienda base</h3>
+                  <p className="text-4xl font-bold text-teal-400">
+                    {(
+                      selectedProperty.precio +
+                      (selectedProperty.itp || 0) +
+                      (selectedProperty.iva || 0) +
+                      (selectedProperty.notariaCompra || 0) +
+                      (selectedProperty.registroCompra || 0) +
+                      (selectedProperty.reforma || 0) +
+                      (selectedProperty.comisionAgencia || 0) +
+                      (selectedProperty.gestoriaHipoteca || 0) +
+                      (selectedProperty.tasacion || 0) +
+                      (selectedProperty.comisionApertura || 0)
+                    ).toLocaleString()}€
+                  </p>
+                </div>
+
+                {/* Alquiler Mensual - Siempre visible */}
+                <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xl font-bold text-white">Alquiler Mensual</h3>
+                    <button
+                      onClick={estimarAlquiler}
+                      disabled={consultingRent}
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-xs font-medium shadow-lg"
+                    >
+                      {consultingRent ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Calculando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span>IA</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    value={selectedProperty.alquilerMensual || ''}
+                    onChange={(e) => setSelectedProperty({ ...selectedProperty, alquilerMensual: parseInt(e.target.value) || null })}
+                    placeholder="Ej: 850€"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-purple-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-2xl font-bold"
+                  />
+                </div>
               </div>
 
               {/* Contenedor con animación de deslizamiento */}
@@ -1166,7 +1325,10 @@ export default function Home() {
 
                   {/* Comisión Agencia */}
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Comisión Agencia</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Comisión Agencia
+                      <span className="text-xs text-gray-400 ml-2">(normalmente 3-5% + IVA)</span>
+                    </label>
                     <input
                       type="number"
                       value={selectedProperty.comisionAgencia || ''}
@@ -1419,45 +1581,6 @@ export default function Home() {
                           </svg>
                           <span>Volver a Hipoteca</span>
                         </button>
-                      </div>
-
-                      {/* Campo de Alquiler Mensual con botón de estimación GPT */}
-                      <div className="mb-6 bg-gradient-to-r from-teal-900/30 to-blue-900/30 p-5 rounded-xl border border-teal-500/30">
-                        <div className="flex items-center justify-between mb-3">
-                          <label className="block text-lg font-bold text-white">Alquiler Mensual Estimado</label>
-                          <button
-                            onClick={estimarAlquiler}
-                            disabled={consultingRent}
-                            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-blue-600 text-white rounded-lg hover:from-teal-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium shadow-lg"
-                          >
-                            {consultingRent ? (
-                              <>
-                                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Consultando GPT...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                Calcular con GPT
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        <input
-                          type="number"
-                          value={selectedProperty.alquilerMensual || ''}
-                          onChange={(e) => setSelectedProperty({ ...selectedProperty, alquilerMensual: parseInt(e.target.value) || null })}
-                          placeholder="Ej: 850€"
-                          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 text-lg font-semibold"
-                        />
-                        <p className="mt-2 text-xs text-gray-400">
-                          💡 Usa el botón para que GPT estime el precio de alquiler según la ubicación y características, o introdúcelo manualmente
-                        </p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

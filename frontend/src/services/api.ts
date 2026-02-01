@@ -187,6 +187,42 @@ export async function saveProperty(propertyData: PropertyData): Promise<Properti
   }
 }
 
+export async function updateProperty(propertyData: PropertyData): Promise<PropertiesResponse> {
+  try {
+    if (!propertyData.id) {
+      return {
+        success: false,
+        error: 'ID de propiedad requerido para actualizar',
+      };
+    }
+
+    const response = await fetch(`${API_URL}/api/properties/${propertyData.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(propertyData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'Error al actualizar la propiedad',
+      };
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error en updateProperty:', error);
+    return {
+      success: false,
+      error: 'Error al conectar con el servidor',
+    };
+  }
+}
+
 export async function getProperties(): Promise<PropertiesResponse> {
   try {
     const response = await fetch(`${API_URL}/api/properties`);

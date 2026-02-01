@@ -365,6 +365,49 @@ app.delete('/api/properties/:id', (req, res) => {
   });
 });
 
+// Endpoint para actualizar una propiedad existente
+app.put('/api/properties/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedData = req.body;
+    
+    const index = properties.findIndex(p => p.id === id);
+    
+    if (index === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Propiedad no encontrada'
+      });
+    }
+    
+    // Actualizar la propiedad manteniendo el ID y createdAt original
+    properties[index] = {
+      ...properties[index],
+      ...updatedData,
+      id: properties[index].id,
+      createdAt: properties[index].createdAt,
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('\n=== Propiedad actualizada ===');
+    console.log('ID:', id);
+    console.log('Alquiler mensual:', properties[index].alquilerMensual);
+    
+    res.json({
+      success: true,
+      property: properties[index]
+    });
+    
+  } catch (error) {
+    console.error('Error al actualizar propiedad:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al actualizar la propiedad',
+      details: error.message
+    });
+  }
+});
+
 // Endpoint para estimar alquiler con GPT
 app.post('/api/estimate-rent', async (req, res) => {
   try {
