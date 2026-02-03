@@ -2,6 +2,10 @@
 
 Backend del proyecto RealStateAI con integración de OpenAI GPT.
 
+## Deployment
+
+El backend está desplegado en **Render**: [https://tu-app.onrender.com](https://tu-app.onrender.com)
+
 ## Instalación
 
 1. Instalar dependencias:
