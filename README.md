@@ -54,8 +54,8 @@
 - 🖼️ **Extrae imágenes automáticamente** (3-5 imágenes por propiedad) mediante IA con sistema de triple fallback
 - 💰 **Calcula impuestos precisos** (ITP, IVA, AJD) por Comunidad Autónoma
 - 🏦 **Simula hipotecas** (fijas y variables con Euribor actualizado en tiempo real)
-- 📊 **Calcula ROI real** sobre tu capital propio (entrada), no sobre el precio total, restando cuota hipotecaria
-- 📈 **Genera análisis financieros** completos con métricas de rentabilidad (ROI, Cash Flow, TIR, VAN)
+- 📊 **Calcula ROI total real** incluyendo cash flow, amortización de deuda y revalorización del inmueble
+- 📈 **Genera análisis financieros** completos con métricas de rentabilidad (ROI Total, Cash Flow, TIR, VAN)
 - 📈 **Visualiza datos** con gráficos interactivos de ROI, cash flow y más
 - 🎯 **Gestiona múltiples propiedades** en un dashboard intuitivo con badges de ROI y alquiler animados
 - ✨ **Badges inteligentes** que muestran ROI y alquiler mensual con animaciones según el rendimiento
@@ -66,8 +66,15 @@
 ## 🎯 Demo
 
 **Prueba la aplicación en vivo:**  
-🌐 **[https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)**  
+🌐 **Frontend:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)  
+🔧 **Backend:** [https://calculadorarentabilidadinmobiliaria-1.onrender.com](https://calculadorarentabilidadinmobiliaria-1.onrender.com)  
 🔐 **Contraseña de acceso:** `3808`
+
+⚠️ **Si ves "Error al conectar con el servidor"**:
+- **El backend está dormido** (servicios gratuitos de Render se duermen tras 15 min)
+- **Solución**: Espera 30-60 segundos y recarga la página
+- El backend se despierta automáticamente al primer request
+- Tip: Abre primero el enlace del backend para despertarlo antes de usar la app
 
 ### 🎨 Características de la demo:
 - 🔐 **Sistema de autenticación** con modal animado espectacular
@@ -922,18 +929,26 @@ Testeado con **3 inversores reales:**
 ### Fase 1: MVP Mejorado (Febrero 2026)
 
 - [ ] Base de datos persistente (MongoDB/PostgreSQL)
-- [ ] Comparación de propiedades lado a lado
-- [ ] Gráficos de rentabilidad avanzados
-- [ ] Exportación a PDF
+- [ ] Comparación de propiedades lado a lado con métricas paralelas
+- [ ] Gráficos de rentabilidad avanzados con proyección 10-30 años
+- [ ] Exportación a PDF con análisis completo y gráficos profesionales
 - [ ] **Exportar/Importar propiedades como JSON** para backup y portabilidad
+- [ ] Calculadora de break-even (punto de equilibrio)
+- [ ] Alertas de mercado cuando mejora el ROI o cambian precios
+- [ ] Sistema de usuarios con autenticación completa
 
 ### Fase 2: Funcionalidades Avanzadas (Marzo-Abril 2026)
 
-- [ ] Sistema de autenticación (Firebase Auth)
-- [ ] Dashboard con KPIs globales
-- [ ] Alertas de oportunidades (ROI > X%)
-- [ ] Favoritos y etiquetas
+- [ ] Machine Learning para predicción de precios de alquiler
+- [ ] Integración con APIs de bancos para tasas reales en tiempo real
+- [ ] Dashboard con KPIs globales y portfolio completo
+- [ ] Alertas y notificaciones por email/push
+- [ ] Favoritos, etiquetas y búsqueda avanzada
 - [ ] Modo oscuro/claro configurable
+- [ ] Multi-usuario con permisos y roles
+- [ ] Modo offline con sincronización automática
+- [ ] Simulador de escenarios (optimista, realista, pesimista)
+- [ ] Historial de cambios y tracking de evolución
 
 ### Fase 3: Expansión (Mayo-Junio 2026)
 

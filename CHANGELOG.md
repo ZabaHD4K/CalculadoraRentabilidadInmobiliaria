@@ -1,5 +1,73 @@
 # 📝 Notas de Cambios - RealState AI
 
+## Versión 2.1.7 - 4 de Febrero de 2026
+
+### 📈 ROI Total: Incluyendo Amortización y Revalorización
+
+**Mejora importante**: El ROI en las tarjetas ahora muestra el **retorno total real** de la inversión, no solo el cash flow.
+
+#### 🎯 Nueva Fórmula Completa
+
+```javascript
+ROI Total = (Cash Flow + Amortización + Revalorización) / Capital Propio × 100
+```
+
+**Componentes del retorno:**
+
+1. **💰 Cash Flow Anual**:
+   ```
+   Alquiler anual - Gastos anuales - Cuota hipoteca
+   ```
+   Dinero líquido que entra en tu cuenta cada año
+
+2. **🏦 Amortización Anual**:
+   ```
+   Parte de la cuota hipotecaria que reduce tu deuda
+   ```
+   Aumenta tu patrimonio (equity) en el inmueble
+
+3. **📈 Revalorización Anual**:
+   ```
+   2% del precio del inmueble (inflación típica)
+   ```
+   Incremento del valor del activo
+
+#### 📊 Ejemplo Real
+
+**Propiedad con financiación**:
+- Precio: 185,000€
+- Capital propio (30%): 55,500€
+- Alquiler anual: 9,600€
+- Gastos anuales: 7,945€
+- Cuota hipoteca: 5,200€/año
+- Amortización año 1: 2,800€
+- Revalorización (2%): 3,700€
+
+**Cálculo paso a paso**:
+- Cash Flow = 9,600 - 7,945 - 5,200 = **-3,545€** (negativo)
+- Amortización = **+2,800€** (aumenta tu equity)
+- Revalorización = **+3,700€** (aumenta valor inmueble)
+- **Total = -3,545 + 2,800 + 3,700 = 2,955€**
+
+**ROI Total = 2,955 / 55,500 × 100 = 5.3%** ✅
+
+Sin incluir amortización y revalorización, el ROI habría sido **-6.4%** (incorrecto)
+
+#### 💡 Por qué es Importante
+
+- ✅ **Visión completa**: No solo miras el dinero en cuenta, sino todo el valor generado
+- ✅ **Decisiones informadas**: Una propiedad con cash flow negativo puede ser buena inversión
+- ✅ **Comparación justa**: Puedes comparar con otros tipos de inversión (bolsa, fondos)
+- ✅ **Realista**: Así calculan los inversores profesionales el retorno real
+
+#### 🔄 Actualización Automática
+
+- Los badges en las tarjetas se actualizan automáticamente con el ROI total
+- Al cambiar parámetros en el dashboard, el ROI recalcula con todos los componentes
+- El sistema detecta si hay hipoteca para calcular correctamente la amortización
+
+---
+
 ## Versión 2.1.6 - 4 de Febrero de 2026
 
 ### 🔧 Corrección Crítica del Cálculo de ROI

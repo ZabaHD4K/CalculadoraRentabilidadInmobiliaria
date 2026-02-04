@@ -248,10 +248,14 @@ export default function Home() {
       return { value: null, status: 'pending' };
     }
 
-    // Si hay hipoteca, restar la cuota anual de los beneficios
-    let beneficioNeto = ingresosAnuales - gastosAnuales;
+    // Calcular beneficio neto (cash flow)
+    let cashFlowAnual = ingresosAnuales - gastosAnuales;
     
-    // Si hay datos de hipoteca, calcular y restar la cuota
+    // Variables para el ROI total
+    let amortizacionAnual = 0;
+    let revalorizacionAnual = 0;
+    
+    // Si hay datos de hipoteca, calcular cuota y amortización
     if (property.capitalPropio && property.plazoHipoteca && property.tipoInteres) {
       const capitalFinanciado = inversionTotal - property.capitalPropio;
       if (capitalFinanciado > 0) {
@@ -259,19 +263,36 @@ export default function Home() {
         const numPagos = property.plazoHipoteca * 12;
         const cuotaMensual = capitalFinanciado * (tasaMensual * Math.pow(1 + tasaMensual, numPagos)) / (Math.pow(1 + tasaMensual, numPagos) - 1);
         const cuotaAnual = cuotaMensual * 12;
-        beneficioNeto = beneficioNeto - cuotaAnual;
+        cashFlowAnual = cashFlowAnual - cuotaAnual;
+        
+        // Calcular amortización del primer año (parte de la cuota que reduce la deuda)
+        let saldoHipoteca = capitalFinanciado;
+        for (let mes = 0; mes < 12; mes++) {
+          const interesMes = saldoHipoteca * tasaMensual;
+          const amortizacionMes = cuotaMensual - interesMes;
+          amortizacionAnual += amortizacionMes;
+          saldoHipoteca -= amortizacionMes;
+        }
       }
     }
-
-    // ROI = Beneficio Neto Anual / Capital Invertido * 100
-    const roi = (beneficioNeto / capitalInvertido) * 100;
+    
+    // Revalorización anual del inmueble (2% por defecto como inflación típica)
+    const tasaRevalorizacion = 0.02; // 2%
+    revalorizacionAnual = property.precio * tasaRevalorizacion;
+    
+    // ROI TOTAL = (Cash Flow + Amortización + Revalorización) / Capital Invertido * 100
+    const gananciaTotal = cashFlowAnual + amortizacionAnual + revalorizacionAnual;
+    const roi = (gananciaTotal / capitalInvertido) * 100;
 
     console.log(`📊 ROI calculado para ${property.nombre}:`, {
       ingresosAnuales,
       gastosAnuales,
       capitalInvertido,
       inversionTotal,
-      beneficioNeto: Math.round(beneficioNeto),
+      cashFlowAnual: Math.round(cashFlowAnual),
+      amortizacionAnual: Math.round(amortizacionAnual),
+      revalorizacionAnual: Math.round(revalorizacionAnual),
+      gananciaTotal: Math.round(gananciaTotal),
       roi: roi.toFixed(2) + '%'
     });
 
