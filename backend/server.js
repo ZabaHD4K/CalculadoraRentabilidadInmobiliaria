@@ -598,7 +598,12 @@ app.put('/api/properties/:id', (req, res) => {
     
     console.log('\n=== Propiedad actualizada ===');
     console.log('ID:', id);
+    console.log('Precio:', properties[index].precio);
     console.log('Alquiler mensual:', properties[index].alquilerMensual);
+    console.log('Gastos anuales:', properties[index].gastosAnuales);
+    console.log('Capital propio:', properties[index].capitalPropio);
+    console.log('Plazo hipoteca:', properties[index].plazoHipoteca);
+    console.log('Tipo interés:', properties[index].tipoInteres);
     
     res.json({
       success: true,

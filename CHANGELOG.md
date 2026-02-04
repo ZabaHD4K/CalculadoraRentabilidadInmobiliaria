@@ -1,5 +1,267 @@
 # 📝 Notas de Cambios - RealState AI
 
+## Versión 2.1.6 - 4 de Febrero de 2026
+
+### 🔧 Corrección Crítica del Cálculo de ROI
+
+**Corrección importante**: El ROI ahora se calcula correctamente sobre el capital propio (entrada real del inversor) en lugar del precio total del inmueble.
+
+#### 🎯 Cambios en la Fórmula
+
+**❌ Fórmula INCORRECTA (antes)**:
+```javascript
+ROI = (Alquiler anual - Gastos anuales) / Precio total * 100
+```
+Problema: Calculaba la rentabilidad sobre el precio total del inmueble, ignorando la financiación.
+
+**✅ Fórmula CORRECTA (ahora)**:
+```javascript
+ROI = (Alquiler anual - Gastos - Cuota hipoteca) / Capital propio * 100
+```
+Beneficios:
+- ✅ Usa el **capital propio** (dinero que TÚ pones) como base
+- ✅ Resta la **cuota de hipoteca** de los beneficios
+- ✅ Refleja la **rentabilidad real** de tu inversión
+- ✅ Si no hay hipoteca, usa el precio total como antes
+
+#### 📊 Ejemplo Real
+
+**Propiedad con financiación**:
+- Precio total: 212,233€
+- Capital propio (30%): 63,670€
+- Alquiler anual: 9,600€
+- Gastos anuales: 7,945€
+- Cuota hipoteca anual: 5,200€
+
+**Antes**: ROI = (9,600 - 7,945) / 212,233 × 100 = **0.78%** ❌
+**Ahora**: ROI = (9,600 - 7,945 - 5,200) / 63,670 × 100 = **-8.56%** ✅
+
+(Nota: El ROI negativo indica que la propiedad no es rentable con esas condiciones)
+
+#### 🔄 Integración Completa
+
+1. **Cálculo automático de cuota**: Si hay hipoteca, calcula la cuota mensual con fórmula francesa
+2. **Validación de datos**: Verifica que todos los datos de hipoteca estén presentes
+3. **Actualización dinámica**: Al cambiar capital propio o plazo en el dashboard, el ROI se recalcula
+4. **Guardado persistente**: Los cambios se guardan y el ROI se actualiza en las tarjetas
+5. **Visualización mejorada**: Los badges ROI reflejan la rentabilidad real con colores y animaciones
+
+#### 💡 Impacto en la Toma de Decisiones
+
+- **Precisión financiera**: Ahora muestra la rentabilidad real sobre tu inversión
+- **Comparación justa**: Permite comparar propiedades con diferentes niveles de financiación
+- **Decisiones informadas**: Los inversores ven el retorno real de su capital
+- **Transparencia**: Incluye todos los costos (gastos + hipoteca) en el cálculo
+
+---
+
+## Versión 2.1.5 - 4 de Febrero de 2026
+
+### 💾 Sistema de Guardado en Análisis Financiero
+
+**Nueva funcionalidad**: Los cambios realizados en el dashboard de análisis financiero ahora se guardan automáticamente, actualizando el ROI visible en las tarjetas principales.
+
+#### 🎯 Características Implementadas
+
+1. **Botón Flotante de Guardado**:
+   - 💾 Botón flotante en la esquina inferior derecha
+   - 🎨 Estados visuales dinámicos:
+     - **Normal**: Gradiente teal-cyan con icono de guardado
+     - **Guardando**: Spinner animado + texto "Guardando..."
+     - **Guardado**: ✓ Verde con animación de escala + "¡Guardado!"
+   - 🎭 Animaciones suaves de hover y transición
+
+2. **Sincronización Completa de Datos**:
+   - 📊 Guarda todos los parámetros editados:
+     - Precio del inmueble
+     - Alquiler mensual
+     - Capital propio (entrada)
+     - Plazo de hipoteca
+     - Tipo de interés
+     - Comunidad, IBI, seguros
+     - Porcentajes de mantenimiento, impago, vacantes
+   
+   - 🔄 Recalcula automáticamente:
+     - Gastos anuales totales
+     - Valores de gastos desde porcentajes
+     - ROI completo
+
+3. **Actualización del ROI en Tarjetas**:
+   - 🎯 Al guardar cambios en el dashboard, el ROI se recalcula
+   - 🏷️ Las tarjetas de la página principal muestran el ROI actualizado
+   - 🎨 Las animaciones del badge ROI reflejan el nuevo cálculo:
+     - Rojo (< 5%) → Verde (5-10%) → Verde+partículas (10-15%) → Azul+sparkles (>15%)
+   
+4. **Flujo de Trabajo Mejorado**:
+   ```
+   1. Usuario abre propiedad → Modal de detalles
+   2. Llena todos los datos → Botón análisis se desbloquea
+   3. Click en "Análisis Financiero Avanzado" → Dashboard
+   4. Ajusta parámetros (capital propio, plazo, etc.)
+   5. Click en "💾 Guardar Cambios" → Datos persistidos
+   6. Vuelve a página principal → ROI actualizado visible
+   ```
+
+5. **Feedback Visual Mejorado**:
+   - ⏳ Indicador de carga mientras guarda
+   - ✅ Confirmación visual (3 segundos) al guardar exitosamente
+   - ⚠️ Alert si hay error en el guardado
+   - 🎨 Transiciones suaves en todos los estados
+
+#### 💡 Impacto en la Experiencia de Usuario
+
+- **Persistencia real**: Los análisis y simulaciones ya no se pierden al salir
+- **ROI actualizado**: Las comparaciones entre propiedades son precisas y actualizadas
+- **Workflow fluido**: Editar → Simular → Guardar → Ver resultados en un ciclo natural
+- **Confianza del usuario**: Feedback claro de que los cambios se han guardado correctamente
+
+---
+
+## Versión 2.1.4 - 4 de Febrero de 2026
+
+### 🔒 Validación de Datos y Bloqueo Inteligente de Análisis
+
+**Nueva funcionalidad**: El botón de Análisis Financiero Avanzado solo se activa cuando todos los datos necesarios están completos, con animación premium de desbloqueo.
+
+#### 🎯 Características Implementadas
+
+1. **Validación Completa de Datos**:
+   - ✅ **Datos básicos**: Precio del inmueble y alquiler mensual
+   - ✅ **Gastos de adquisición**: Al menos ITP o IVA configurado
+   - ✅ **Gastos notariales**: Notaría o Registro de compra
+   - ✅ **Gastos anuales**: Comunidad e IBI como mínimo
+   - ✅ **Datos de hipoteca**: Si hay capital propio, validar plazo y tipo de interés
+
+2. **Botón Inteligente con Estados Visuales**:
+   - 🔒 **Estado Bloqueado** (datos incompletos):
+     - Gris y en blanco/negro (grayscale)
+     - Apariencia de botón hundido (pulsado)
+     - Cursor not-allowed
+     - Badge rojo: "Completa todos los datos"
+     - Opacidad reducida (60%)
+   
+   - 🎉 **Estado Desbloqueado** (todos los datos completos):
+     - Animación espectacular de "levantamiento"
+     - Gradiente purple-pink vibrante
+     - Efecto de sombra expansiva
+     - Transición de color suave (grayscale → color)
+     - Transform desde posición hundida a elevada
+     - Brillo y glow pulsante
+
+3. **Animación CSS de Desbloqueo**:
+   ```css
+   @keyframes button-unlock {
+     0% {
+       transform: translateY(4px);
+       filter: grayscale(100%);
+       box-shadow: 0 0 0 rgba(168, 85, 247, 0);
+     }
+     50% {
+       transform: translateY(-4px);
+       filter: grayscale(0%);
+       box-shadow: 0 10px 40px rgba(168, 85, 247, 0.4);
+     }
+     100% {
+       transform: translateY(0);
+       filter: grayscale(0%);
+       box-shadow: 0 20px 60px rgba(168, 85, 247, 0.6);
+     }
+   }
+   ```
+
+4. **Persistencia Mejorada de Datos**:
+   - 💾 Guardado automático de todos los datos de hipoteca antes de navegar
+   - 📊 El dashboard ahora carga correctamente:
+     - Capital propio desde la propiedad guardada
+     - Plazo de hipoteca configurado
+     - Tipo de interés personalizado
+     - Todos los gastos calculados
+   - 🔄 Sincronización completa entre modal de edición y dashboard
+
+5. **Cálculos Automáticos Mejorados**:
+   - ⚡ Al guardar, se recalculan automáticamente los `gastosAnuales`
+   - 📈 El dashboard usa los valores guardados en lugar de defaults
+   - 🎯 Si no hay datos de hipoteca, usa 30% como capital propio default
+
+#### 💡 Impacto en la Experiencia de Usuario
+
+- **Prevención de errores**: No se puede acceder al análisis financiero con datos incompletos
+- **Feedback visual claro**: El usuario sabe exactamente qué falta por completar
+- **Satisfacción de logro**: La animación de desbloqueo gamifica el proceso de completar datos
+- **Consistencia de datos**: Garantiza que todos los cálculos se hagan con datos completos y correctos
+- **Mejor precisión**: Los análisis financieros son más confiables al estar basados en datos verificados
+
+---
+
+## Versión 2.1.3 - 4 de Febrero de 2026
+
+### 🎨 Mejoras de UX y Visualización de Métricas
+
+**Nuevas funcionalidades visuales**: Sistema de badges inteligentes y mejoras en feedback de búsqueda.
+
+#### 🎯 Características Implementadas
+
+1. **Indicador de Progreso en Búsqueda de Propiedades**:
+   - ⏳ Spinner circular animado mientras se busca la propiedad
+   - ⚡ Mensaje informativo: "Este proceso puede tardar hasta 50 segundos..."
+   - 🎨 Diseño coherente con el sistema de colores de la aplicación
+   - 💡 Mejora significativa de la experiencia de usuario al proporcionar feedback visual
+
+2. **Badges de ROI Inteligentes con Animaciones por Nivel**:
+   - 📊 **Badge de ROI** (arriba izquierda de la imagen):
+     - **"Por calcular"** (gris): Cuando faltan datos para el cálculo
+     - **< 5% (rojo)**: ROI bajo, sin animaciones
+     - **5-10% (verde)**: ROI bueno, sin animaciones
+     - **10-15% (verde con partículas)**: ROI muy bueno, partículas flotantes animadas
+     - **> 15% (azul con brillos)**: ROI excelente, efecto de brillo pulsante + sparkles ✨
+   
+   - 💰 Cálculo del ROI:
+     ```
+     ROI = (Ingresos anuales - Gastos anuales) / Inversión total × 100
+     ```
+     - Ingresos anuales = Alquiler mensual × 12
+     - Gastos anuales = Suma de todos los gastos de la vivienda
+     - Inversión total = Precio + ITP/IVA + Notaría + Registro + Reforma + otros
+
+3. **Badge de Alquiler Mensual**:
+   - 💵 **Badge de Alquiler** (abajo derecha de la imagen):
+     - Muestra el alquiler mensual si está configurado: `850€/mes`
+     - Muestra "Por añadir" si aún no se ha introducido
+     - Estilo morado distintivo con borde brillante
+     - Visible en todo momento sobre la imagen de la propiedad
+
+4. **Animaciones CSS Premium**:
+   ```css
+   /* Partículas flotantes para ROI 10-15% */
+   @keyframes float-particles {
+     0%, 100% { transform: translateY(0px) translateX(0px); }
+     25% { transform: translateY(-10px) translateX(5px); }
+     50% { transform: translateY(-5px) translateX(-5px); }
+     75% { transform: translateY(-15px) translateX(3px); }
+   }
+   
+   /* Brillo pulsante para ROI > 15% */
+   @keyframes glow-pulse {
+     0%, 100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+     50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+   }
+   ```
+
+5. **Mejoras de Diseño**:
+   - 🎨 Badges con fondo semi-transparente y efecto blur
+   - 🌈 Sistema de colores progresivo según rendimiento
+   - ✨ Animaciones sutiles que destacan sin distraer
+   - 📱 Diseño responsive que funciona en todos los dispositivos
+
+#### 💡 Impacto en la Experiencia de Usuario
+
+- **Feedback instantáneo**: Los usuarios ven el estado de ROI y alquiler sin necesidad de abrir la propiedad
+- **Gamificación visual**: Las animaciones premian propiedades con mejor rendimiento
+- **Transparencia**: Indicadores claros de progreso y estado de datos
+- **Decisiones informadas**: Comparación visual rápida entre múltiples propiedades
+
+---
+
 ## Versión 2.1.2 - 4 de Febrero de 2026
 
 ### 🔐 Sistema de Autenticación Implementado

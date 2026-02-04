@@ -16,7 +16,7 @@
 
 **🌐 Demo en vivo:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)
 
-**🔐 Contraseña de acceso:** `3808` (para amigos y pruebas)
+**🔐 Contraseña de acceso: Solicita la contraseña al creador** 
 
 </div>
 
@@ -49,14 +49,17 @@
 
 ### ¿Qué hace RealStateAI?
 
-- 🔗 **Analiza propiedades de Idealista** pegando simplemente la URL
+- 🔗 **Analiza propiedades de Idealista** pegando simplemente la URL (con indicador de progreso de hasta 50 segundos)
 - 🤖 **Utiliza IA (GPT-4/GPT-5)** para estimaciones de alquiler y análisis de mercado
 - 🖼️ **Extrae imágenes automáticamente** (3-5 imágenes por propiedad) mediante IA con sistema de triple fallback
 - 💰 **Calcula impuestos precisos** (ITP, IVA, AJD) por Comunidad Autónoma
 - 🏦 **Simula hipotecas** (fijas y variables con Euribor actualizado en tiempo real)
-- 📊 **Genera análisis financieros** completos con métricas de rentabilidad (ROI, Cash Flow, TIR)
+- 📊 **Calcula ROI real** sobre tu capital propio (entrada), no sobre el precio total, restando cuota hipotecaria
+- 📈 **Genera análisis financieros** completos con métricas de rentabilidad (ROI, Cash Flow, TIR, VAN)
 - 📈 **Visualiza datos** con gráficos interactivos de ROI, cash flow y más
-- 🎯 **Gestiona múltiples propiedades** en un dashboard intuitivo con búsqueda y filtros
+- 🎯 **Gestiona múltiples propiedades** en un dashboard intuitivo con badges de ROI y alquiler animados
+- ✨ **Badges inteligentes** que muestran ROI y alquiler mensual con animaciones según el rendimiento
+- 💾 **Guarda simulaciones** desde el dashboard con actualización automática del ROI en tarjetas
 
 ---
 
@@ -68,14 +71,18 @@
 
 ### 🎨 Características de la demo:
 - 🔐 **Sistema de autenticación** con modal animado espectacular
-- ✅ **Análisis de propiedades** de Idealista en tiempo real
+- ✅ **Análisis de propiedades** de Idealista en tiempo real con indicador de progreso
 - 🖼️ **Extracción automática** de 3-5 imágenes por propiedad
 - 🤖 **Estimaciones de alquiler** con IA (GPT-4/GPT-5)
 - 💰 **Cálculos fiscales precisos** por todas las Comunidades Autónomas
 - 🏦 **Simulador de hipotecas** con Euribor actualizado desde Banco de España
 - 📊 **Dashboard interactivo** con múltiples propiedades y filtros
 - 📈 **Gráficos de rentabilidad** (ROI, Cash Flow, TIR)
-- 🗑️ **Gestión completa** (crear, editar, eliminar propiedades)
+- 🎯 **Badges inteligentes de ROI** con animaciones según rendimiento (<5% rojo, 5-10% verde, 10-15% verde con partículas, >15% azul con brillos)
+- 💵 **Badge de alquiler mensual** visible en cada tarjeta de propiedad
+- � **Sistema de guardado** en dashboard que actualiza el ROI automáticamente
+- 📊 **Cálculo ROI preciso** sobre capital propio (tu entrada real) descontando cuota hipotecaria
+- �🗑️ **Gestión completa** (crear, editar, eliminar propiedades)
 
 ---
 
@@ -221,6 +228,19 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 - **100% Responsive:** Optimizado para desktop, tablet y móvil
 - **UX Intuitiva:** Flujo de trabajo guiado paso a paso
 - **Feedback Visual:** Indicadores de carga, animaciones suaves, validaciones en tiempo real
+- **Badges Inteligentes de ROI (NUEVO v2.1.3):**
+  - 📊 ROI visible en cada tarjeta de propiedad
+  - 🎨 Colores dinámicos: rojo (<5%), verde (5-10%), verde con partículas (10-15%), azul con brillos (>15%)
+  - ✨ Animaciones premium para propiedades con mejor rendimiento
+  - 🔄 Estado "Por calcular" cuando faltan datos
+- **Badge de Alquiler Mensual (NUEVO v2.1.3):**
+  - 💰 Muestra alquiler mensual o "Por añadir"
+  - 👁️ Visible sin necesidad de abrir la propiedad
+  - 🎨 Diseño morado distintivo sobre la imagen
+- **Indicador de Progreso (NUEVO v2.1.3):**
+  - ⏳ Spinner animado durante búsqueda de propiedades
+  - 💬 Mensaje informativo: "Puede tardar hasta 50 segundos"
+  - ⚡ Mejora la experiencia del usuario con feedback visual claro
 
 ### 🔐 Características Técnicas
 
@@ -905,6 +925,7 @@ Testeado con **3 inversores reales:**
 - [ ] Comparación de propiedades lado a lado
 - [ ] Gráficos de rentabilidad avanzados
 - [ ] Exportación a PDF
+- [ ] **Exportar/Importar propiedades como JSON** para backup y portabilidad
 
 ### Fase 2: Funcionalidades Avanzadas (Marzo-Abril 2026)
 
@@ -1027,8 +1048,10 @@ SOFTWARE.
 Este proyecto no habría sido posible sin:
 
 - **Universidad U-tad:** Por la formación y apoyo académico
-- **OpenAI:** Por proporcionar acceso a GPT-4
-- **Comunidad de código abierto:** Por las increíbles librerías utilizadas
+- **OpenAI:** Por proporcionar acceso a GPT-4 y GPT-5 para análisis inteligente de propiedades
+- **Idealista:** Por proporcionar acceso a datos de propiedades inmobiliarias en España
+- **Banco de España:** Por los datos públicos del Euribor
+- **Comunidad de código abierto:** Por las increíbles librerías utilizadas (Next.js, React, Tailwind CSS, Recharts)
 - **Testers:** Por el feedback valioso durante el desarrollo
 - **Familia y amigos:** Por el apoyo incondicional
 

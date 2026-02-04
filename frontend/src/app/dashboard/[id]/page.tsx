@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { PropertyData, getProperties } from "@/services/api";
+import { PropertyData, getProperties, updateProperty } from "@/services/api";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function FinancialDashboard() {
@@ -42,10 +42,80 @@ export default function FinancialDashboard() {
   
   // Estado para el desplegable de edición de gastos
   const [mostrarEditarGastos, setMostrarEditarGastos] = useState(false);
+  
+  // Estado para guardar cambios
+  const [guardando, setGuardando] = useState(false);
+  const [cambiosGuardados, setCambiosGuardados] = useState(false);
 
   useEffect(() => {
     loadProperty();
   }, [propertyId]);
+
+  const handleGuardarCambios = async () => {
+    if (!property) return;
+    
+    setGuardando(true);
+    
+    try {
+      // Calcular valores desde porcentajes
+      const mantenimiento = (mantenimientoPct / 100) * precioInmueble;
+      const rentaAnual = alquilerMensualSimulado * 12;
+      const seguroImpago = (seguroImpagoPct / 100) * rentaAnual;
+      const periodosVacantes = (periodosVacantesPct / 100) * rentaAnual;
+      
+      // Calcular gastosAnuales
+      const gastosAnualesCalculados =
+        comunidadAnual +
+        mantenimiento +
+        seguroHogar +
+        (property.seguroVidaHipoteca || 0) +
+        seguroImpago +
+        ibi +
+        periodosVacantes;
+      
+      // Actualizar la propiedad con todos los valores editados
+      const updatedProperty: PropertyData = {
+        ...property,
+        precio: precioInmueble,
+        alquilerMensual: alquilerMensualSimulado,
+        capitalPropio: capitalPropio,
+        plazoHipoteca: plazoHipoteca,
+        tipoInteres: tipoInteres,
+        comunidadAnual: comunidadAnual,
+        seguroHogar: seguroHogar,
+        ibi: ibi,
+        mantenimiento: Math.round(mantenimiento),
+        seguroImpago: Math.round(seguroImpago),
+        periodosVacantes: Math.round(periodosVacantes),
+        gastosAnuales: Math.round(gastosAnualesCalculados),
+      };
+      
+      console.log('📊 Guardando propiedad con ROI data:', {
+        precio: updatedProperty.precio,
+        alquilerMensual: updatedProperty.alquilerMensual,
+        gastosAnuales: updatedProperty.gastosAnuales,
+        capitalPropio: updatedProperty.capitalPropio,
+        plazoHipoteca: updatedProperty.plazoHipoteca,
+        tipoInteres: updatedProperty.tipoInteres
+      });
+      
+      const result = await updateProperty(updatedProperty);
+      
+      if (result.success) {
+        setCambiosGuardados(true);
+        setTimeout(() => setCambiosGuardados(false), 3000);
+        // Actualizar el state local con la propiedad guardada
+        setProperty(updatedProperty);
+      } else {
+        alert('Error al guardar: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error guardando:', error);
+      alert('Error al guardar los cambios');
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   const calcularComunidadAproximada = () => {
     setCalculandoComunidad(true);
@@ -103,7 +173,7 @@ export default function FinancialDashboard() {
         if (foundProperty) {
           setProperty(foundProperty);
           
-          // Inicializar valores por defecto
+          // Inicializar valores desde la propiedad
           setPrecioInmueble(foundProperty.precio);
           setAlquilerMensualSimulado(foundProperty.alquilerMensual || 0);
           
@@ -124,19 +194,35 @@ export default function FinancialDashboard() {
             setPeriodosVacantesPct((foundProperty.periodosVacantes / rentaAnual) * 100);
           }
           
-          const gastosAdquisicion = 
-            (foundProperty.itp || 0) +
-            (foundProperty.iva || 0) +
-            (foundProperty.notariaCompra || 0) +
-            (foundProperty.registroCompra || 0) +
-            (foundProperty.comisionAgencia || 0) +
-            (foundProperty.gestoriaHipoteca || 0) +
-            (foundProperty.tasacion || 0) +
-            (foundProperty.comisionApertura || 0) +
-            (foundProperty.reforma || 0);
+          // Cargar datos de hipoteca desde la propiedad guardada
+          if (foundProperty.capitalPropio) {
+            setCapitalPropio(foundProperty.capitalPropio);
+          } else {
+            // Si no hay capital propio guardado, calcular 30% del precio total
+            const gastosAdquisicion = 
+              (foundProperty.itp || 0) +
+              (foundProperty.iva || 0) +
+              (foundProperty.notariaCompra || 0) +
+              (foundProperty.registroCompra || 0) +
+              (foundProperty.comisionAgencia || 0) +
+              (foundProperty.gestoriaHipoteca || 0) +
+              (foundProperty.tasacion || 0) +
+              (foundProperty.comisionApertura || 0) +
+              (foundProperty.reforma || 0);
+            
+            const precioTotal = foundProperty.precio + gastosAdquisicion;
+            setCapitalPropio(precioTotal * 0.3); // 30% por defecto
+          }
           
-          const precioTotal = foundProperty.precio + gastosAdquisicion;
-          setCapitalPropio(precioTotal * 0.2); // 20% por defecto
+          // Cargar plazo de hipoteca
+          if (foundProperty.plazoHipoteca) {
+            setPlazoHipoteca(foundProperty.plazoHipoteca);
+          }
+          
+          // Cargar tipo de interés
+          if (foundProperty.tipoInteres) {
+            setTipoInteres(foundProperty.tipoInteres);
+          }
         }
       }
     } catch (error) {
@@ -469,7 +555,10 @@ export default function FinancialDashboard() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              // Navegar a la página principal con recarga completa
+              window.location.href = '/';
+            }}
             className="mb-4 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1133,6 +1222,40 @@ export default function FinancialDashboard() {
             </p>
           </div>
         </div>
+      </div>
+      
+      {/* Botón flotante para guardar cambios */}
+      <div className="fixed bottom-8 right-8 z-50">
+        <button
+          onClick={handleGuardarCambios}
+          disabled={guardando}
+          className={`px-8 py-4 rounded-2xl font-bold text-lg shadow-2xl transform transition-all duration-300 flex items-center gap-3 ${
+            cambiosGuardados
+              ? 'bg-green-500 hover:bg-green-600 scale-110'
+              : 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 hover:scale-105'
+          } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {guardando ? (
+            <>
+              <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Guardando...</span>
+            </>
+          ) : cambiosGuardados ? (
+            <>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>¡Guardado!</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              <span>💾 Guardar Cambios</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

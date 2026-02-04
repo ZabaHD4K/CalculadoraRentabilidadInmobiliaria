@@ -37,6 +37,8 @@ export default function Home() {
   const [porcentajeMantenimiento, setPorcentajeMantenimiento] = useState<number>(10);
   const [porcentajeSeguroImpago, setPorcentajeSeguroImpago] = useState<number>(5);
   const [porcentajePeriodosVacantes, setPorcentajePeriodosVacantes] = useState<number>(5);
+  const [porcentajeSeguroHogar, setPorcentajeSeguroHogar] = useState<number>(1);
+  const [porcentajeSeguroVida, setPorcentajeSeguroVida] = useState<number>(1.5);
 
   // Warnings para porcentajes bajos
   const [showMantenimientoWarning, setShowMantenimientoWarning] = useState(false);
@@ -81,6 +83,32 @@ export default function Home() {
     }
   }, [isAuthenticated]);
 
+  // Recargar propiedades cuando vuelves a la página (por si se editaron en el dashboard)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isAuthenticated) {
+        loadProperties();
+      }
+    };
+
+    // Recargar cuando la ventana recupera el foco
+    window.addEventListener('focus', handleFocus);
+    
+    // Recargar cuando se navega de vuelta a esta página
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isAuthenticated) {
+        loadProperties();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAuthenticated]);
+
   // Recalcular valores basados en porcentaje cuando cambia el alquiler mensual
   useEffect(() => {
     if (selectedProperty && selectedProperty.alquilerMensual) {
@@ -123,7 +151,131 @@ export default function Home() {
     const result = await getProperties();
     if (result.success && result.properties) {
       setProperties(result.properties);
+      console.log('🏠 Propiedades cargadas:', result.properties.map(p => ({
+        nombre: p.nombre,
+        precio: p.precio,
+        alquilerMensual: p.alquilerMensual,
+        gastosAnuales: p.gastosAnuales,
+        capitalPropio: p.capitalPropio
+      })));
     }
+  };
+
+  // Función para validar si todos los datos están completos para análisis financiero
+  const todosLosDatosCompletos = (property: PropertyData | null) => {
+    if (!property) return false;
+    
+    // Verificar datos básicos
+    if (!property.precio || property.precio <= 0) return false;
+    if (!property.alquilerMensual || property.alquilerMensual <= 0) return false;
+    
+    // Verificar gastos de adquisición (al menos ITP o IVA)
+    const tieneImpuestos = (property.itp && property.itp > 0) || (property.iva && property.iva > 0);
+    if (!tieneImpuestos) return false;
+    
+    // Verificar gastos notariales básicos
+    const tieneNotariaRegistro = (property.notariaCompra && property.notariaCompra > 0) || 
+                                 (property.registroCompra && property.registroCompra > 0);
+    if (!tieneNotariaRegistro) return false;
+    
+    // Verificar gastos anuales (al menos comunidad e IBI)
+    if (!property.comunidadAnual || property.comunidadAnual <= 0) return false;
+    if (!property.ibi || property.ibi <= 0) return false;
+    
+    // Verificar datos de hipoteca si se usa financiación
+    const tieneCapitalPropio = property.capitalPropio && property.capitalPropio > 0;
+    if (tieneCapitalPropio) {
+      if (!property.plazoHipoteca || property.plazoHipoteca <= 0) return false;
+      if (!property.tipoInteres || property.tipoInteres <= 0) return false;
+    }
+    
+    return true;
+  };
+
+  // Función para calcular el ROI
+  const calculateROI = (property: PropertyData): { value: number | null, status: 'pending' | 'calculated' } => {
+    // Verificar si tiene TODOS los datos necesarios para un cálculo preciso
+    const hasBasicData = property.precio > 0;
+    const hasRentData = property.alquilerMensual !== null && 
+                        property.alquilerMensual !== undefined && 
+                        property.alquilerMensual > 0;
+    
+    // Verificar que tenga gastosAnuales calculados (la suma de todos los gastos de vivienda)
+    const hasExpenseData = property.gastosAnuales !== null && 
+                           property.gastosAnuales !== undefined && 
+                           property.gastosAnuales > 0;
+    
+    // Verificar que tenga al menos algunos gastos de compra calculados
+    // (ITP o IVA + al menos notaría o registro)
+    const hasPurchaseExpenses = (property.itp !== null && property.itp !== undefined) || 
+                                 (property.iva !== null && property.iva !== undefined);
+    
+    const hasNotaryOrRegistry = (property.notariaCompra !== null && property.notariaCompra !== undefined) ||
+                                 (property.registroCompra !== null && property.registroCompra !== undefined);
+
+    // Solo calcular ROI si tiene TODOS los datos esenciales
+    if (!hasBasicData || !hasRentData || !hasExpenseData || !hasPurchaseExpenses || !hasNotaryOrRegistry) {
+      return { value: null, status: 'pending' };
+    }
+
+    // Calcular ingresos anuales
+    const ingresosAnuales = (property.alquilerMensual || 0) * 12;
+
+    // Calcular gastos anuales
+    const gastosAnuales = property.gastosAnuales || 0;
+
+    // Calcular inversión total (precio + todos los gastos de compra)
+    const inversionTotal = property.precio +
+      (property.itp || 0) +
+      (property.iva || 0) +
+      (property.notariaCompra || 0) +
+      (property.registroCompra || 0) +
+      (property.comisionAgencia || 0) +
+      (property.gestoriaHipoteca || 0) +
+      (property.tasacion || 0) +
+      (property.comisionApertura || 0) +
+      (property.reforma || 0);
+
+    // Si hay capital propio definido y es mayor que 0, usar ese como base de inversión
+    // (porque es el dinero real que el inversor pone)
+    // Si no, usar la inversión total (compra sin financiación)
+    const capitalInvertido = (property.capitalPropio && property.capitalPropio > 0) 
+      ? property.capitalPropio 
+      : inversionTotal;
+
+    // Validar que la inversión sea mayor que 0
+    if (capitalInvertido <= 0) {
+      return { value: null, status: 'pending' };
+    }
+
+    // Si hay hipoteca, restar la cuota anual de los beneficios
+    let beneficioNeto = ingresosAnuales - gastosAnuales;
+    
+    // Si hay datos de hipoteca, calcular y restar la cuota
+    if (property.capitalPropio && property.plazoHipoteca && property.tipoInteres) {
+      const capitalFinanciado = inversionTotal - property.capitalPropio;
+      if (capitalFinanciado > 0) {
+        const tasaMensual = property.tipoInteres / 100 / 12;
+        const numPagos = property.plazoHipoteca * 12;
+        const cuotaMensual = capitalFinanciado * (tasaMensual * Math.pow(1 + tasaMensual, numPagos)) / (Math.pow(1 + tasaMensual, numPagos) - 1);
+        const cuotaAnual = cuotaMensual * 12;
+        beneficioNeto = beneficioNeto - cuotaAnual;
+      }
+    }
+
+    // ROI = Beneficio Neto Anual / Capital Invertido * 100
+    const roi = (beneficioNeto / capitalInvertido) * 100;
+
+    console.log(`📊 ROI calculado para ${property.nombre}:`, {
+      ingresosAnuales,
+      gastosAnuales,
+      capitalInvertido,
+      inversionTotal,
+      beneficioNeto: Math.round(beneficioNeto),
+      roi: roi.toFixed(2) + '%'
+    });
+
+    return { value: roi, status: 'calculated' };
   };
 
   const handleAnalyzeUrl = async () => {
@@ -196,6 +348,13 @@ export default function Home() {
     setSelectedProperty({ ...property });
     setComunidadFilter(property.comunidadAutonoma || '');
     setShowDetailsModal(true);
+
+    // Cargar datos de hipoteca si existen
+    if (property.capitalPropio) setCapitalPropio(property.capitalPropio);
+    if (property.plazoHipoteca) setPlazoHipoteca(property.plazoHipoteca);
+    if (property.tipoInteres) setTipoInteres(property.tipoInteres);
+    if (property.cuotaMensual) setCuotaMensual(property.cuotaMensual);
+    if (property.tipoHipoteca) setTipoHipoteca(property.tipoHipoteca as 'fija' | 'variable');
 
     // Inicializar porcentajes basándose en los valores existentes
     const rentaAnual = (property.alquilerMensual || 0) * 12;
@@ -286,6 +445,19 @@ export default function Home() {
       setShowSeguroImpagoWarning(false);
       setShowPeriodosVacantesWarning(false);
 
+      // Calcular valores estimados para gastos de compra
+      const notariaEstimada = Math.round(selectedProperty.precio * 0.003); // 0.3%
+      const registroEstimado = Math.round(selectedProperty.precio * 0.00175); // 0.175%
+      const comisionAgenciaEstimada = Math.round(selectedProperty.precio * 0.04 * 1.21); // 4% + 21% IVA
+
+      // Calcular valores estimados para seguros (basados en precio de la vivienda)
+      const seguroHogarEstimado = Math.round(selectedProperty.precio * 0.01); // 1%
+      const seguroVidaEstimado = Math.round(selectedProperty.precio * 0.015); // 1.5%
+
+      // Actualizar los porcentajes de seguros
+      setPorcentajeSeguroHogar(1);
+      setPorcentajeSeguroVida(1.5);
+
       // 3. Actualizar TODOS los campos (gastos de compra + gastos de vivienda)
       setSelectedProperty({
         ...selectedProperty,
@@ -294,10 +466,14 @@ export default function Home() {
         esObraNueva: esNueva,
         itp: itpCalculado,
         iva: ivaCalculado,
-        // Gastos de vivienda (calculados inteligentemente por GPT)
+        // Gastos de compra con valores estimados
+        notariaCompra: notariaEstimada,
+        registroCompra: registroEstimado,
+        comisionAgencia: comisionAgenciaEstimada,
+        // Gastos de vivienda (calculados inteligentemente por GPT o estimados)
         comunidadAnual: housingResult.expenses.comunidadAnual,
-        seguroHogar: housingResult.expenses.seguroHogar,
-        seguroVidaHipoteca: housingResult.expenses.seguroVidaHipoteca,
+        seguroHogar: seguroHogarEstimado,
+        seguroVidaHipoteca: seguroVidaEstimado,
         ibi: housingResult.expenses.ibi,
         // Gastos de vivienda (calculados con fórmulas fijas)
         mantenimiento,
@@ -331,10 +507,16 @@ export default function Home() {
       (selectedProperty.ibi || 0) +
       (selectedProperty.periodosVacantes || 0);
 
-    // Actualizar la propiedad con los gastos anuales calculados
+    // Actualizar la propiedad con todos los datos incluyendo hipoteca
     const propertyToSave = {
       ...selectedProperty,
-      gastosAnuales: gastosAnualesCalculados
+      gastosAnuales: gastosAnualesCalculados,
+      // Guardar datos de la hipoteca
+      capitalPropio: capitalPropio,
+      plazoHipoteca: plazoHipoteca,
+      tipoInteres: tipoInteres,
+      cuotaMensual: cuotaMensual,
+      tipoHipoteca: tipoHipoteca,
     };
 
     // Actualizar la propiedad en el backend
@@ -444,8 +626,21 @@ export default function Home() {
 
   // Rellenar automáticamente el capital propio y datos de hipoteca
   const rellenarCapitalPropio = () => {
-    const capitalMinimo = calcularCapitalMinimo();
-    setCapitalPropio(capitalMinimo);
+    // Calcular el 30% del coste total para el capital propio
+    if (!selectedProperty) return;
+    const costoTotal =
+      selectedProperty.precio +
+      (selectedProperty.itp || 0) +
+      (selectedProperty.iva || 0) +
+      (selectedProperty.notariaCompra || 0) +
+      (selectedProperty.registroCompra || 0) +
+      (selectedProperty.comisionAgencia || 0) +
+      (selectedProperty.gestoriaHipoteca || 0) +
+      (selectedProperty.tasacion || 0) +
+      (selectedProperty.comisionApertura || 0);
+    
+    const capitalPropio30 = Math.round(costoTotal * 0.30);
+    setCapitalPropio(capitalPropio30);
     setShowCapitalWarning(false);
 
     // Rellenar también plazo y tipo de interés
@@ -593,7 +788,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {properties.map((property) => (
               <div
-                key={property.id}
+                key={`${property.id}-${property.precio}-${property.alquilerMensual}-${property.gastosAnuales}-${property.capitalPropio}`}
                 className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:border-teal-500/50 relative"
               >
                 {/* Botón eliminar - arriba a la derecha */}
@@ -612,13 +807,13 @@ export default function Home() {
                   </svg>
                 </button>
 
-                {/* Imagen */}
+                {/* Imagen con badges superpuestos */}
                 <div 
                   onClick={() => handleOpenDetails(property)}
-                  className="cursor-pointer"
+                  className="cursor-pointer relative"
                 >
                   {property.urlImagen ? (
-                    <div className="h-48 bg-slate-900">
+                    <div className="h-48 bg-slate-900 relative">
                       <img
                         src={property.urlImagen}
                         alt={property.nombre}
@@ -627,12 +822,124 @@ export default function Home() {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
+                      
+                      {/* Badge ROI - Arriba izquierda */}
+                      {(() => {
+                        const roiData = calculateROI(property);
+                        if (roiData.status === 'pending') {
+                          return (
+                            <div className="absolute top-3 left-3 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg shadow-lg">
+                              <p className="text-gray-400 text-xs font-semibold">ROI</p>
+                              <p className="text-white text-sm font-bold">Por calcular</p>
+                            </div>
+                          );
+                        }
+                        
+                        const roi = roiData.value!;
+                        let bgColor = '';
+                        let textColor = '';
+                        let borderColor = '';
+                        let extraClass = '';
+                        
+                        if (roi < 5) {
+                          bgColor = 'bg-red-900/90';
+                          textColor = 'text-red-300';
+                          borderColor = 'border-red-500';
+                        } else if (roi >= 5 && roi < 10) {
+                          bgColor = 'bg-green-900/90';
+                          textColor = 'text-green-300';
+                          borderColor = 'border-green-500';
+                        } else if (roi >= 10 && roi < 15) {
+                          bgColor = 'bg-green-900/90';
+                          textColor = 'text-green-300';
+                          borderColor = 'border-green-500';
+                          extraClass = 'roi-particles';
+                        } else {
+                          bgColor = 'bg-blue-900/90';
+                          textColor = 'text-blue-300';
+                          borderColor = 'border-blue-500';
+                          extraClass = 'roi-sparkle';
+                        }
+                        
+                        return (
+                          <div className={`absolute top-3 left-3 px-3 py-2 backdrop-blur-sm border rounded-lg shadow-lg ${bgColor} ${borderColor} ${extraClass}`}>
+                            <p className="text-xs font-semibold opacity-80">ROI</p>
+                            <p className={`text-lg font-bold ${textColor}`}>{roi.toFixed(1)}%</p>
+                          </div>
+                        );
+                      })()}
+                      
+                      {/* Badge Alquiler - Abajo derecha */}
+                      <div className="absolute bottom-3 right-3 px-3 py-2 bg-purple-900/90 backdrop-blur-sm border border-purple-500 rounded-lg shadow-lg">
+                        <p className="text-purple-300 text-xs font-semibold">Alquiler</p>
+                        {property.alquilerMensual ? (
+                          <p className="text-white text-sm font-bold">{property.alquilerMensual}€/mes</p>
+                        ) : (
+                          <p className="text-gray-400 text-sm font-bold">Por añadir</p>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <div className="h-48 bg-slate-900 flex items-center justify-center">
+                    <div className="h-48 bg-slate-900 flex items-center justify-center relative">
                       <svg className="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
+                      
+                      {/* Badge ROI - También en placeholder */}
+                      {(() => {
+                        const roiData = calculateROI(property);
+                        if (roiData.status === 'pending') {
+                          return (
+                            <div className="absolute top-3 left-3 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg shadow-lg">
+                              <p className="text-gray-400 text-xs font-semibold">ROI</p>
+                              <p className="text-white text-sm font-bold">Por calcular</p>
+                            </div>
+                          );
+                        }
+                        
+                        const roi = roiData.value!;
+                        let bgColor = '';
+                        let textColor = '';
+                        let borderColor = '';
+                        let extraClass = '';
+                        
+                        if (roi < 5) {
+                          bgColor = 'bg-red-900/90';
+                          textColor = 'text-red-300';
+                          borderColor = 'border-red-500';
+                        } else if (roi >= 5 && roi < 10) {
+                          bgColor = 'bg-green-900/90';
+                          textColor = 'text-green-300';
+                          borderColor = 'border-green-500';
+                        } else if (roi >= 10 && roi < 15) {
+                          bgColor = 'bg-green-900/90';
+                          textColor = 'text-green-300';
+                          borderColor = 'border-green-500';
+                          extraClass = 'roi-particles';
+                        } else {
+                          bgColor = 'bg-blue-900/90';
+                          textColor = 'text-blue-300';
+                          borderColor = 'border-blue-500';
+                          extraClass = 'roi-sparkle';
+                        }
+                        
+                        return (
+                          <div className={`absolute top-3 left-3 px-3 py-2 backdrop-blur-sm border rounded-lg shadow-lg ${bgColor} ${borderColor} ${extraClass}`}>
+                            <p className="text-xs font-semibold opacity-80">ROI</p>
+                            <p className={`text-lg font-bold ${textColor}`}>{roi.toFixed(1)}%</p>
+                          </div>
+                        );
+                      })()}
+                      
+                      {/* Badge Alquiler - También en placeholder */}
+                      <div className="absolute bottom-3 right-3 px-3 py-2 bg-purple-900/90 backdrop-blur-sm border border-purple-500 rounded-lg shadow-lg">
+                        <p className="text-purple-300 text-xs font-semibold">Alquiler</p>
+                        {property.alquilerMensual ? (
+                          <p className="text-white text-sm font-bold">{property.alquilerMensual}€/mes</p>
+                        ) : (
+                          <p className="text-gray-400 text-sm font-bold">Por añadir</p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -749,14 +1056,32 @@ export default function Home() {
                   <button
                     onClick={handleAnalyzeUrl}
                     disabled={analyzingUrl || !idealistaUrl.trim()}
-                    className="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 min-w-[140px] justify-center"
                   >
-                    {analyzingUrl ? "Buscando..." : "Buscar"}
+                    {analyzingUrl ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Buscando...</span>
+                      </>
+                    ) : (
+                      "Buscar"
+                    )}
                   </button>
                 </div>
                 <p className="text-gray-500 text-xs mt-1">
-                  Pega el enlace para rellenar los datos automáticamente.Tambien puedes introducir los datos manualmente.
+                  Pega el enlace para rellenar los datos automáticamente. También puedes introducir los datos manualmente.
                 </p>
+                {analyzingUrl && (
+                  <div className="mt-2 flex items-center gap-2 text-orange-400 text-sm">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>⏳ Este proceso puede tardar hasta 50 segundos...</span>
+                  </div>
+                )}
               </div>
 
               {/* Campos principales */}
@@ -1027,7 +1352,29 @@ export default function Home() {
                   // Guardar propiedad actualizada antes de navegar
                   if (selectedProperty && selectedProperty.id) {
                     setLoading(true);
-                    const result = await updateProperty(selectedProperty);
+                    
+                    // Calcular gastosAnuales antes de guardar
+                    const gastosAnualesCalculados =
+                      (selectedProperty.comunidadAnual || 0) +
+                      (selectedProperty.mantenimiento || 0) +
+                      (selectedProperty.seguroHogar || 0) +
+                      (selectedProperty.seguroVidaHipoteca || 0) +
+                      (selectedProperty.seguroImpago || 0) +
+                      (selectedProperty.ibi || 0) +
+                      (selectedProperty.periodosVacantes || 0);
+                    
+                    // Actualizar la propiedad con todos los datos
+                    const propertyToSave = {
+                      ...selectedProperty,
+                      gastosAnuales: gastosAnualesCalculados,
+                      capitalPropio: capitalPropio,
+                      plazoHipoteca: plazoHipoteca,
+                      tipoInteres: tipoInteres,
+                      cuotaMensual: cuotaMensual,
+                      tipoHipoteca: tipoHipoteca,
+                    };
+                    
+                    const result = await updateProperty(propertyToSave);
                     if (result.success) {
                       await loadProperties();
                       router.push(`/dashboard/${selectedProperty.id}`);
@@ -1037,13 +1384,20 @@ export default function Home() {
                     setLoading(false);
                   }
                 }}
-                disabled={loading}
-                className="mt-4 w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-bold text-lg shadow-xl transform hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                disabled={loading || !todosLosDatosCompletos(selectedProperty)}
+                className={`mt-4 w-full px-6 py-4 rounded-xl font-bold text-lg shadow-xl flex items-center justify-center gap-3 transition-all duration-500 ${
+                  !todosLosDatosCompletos(selectedProperty)
+                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed shadow-inner translate-y-1 opacity-60 grayscale'
+                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:scale-[1.02] shadow-2xl financial-button-unlock'
+                }`}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 <span>📈 Análisis Financiero Avanzado</span>
+                {!todosLosDatosCompletos(selectedProperty) && (
+                  <span className="text-xs bg-red-500/20 px-2 py-1 rounded">Completa todos los datos</span>
+                )}
               </button>
 
               {/* Botón para calcular todos los datos automáticamente */}
@@ -1293,7 +1647,10 @@ export default function Home() {
 
                   {/* Notaría */}
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Notaría (compraventa)</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Notaría (compraventa)
+                      <span className="text-xs text-gray-400 ml-2">(entre 0,1% y 0,5% del precio)</span>
+                    </label>
                     <input
                       type="number"
                       value={selectedProperty.notariaCompra || ''}
@@ -1301,11 +1658,17 @@ export default function Home() {
                       placeholder="600-900€"
                       className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Estimado (0,3%): {Math.round(selectedProperty.precio * 0.003).toLocaleString()}€
+                    </p>
                   </div>
 
                   {/* Registro */}
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Registro (compraventa)</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Registro (compraventa)
+                      <span className="text-xs text-gray-400 ml-2">(entre 0,1% y 0,25% del precio)</span>
+                    </label>
                     <input
                       type="number"
                       value={selectedProperty.registroCompra || ''}
@@ -1313,6 +1676,9 @@ export default function Home() {
                       placeholder="400-600€"
                       className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Estimado (0,175%): {Math.round(selectedProperty.precio * 0.00175).toLocaleString()}€
+                    </p>
                   </div>
 
                   {/* Comisión Agencia */}
@@ -1328,6 +1694,9 @@ export default function Home() {
                       placeholder="0€"
                       className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Estimado (4% + 21% IVA): {Math.round(selectedProperty.precio * 0.04 * 1.21).toLocaleString()}€
+                    </p>
                   </div>
                 </div>
 
@@ -1520,6 +1889,11 @@ export default function Home() {
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
                           <p className="mt-2 text-xs text-gray-400">Puedes modificar este valor manualmente</p>
+                          <div className="mt-2 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg overflow-hidden">
+                            <p className="text-xs text-blue-300 leading-relaxed">
+                              💡 <strong>Consejo:</strong> Consulta con tu banco o brokers para mejores condiciones. Estos cálculos son conservadores.
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -1655,26 +2029,70 @@ export default function Home() {
 
                         {/* Seguro Hogar */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Hogar</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Hogar (% del precio)</label>
                           <input
                             type="number"
-                            value={selectedProperty.seguroHogar || ''}
-                            onChange={(e) => setSelectedProperty({ ...selectedProperty, seguroHogar: parseInt(e.target.value) || null })}
-                            placeholder="100€"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                            value={porcentajeSeguroHogar === 0 ? '' : porcentajeSeguroHogar}
+                            onChange={(e) => {
+                              const inputValue = e.target.value;
+                              if (inputValue === '') {
+                                setPorcentajeSeguroHogar(0);
+                                setSelectedProperty({ ...selectedProperty, seguroHogar: 0 });
+                              } else {
+                                const porcentaje = parseFloat(inputValue);
+                                setPorcentajeSeguroHogar(porcentaje);
+
+                                // Calcular el valor en euros basado en el precio de la vivienda
+                                const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100));
+                                setSelectedProperty({ ...selectedProperty, seguroHogar: valorCalculado });
+                              }
+                            }}
+                            placeholder="1%"
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
+                          <p className="mt-2 text-xs text-gray-400">
+                            💡 Valor calculado: {selectedProperty.seguroHogar?.toLocaleString() || '0'}€ ({porcentajeSeguroHogar}% del precio)
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Recomendado: 0.5-1.5% = {Math.round(selectedProperty.precio * 0.01).toLocaleString()}€
+                          </p>
                         </div>
 
                         {/* Seguro Vida Hipoteca */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Vida Hipoteca</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Vida Hipoteca (% del precio)</label>
                           <input
                             type="number"
-                            value={selectedProperty.seguroVidaHipoteca || ''}
-                            onChange={(e) => setSelectedProperty({ ...selectedProperty, seguroVidaHipoteca: parseInt(e.target.value) || null })}
-                            placeholder="150€"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                            value={porcentajeSeguroVida === 0 ? '' : porcentajeSeguroVida}
+                            onChange={(e) => {
+                              const inputValue = e.target.value;
+                              if (inputValue === '') {
+                                setPorcentajeSeguroVida(0);
+                                setSelectedProperty({ ...selectedProperty, seguroVidaHipoteca: 0 });
+                              } else {
+                                const porcentaje = parseFloat(inputValue);
+                                setPorcentajeSeguroVida(porcentaje);
+
+                                // Calcular el valor en euros basado en el precio de la vivienda
+                                const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100));
+                                setSelectedProperty({ ...selectedProperty, seguroVidaHipoteca: valorCalculado });
+                              }
+                            }}
+                            placeholder="1.5%"
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
+                          <p className="mt-2 text-xs text-gray-400">
+                            💡 Valor calculado: {selectedProperty.seguroVidaHipoteca?.toLocaleString() || '0'}€ ({porcentajeSeguroVida}% del precio)
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Recomendado: 1-2% = {Math.round(selectedProperty.precio * 0.015).toLocaleString()}€
+                          </p>
                         </div>
 
                         {/* Seguro Impago */}

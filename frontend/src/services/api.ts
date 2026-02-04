@@ -52,6 +52,13 @@ export interface PropertyData {
   seguroImpago?: number | null;
   interesesHipoteca?: number | null;
   periodosVacantes?: number | null;
+
+  // Datos de hipoteca
+  capitalPropio?: number | null;
+  plazoHipoteca?: number | null;
+  tipoInteres?: number | null;
+  cuotaMensual?: number | null;
+  tipoHipoteca?: string | null;
 }
 
 export interface AnalyzePropertyResponse {
