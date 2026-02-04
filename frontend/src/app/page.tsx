@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor } from "@/services/api";
+import AuthModal from "@/components/AuthModal";
 
 export default function Home() {
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -62,10 +65,21 @@ export default function Home() {
 
   const [idealistaUrl, setIdealistaUrl] = useState("");
 
-  // Cargar propiedades al iniciar
+  // Verificar autenticación al cargar
   useEffect(() => {
-    loadProperties();
+    const authenticated = sessionStorage.getItem('authenticated');
+    if (authenticated === 'true') {
+      setIsAuthenticated(true);
+    }
+    setCheckingAuth(false);
   }, []);
+
+  // Cargar propiedades al iniciar (solo si está autenticado)
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadProperties();
+    }
+  }, [isAuthenticated]);
 
   // Recalcular valores basados en porcentaje cuando cambia el alquiler mensual
   useEffect(() => {
@@ -520,7 +534,15 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 p-8">
+    <>
+      {/* Modal de autenticación */}
+      {!isAuthenticated && !checkingAuth && (
+        <AuthModal onAuthenticated={() => setIsAuthenticated(true)} />
+      )}
+
+      {/* Contenido principal (solo visible si está autenticado) */}
+      {isAuthenticated && (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 p-8">
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-12">
         <div className="flex items-center justify-center gap-2 mb-6">
@@ -572,25 +594,54 @@ export default function Home() {
             {properties.map((property) => (
               <div
                 key={property.id}
-                onClick={() => handleOpenDetails(property)}
-                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:border-teal-500/50"
+                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:border-teal-500/50 relative"
               >
+                {/* Botón eliminar - arriba a la derecha */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('¿Estás seguro de que quieres eliminar esta propiedad?')) {
+                      handleDeleteProperty(property.id || '');
+                    }
+                  }}
+                  className="absolute top-4 right-4 z-10 p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all shadow-lg hover:shadow-xl"
+                  title="Eliminar propiedad"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+
                 {/* Imagen */}
-                {property.urlImagen && (
-                  <div className="h-48 bg-slate-900">
-                    <img
-                      src={property.urlImagen}
-                      alt={property.nombre}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
+                <div 
+                  onClick={() => handleOpenDetails(property)}
+                  className="cursor-pointer"
+                >
+                  {property.urlImagen ? (
+                    <div className="h-48 bg-slate-900">
+                      <img
+                        src={property.urlImagen}
+                        alt={property.nombre}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-48 bg-slate-900 flex items-center justify-center">
+                      <svg className="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
 
                 {/* Contenido */}
-                <div className="p-6">
+                <div 
+                  onClick={() => handleOpenDetails(property)}
+                  className="p-6 cursor-pointer"
+                >
                   <h3 className="text-xl font-bold text-white mb-2">{property.nombre}</h3>
                   <p className="text-gray-400 text-sm mb-4">{property.direccion}</p>
 
@@ -639,66 +690,7 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* Botón y resultado de alquiler estimado - solo si no está alquilado */}
-                  {!property.pisoAlquilado && (
-                    <div className="mt-4 space-y-3">
-                      {/* Resultado de la estimación */}
-                      {rentEstimates[property.id || ''] && (
-                        <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border-2 border-purple-500/50 rounded-xl p-4 animate-fade-in">
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="text-purple-300 text-xs font-semibold">Alquiler Estimado (IA)</p>
-                          </div>
-                          <p className="text-2xl font-bold text-white mb-1">
-                            {rentEstimates[property.id || '']}
-                          </p>
-                          <p className="text-xs text-purple-300/80">Análisis basado en ubicación, características y mercado actual</p>
-                        </div>
-                      )}
 
-                      {/* Botón para calcular */}
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          setLoadingEstimate(property.id || '');
-                          try {
-                            const result = await estimateRent(property);
-                            if (result.success && result.estimate) {
-                              setRentEstimates(prev => ({
-                                ...prev,
-                                [property.id || '']: result.estimate || ''
-                              }));
-                            }
-                          } catch (error) {
-                            console.error('Error al calcular el alquiler estimado');
-                          } finally {
-                            setLoadingEstimate(null);
-                          }
-                        }}
-                        disabled={loadingEstimate === property.id}
-                        className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {loadingEstimate === property.id ? (
-                          <>
-                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Analizando mercado...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            <span>{rentEstimates[property.id || ''] ? 'Recalcular estimación' : 'Calcular alquiler estimado'}</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
 
                   {/* Indicador para click */}
                   <div className="mt-4 text-center">
@@ -1894,6 +1886,9 @@ export default function Home() {
           </div>
         </div>
       )}
-    </div>
+        </div>
+      )}
+    </>
   );
 }
+

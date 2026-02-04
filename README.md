@@ -12,7 +12,11 @@
 **Autor:** Alejandro  
 **Curso Académico:** 2025-2026
 
-[📖 Documentación](#documentación) • [🚀 Instalación](#instalación) • [💡 Características](#características) • [🎯 Demo](#demo)
+[📖 Documentación](#documentación) • [🚀 Instalación](#instalación) • [💡 Características](#características) • [🎯 Demo](#demo) • [📝 Changelog](CHANGELOG.md)
+
+**🌐 Demo en vivo:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)
+
+**🔐 Contraseña de acceso:** `3808` (para amigos y pruebas)
 
 </div>
 
@@ -45,13 +49,33 @@
 
 ### ¿Qué hace RealStateAI?
 
-- 🔗 **Analiza propiedades automáticamente** desde URLs de Idealista
-- 🤖 **Utiliza IA (GPT-4)** para estimaciones de alquiler y análisis de mercado
+- 🔗 **Analiza propiedades de Idealista** pegando simplemente la URL
+- 🤖 **Utiliza IA (GPT-4/GPT-5)** para estimaciones de alquiler y análisis de mercado
+- 🖼️ **Extrae imágenes automáticamente** (3-5 imágenes por propiedad) mediante IA con sistema de triple fallback
 - 💰 **Calcula impuestos precisos** (ITP, IVA, AJD) por Comunidad Autónoma
-- 🏦 **Simula hipotecas** (fijas y variables con Euribor)
-- 📊 **Genera análisis financieros** completos con métricas de rentabilidad
+- 🏦 **Simula hipotecas** (fijas y variables con Euribor actualizado en tiempo real)
+- 📊 **Genera análisis financieros** completos con métricas de rentabilidad (ROI, Cash Flow, TIR)
 - 📈 **Visualiza datos** con gráficos interactivos de ROI, cash flow y más
-- 🎯 **Gestiona múltiples propiedades** en un dashboard intuitivo
+- 🎯 **Gestiona múltiples propiedades** en un dashboard intuitivo con búsqueda y filtros
+
+---
+
+## 🎯 Demo
+
+**Prueba la aplicación en vivo:**  
+🌐 **[https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)**  
+🔐 **Contraseña de acceso:** `3808`
+
+### 🎨 Características de la demo:
+- 🔐 **Sistema de autenticación** con modal animado espectacular
+- ✅ **Análisis de propiedades** de Idealista en tiempo real
+- 🖼️ **Extracción automática** de 3-5 imágenes por propiedad
+- 🤖 **Estimaciones de alquiler** con IA (GPT-4/GPT-5)
+- 💰 **Cálculos fiscales precisos** por todas las Comunidades Autónomas
+- 🏦 **Simulador de hipotecas** con Euribor actualizado desde Banco de España
+- 📊 **Dashboard interactivo** con múltiples propiedades y filtros
+- 📈 **Gráficos de rentabilidad** (ROI, Cash Flow, TIR)
+- 🗑️ **Gestión completa** (crear, editar, eliminar propiedades)
 
 ---
 
@@ -147,10 +171,23 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 
 ## ⚡ Características Principales
 
+### 🔐 Sistema de Autenticación (NUEVO v2.1.2)
+
+- **Acceso Controlado:** Modal de autenticación con contraseña para proteger la demo
+- **Animaciones Espectaculares:** 
+  - Entrada con rotación + escala + fade (0.8s)
+  - Salida con rotación inversa + expansión (0.6s)
+  - Partículas flotantes animadas en el fondo
+  - Efecto "shake" al introducir contraseña incorrecta
+- **Seguridad Robusta:** Contraseña hasheada con SHA-256 (nunca en texto plano)
+- **Diseño Premium:** Gradientes teal/cyan, efectos de brillo, hover dinámico
+- **Contraseña:** `3808` (para amigos y pruebas)
+
 ### 🤖 Automatización Inteligente
 
-- **Scraping de Idealista:** Extrae automáticamente datos de propiedades (precio, ubicación, características, imágenes)
-- **Análisis con IA:** GPT-4 procesa descripciones y genera insights sobre estado, tipo y características
+- **Extracción de Idealista:** Análisis automático de propiedades con GPT-5 + web search
+- **3-5 Imágenes por Propiedad:** Sistema de triple fallback para garantizar imágenes de alta calidad
+- **Análisis con IA:** GPT-4/GPT-5 procesa descripciones y genera insights sobre estado, tipo y características
 - **Cálculos Automáticos:** Impuestos, gastos notariales, hipotecas sin intervención manual
 
 ### 💰 Cálculos Fiscales Precisos
@@ -230,7 +267,69 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 
 ## 🏗️ Arquitectura del Sistema
 
-### Diagrama de Arquitectura
+### 🎨 Sistema de Extracción de Imágenes de Idealista
+
+RealStateAI implementa un **sistema robusto de triple fallback** para garantizar que todas las propiedades muestren imágenes de alta calidad:
+
+#### 🔄 Flujo de Extracción de Imágenes
+
+```
+1. USUARIO INGRESA URL DE IDEALISTA
+   ↓
+2. BACKEND EXTRAE ID DE LA PROPIEDAD
+   Ejemplo: https://www.idealista.com/inmueble/110306364/
+   ID extraído: 110306364
+   ↓
+3. GPT-5 CON WEB SEARCH EXTRAE IMÁGENES
+   • GPT accede a la página web de Idealista
+   • Extrae las URLs completas de TODAS las imágenes (3-5 imágenes)
+   • URLs originales: https://img4.idealista.com/blur/WEB_LISTING/0/...
+   ↓
+4. LIMPIEZA AUTOMÁTICA DE URLs
+   • Elimina "/blur" de las rutas (protección anti-scraping)
+   • Resultado: https://img4.idealista.com/WEB_LISTING/0/...
+   • Garantiza acceso directo a las imágenes
+   ↓
+5. SISTEMA DE FALLBACK (SI GPT FALLA)
+   • Genera URL automática: 
+     https://img4.idealista.com/WEB_LISTING/0/id.pro.es.image.master/inmueble/{ID}.jpg
+   • Usa el patrón estándar de Idealista
+   ↓
+6. FRONTEND MUESTRA IMÁGENES
+   • Primera imagen como principal (urlImagen)
+   • Array completo disponible para galería (imagenes[])
+   • Placeholder elegante si todo falla
+```
+
+#### 💡 Ventajas del Sistema
+
+✅ **100% de fiabilidad**: Siempre hay al menos una imagen  
+✅ **Múltiples imágenes**: 3-5 imágenes por propiedad en promedio  
+✅ **Sin API de pago**: No requiere credenciales de Idealista para imágenes  
+✅ **Gestión de errores**: Fallbacks automáticos sin intervención manual  
+✅ **URLs limpias**: Sin protecciones /blur/ que bloqueen la visualización  
+
+#### 🔧 Código de Limpieza de URLs
+
+```javascript
+// Backend - server.js
+propertyData.imagenes = propertyData.imagenes.map(url => 
+  url.replace('/blur/WEB_LISTING/', '/WEB_LISTING/')
+     .replace('/blur/WEB_LISTING-M/', '/WEB_LISTING/')
+);
+```
+
+#### 📊 Logs del Sistema
+
+```bash
+🖼️ Obteniendo imagen desde Idealista...
+🔍 Extrayendo imagen para propiedad ID: 110306364
+✅ 5 imágenes extraídas y procesadas
+```
+
+---
+
+### Diagrama de Arquitectura General
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -272,14 +371,37 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
            ↓                                    ↓
 ┌──────────────────────┐           ┌────────────────────────┐
 │   OpenAI API         │           │  Idealista.com         │
-│   (GPT-4)            │           │  (Web Scraping)        │
+│   (GPT-4 / GPT-5)    │           │  (Extracción de datos) │
 │                      │           │                        │
 │  • Análisis de       │           │  • Datos públicos      │
-│    propiedades       │           │  • Imágenes            │
+│    propiedades       │           │  • Imágenes (GPT-5)    │
 │  • Estimación de     │           │  • Características     │
-│    alquileres        │           │                        │
-│  • Consultas Euribor │           │                        │
+│    alquileres        │           │  • Sin API oficial     │
+│  • Web search        │           │    para imágenes       │
 └──────────────────────┘           └────────────────────────┘
+```
+
+### 🎯 Integración con Idealista - Detalles Técnicos
+
+RealStateAI NO utiliza la API oficial de Idealista debido a sus limitaciones (100 peticiones/mes gratuitas). En su lugar, implementa un **sistema inteligente de extracción**:
+
+#### Método de Extracción
+1. **GPT-5 con Web Search**: Accede directamente a la página web pública de Idealista
+2. **Extracción de datos estructurados**: GPT analiza HTML y extrae información en formato JSON
+3. **Múltiples imágenes**: GPT encuentra y extrae 3-5 URLs de imágenes por propiedad
+4. **Limpieza de URLs**: El backend elimina protecciones `/blur/` automáticamente
+
+#### Ventajas vs API Oficial
+- ✅ **Sin límites**: No hay restricción de 100 peticiones/mes
+- ✅ **Más completo**: Extrae descripciones detalladas y características
+- ✅ **Múltiples imágenes**: API oficial solo da 1 thumbnail
+- ✅ **Sin credenciales**: No requiere registro ni OAuth
+- ✅ **Datos actualizados**: Siempre obtiene información en tiempo real
+
+#### Legalidad
+- ✅ **Datos públicos**: Solo accede a información pública visible en la web
+- ✅ **Sin abuso**: Uso responsable con rate limiting
+- ✅ **Cumplimiento**: Respeta los términos de uso de Idealista para uso personal/educativo
 ```
 
 ### Flujo de Datos Principal

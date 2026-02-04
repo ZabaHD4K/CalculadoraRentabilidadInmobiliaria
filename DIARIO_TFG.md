@@ -1,7 +1,7 @@
 # DIARIO DE TRABAJO FIN DE GRADO
 ## RealStateAI - Herramienta de Análisis de Inversión Inmobiliaria
 
-**Autor:** Alejandro  
+**Autor:** Alejandro Zabaleta
 **Fecha de Inicio:** Curso 2025-2026  
 **Última Actualización:** 4 de Febrero de 2026  
 **Repositorio GitHub:** https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria

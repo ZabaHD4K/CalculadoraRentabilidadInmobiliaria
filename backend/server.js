@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,9 +12,182 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Contraseña de acceso (hash SHA-256 de "3808")
+const crypto = require('crypto');
+const ACCESS_PASSWORD_HASH = crypto.createHash('sha256').update('3808').digest('hex');
+console.log('🔐 Sistema de autenticación habilitado');
+
+// Credenciales de Idealista API
+const IDEALISTA_API_KEY = process.env.IDEALISTA_API_KEY;
+const IDEALISTA_SECRET = process.env.IDEALISTA_SECRET;
+let idealistaToken = null;
+let tokenExpiration = null;
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// ==================== IDEALISTA API INTEGRATION ====================
+
+/**
+ * Obtiene un token OAuth de la API de Idealista
+ */
+async function getIdealistaToken() {
+  // Si ya tenemos un token válido, devolverlo
+  if (idealistaToken && tokenExpiration && Date.now() < tokenExpiration) {
+    return idealistaToken;
+  }
+
+  try {
+    const credentials = Buffer.from(`${IDEALISTA_API_KEY}:${IDEALISTA_SECRET}`).toString('base64');
+    
+    const response = await axios.post(
+      'https://api.idealista.com/oauth/token',
+      'grant_type=client_credentials&scope=read',
+      {
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    idealistaToken = response.data.access_token;
+    // El token dura 3600 segundos (1 hora), lo renovamos 5 minutos antes
+    tokenExpiration = Date.now() + ((response.data.expires_in - 300) * 1000);
+    
+    console.log('✅ Token de Idealista obtenido correctamente');
+    return idealistaToken;
+  } catch (error) {
+    console.error('❌ Error al obtener token de Idealista:', error.response?.data || error.message);
+    throw new Error('No se pudo autenticar con la API de Idealista');
+  }
+}
+
+/**
+ * Extrae el ID de propiedad de una URL de Idealista
+ * Ejemplo: https://www.idealista.com/inmueble/12345678/ -> 12345678
+ */
+function extractPropertyIdFromUrl(url) {
+  const match = url.match(/\/inmueble\/(\d+)\//);
+  return match ? match[1] : null;
+}
+
+/**
+ * Extrae la imagen principal directamente desde la URL de Idealista
+ * usando técnicas de scraping de la página
+ */
+async function getIdealistaPropertyImage(url) {
+  try {
+    // Extraer el ID de la propiedad
+    const propertyId = extractPropertyIdFromUrl(url);
+    if (!propertyId) return null;
+
+    // Intentar obtener la imagen desde el thumbnail de Idealista
+    // Las imágenes de Idealista siguen un patrón predecible
+    const imageUrl = `https://img4.idealista.com/blur/WEB_LISTING-M/0/id.pro.es.image.master/inmueble/${propertyId}.jpg`;
+    
+    console.log(`🖼️ URL de imagen generada: ${imageUrl}`);
+    return imageUrl;
+  } catch (error) {
+    console.error('Error al obtener imagen:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Busca una propiedad específica en Idealista por ID
+ * Como la API no tiene endpoint directo por ID, usamos GPT + obtención de imágenes
+ */
+async function searchIdealistaProperty(propertyId, url) {
+  try {
+    // Intentar obtener la imagen desde el patrón de URLs de Idealista
+    const imageUrl = await getIdealistaPropertyImage(url);
+    
+    return {
+      thumbnail: imageUrl,
+      propertyCode: propertyId
+    };
+  } catch (error) {
+    console.error('Error al buscar propiedad en Idealista:', error.response?.data || error.message);
+    return null;
+  }
+}
+
+/**
+ * Obtiene detalles de una propiedad desde Idealista (principalmente imágenes)
+ */
+async function getPropertyFromIdealista(url) {
+  try {
+    const propertyId = extractPropertyIdFromUrl(url);
+    
+    if (!propertyId) {
+      console.log('⚠️ No se pudo extraer ID de la URL');
+      return null;
+    }
+
+    console.log(`🔍 Extrayendo imagen para propiedad ID: ${propertyId}`);
+    const property = await searchIdealistaProperty(propertyId, url);
+    
+    if (!property || !property.thumbnail) {
+      console.log('⚠️ No se pudo obtener la imagen de Idealista');
+      return null;
+    }
+
+    console.log('✅ Imagen obtenida desde Idealista');
+    
+    // Devolver solo la imagen, GPT extraerá el resto de datos
+    return {
+      imagenes: [property.thumbnail],
+      urlImagen: property.thumbnail
+    };
+  } catch (error) {
+    console.error('Error en getPropertyFromIdealista:', error.message);
+    return null;
+  }
+}
+
+// ==================== AUTHENTICATION ====================
+
+// Endpoint para verificar contraseña
+app.post('/api/verify-password', (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contraseña requerida'
+      });
+    }
+
+    // Hash de la contraseña proporcionada
+    const inputHash = crypto.createHash('sha256').update(password).digest('hex');
+
+    // Comparar con el hash almacenado
+    if (inputHash === ACCESS_PASSWORD_HASH) {
+      console.log('✅ Acceso concedido');
+      return res.json({
+        success: true,
+        message: 'Contraseña correcta'
+      });
+    } else {
+      console.log('❌ Intento de acceso fallido');
+      return res.status(401).json({
+        success: false,
+        error: 'Contraseña incorrecta'
+      });
+    }
+  } catch (error) {
+    console.error('Error en verificación:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al verificar contraseña'
+    });
+  }
+});
+
+// ==================== GPT ENDPOINTS ====================
 
 // Endpoint de prueba que recibe texto y lo envía a GPT
 app.post('/api/test', async (req, res) => {
@@ -174,7 +348,13 @@ app.post('/api/analyze-property', async (req, res) => {
 
     console.log('\n=== Analizando propiedad ===');
     console.log('URL:', url);
-    console.log('Esto puede tardar 30-60 segundos...');
+
+    // PASO 1: Extraer imagen directamente desde Idealista (no requiere API)
+    console.log('🖼️ Obteniendo imagen desde Idealista...');
+    const idealistaImage = await getPropertyFromIdealista(url);
+
+    // PASO 2: Usar GPT-5 para extraer toda la información
+    console.log('🔄 Extrayendo datos con GPT-5 (puede tardar 30-60 segundos)...');
 
     // Usar GPT-5 para extraer información de la propiedad
     const prompt = `Analiza este enlace de propiedad inmobiliaria de Idealista y extrae TODA la información disponible en formato JSON estricto.
@@ -192,14 +372,20 @@ Debes extraer:
 - gastosAnuales: gastos anuales estimados (IBI, comunidad, etc.)
 - descripcion: descripción completa de la propiedad
 - caracteristicas: array con todas las características (ascensor, terraza, etc.)
-- imagenes: array con URLs de todas las imágenes de la propiedad
+- imagenes: array con URLs de TODAS las imágenes de la propiedad (OBLIGATORIO extraer las URLs completas desde la página web)
 - estado: si está disponible, reservado, vendido, alquilado
 - tipoPropiedad: piso, casa, local, etc.
 
+CRÍTICO PARA IMÁGENES:
+- Debes extraer las URLs COMPLETAS de las imágenes desde la página web de Idealista
+- Las URLs suelen estar en formato: https://img4.idealista.com/... o https://img3.idealista.com/...
+- Extrae AL MENOS 3-5 imágenes de la propiedad
+- Las imágenes son OBLIGATORIAS, no pueden ser null ni array vacío
+
 IMPORTANTE:
 1. Responde SOLO con el objeto JSON, sin texto adicional
-2. Si no encuentras un dato, usa null
-3. Las imágenes deben ser URLs completas y válidas
+2. Si no encuentras un dato, usa null (EXCEPTO imágenes, que deben estar)
+3. Las imágenes deben ser URLs completas y válidas (https://img4.idealista.com/...)
 4. Los números deben ser números, no strings
 
 Ejemplo de formato:
@@ -214,7 +400,7 @@ Ejemplo de formato:
   "gastosAnuales": 1500,
   "descripcion": "Precioso piso...",
   "caracteristicas": ["ascensor", "terraza", "exterior"],
-  "imagenes": ["https://...jpg", "https://...jpg"],
+  "imagenes": ["https://img4.idealista.com/blur/WEB_LISTING/0/id.pro.es.image.master/abc.jpg", "https://img4.idealista.com/blur/WEB_LISTING/0/id.pro.es.image.master/def.jpg"],
   "estado": "disponible",
   "tipoPropiedad": "piso"
 }`;
@@ -265,7 +451,6 @@ Ejemplo de formato:
     console.log('Respuesta de GPT:', gptResponse);
 
     // Intentar parsear el JSON
-    let propertyData;
     try {
       // Limpiar la respuesta por si tiene markdown
       let cleanResponse = gptResponse.trim();
@@ -276,9 +461,29 @@ Ejemplo de formato:
       }
 
       propertyData = JSON.parse(cleanResponse);
-      console.log('Datos parseados correctamente');
+      console.log('✅ Datos parseados correctamente desde GPT');
+      
+      // PASO 3: Asegurar que siempre haya imagen (de GPT o de Idealista)
+      if (!propertyData.imagenes || propertyData.imagenes.length === 0) {
+        // Si GPT no extrajo imágenes, usar la de Idealista como fallback
+        if (idealistaImage && idealistaImage.urlImagen) {
+          propertyData.imagenes = [idealistaImage.urlImagen];
+          propertyData.urlImagen = idealistaImage.urlImagen;
+          console.log('✅ Usando imagen de fallback de Idealista');
+        } else {
+          console.log('⚠️ No se encontraron imágenes');
+        }
+      } else {
+        // Si GPT extrajo imágenes, limpiarlas y usarlas
+        // Eliminar "/blur" de las URLs de Idealista para acceso directo
+        propertyData.imagenes = propertyData.imagenes.map(url => 
+          typeof url === 'string' ? url.replace('/blur/WEB_LISTING/', '/WEB_LISTING/').replace('/blur/WEB_LISTING-M/', '/WEB_LISTING/') : url
+        );
+        propertyData.urlImagen = propertyData.imagenes[0];
+        console.log(`✅ ${propertyData.imagenes.length} imágenes extraídas y procesadas`);
+      }
     } catch (parseError) {
-      console.error('Error al parsear JSON:', parseError);
+      console.error('❌ Error al parsear JSON desde GPT:', parseError);
       return res.status(500).json({
         success: false,
         error: 'No se pudo parsear la respuesta como JSON',
@@ -286,9 +491,11 @@ Ejemplo de formato:
       });
     }
 
+    // Enviar respuesta con los datos combinados
     res.json({
       success: true,
-      data: propertyData
+      data: propertyData,
+      source: idealistaImage ? 'GPT-5 + Idealista Image' : 'GPT-5 Only'
     });
 
   } catch (error) {
