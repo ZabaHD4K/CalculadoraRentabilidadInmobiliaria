@@ -1,5 +1,159 @@
 # 📝 Notas de Cambios - RealState AI
 
+## Versión 2.2.0 - 5 de Febrero de 2026
+
+### ☁️ Migración a Cloudinary para Almacenamiento de Imágenes
+
+**Problema identificado**: Las imágenes se guardaban localmente en Railway, pero Railway tiene almacenamiento efímero que se borra al reiniciar el servidor.
+
+#### ✅ Solución Implementada: Cloudinary
+
+**Cloudinary** es un servicio de almacenamiento en la nube especializado en gestión de imágenes y assets multimedia. Ofrece:
+- CDN global para carga rápida desde cualquier ubicación
+- Almacenamiento permanente y confiable
+- Plan gratuito generoso (25 GB almacenamiento + 25 GB bandwidth/mes)
+- URLs públicas permanentes
+- Optimización automática de imágenes
+
+#### 🔧 Cambios Implementados
+
+**1. Integración de Cloudinary en el Backend**
+- Instalado paquete `cloudinary` v2.9.0
+- Configuración automática con variables de entorno:
+  ```javascript
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+  ```
+
+**2. Función `downloadAndSaveImage()` Modificada**
+- **Antes**: Descargaba imagen → Guardaba en disco local
+- **Ahora**: Descarga imagen → Sube a Cloudinary → Retorna URL pública
+- Organización en carpetas: `realstate/{propertyId}/image-{index}`
+- Upload mediante streams para mayor eficiencia
+
+**3. Función `getIdealistaPropertyImages()` Modificada**
+- Screenshots de Puppeteer ahora se suben directamente a Cloudinary
+- Captura como buffer → Upload stream → URL pública
+- Elimina dependencia del sistema de archivos local
+
+**4. Endpoint `DELETE /api/properties/:id` Mejorado**
+- **Limpieza automática**: Al borrar propiedad, borra también imágenes de Cloudinary
+- Extrae `public_id` de las URLs de Cloudinary
+- Usa `cloudinary.uploader.destroy()` para eliminar assets
+- Gestión de errores robusta: continúa aunque falle alguna imagen
+
+#### 📁 Estructura de URLs de Cloudinary
+
+```
+https://res.cloudinary.com/{cloud_name}/image/upload/v{timestamp}/realstate/{propertyId}/image-0.jpg
+```
+
+**Ejemplo real:**
+```
+https://res.cloudinary.com/dapavocme/image/upload/v1738893456/realstate/1738716800123/image-0.jpg
+```
+
+#### 🗑️ Gestión Inteligente del Almacenamiento
+
+**Borrado automático de imágenes cuando se elimina una propiedad:**
+- Usuario borra propiedad → Frontend envía DELETE a backend
+- Backend extrae URLs de imágenes → Calcula `public_id` de cada URL
+- Borra imágenes de Cloudinary → Borra propiedad del array
+- **Resultado**: Almacenamiento limpio, sin imágenes huérfanas
+
+**Ventajas:**
+- ✅ Solo se almacenan imágenes de propiedades guardadas
+- ✅ Limpieza automática al borrar propiedades
+- ✅ Uso eficiente del plan gratuito de Cloudinary
+
+#### ⚙️ Variables de Entorno Requeridas
+
+**Backend (`.env`):**
+```env
+# Cloudinary Credentials
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=tu_api_key
+CLOUDINARY_API_SECRET=tu_api_secret
+```
+
+**Railway:**
+- Mismas 3 variables agregadas en la sección de Variables
+- Railway reinicia automáticamente tras agregar las variables
+
+#### 🎯 Beneficios
+
+- ✅ **Almacenamiento permanente**: Las imágenes nunca se pierden
+- ✅ **CDN global**: Carga rápida desde cualquier ubicación geográfica
+- ✅ **Independencia del servidor**: Railway puede reiniciarse sin problemas
+- ✅ **URLs públicas permanentes**: Funcionan desde cualquier dominio
+- ✅ **Optimización automática**: Cloudinary optimiza las imágenes
+- ✅ **Plan gratuito generoso**: 25 GB es suficiente para cientos de propiedades
+- ✅ **Limpieza automática**: Borrado de imágenes al eliminar propiedades
+
+#### 📊 Capacidad del Plan Gratuito
+
+Con el plan gratuito de Cloudinary:
+- **Almacenamiento**: 25 GB
+- **Bandwidth**: 25 GB/mes
+- **Transformaciones**: 25,000 créditos/mes
+- **Imágenes aproximadas**: ~5,000 propiedades (asumiendo 5 imágenes de 1 MB cada una)
+
+#### 🔧 Archivos Modificados
+
+**Backend ([server.js](backend/server.js)):**
+- Línea 9: `const cloudinary = require('cloudinary').v2;` (nuevo import)
+- Líneas 77-84: Configuración de Cloudinary
+- Líneas 96-154: `downloadAndSaveImage()` modificada para usar Cloudinary
+- Líneas 421-449: Screenshots de elementos con Cloudinary
+- Líneas 444-474: Screenshots de viewport completo con Cloudinary
+- Líneas 1012-1069: `DELETE /api/properties/:id` con borrado de imágenes
+
+**Backend ([package.json](backend/package.json)):**
+- Dependencia añadida: `"cloudinary": "^2.9.0"`
+
+**Backend ([.env](backend/.env)):**
+- 3 nuevas variables de Cloudinary (cloud_name, api_key, api_secret)
+
+#### 💡 Notas Técnicas
+
+**Subida mediante Streams:**
+```javascript
+const uploadResult = await new Promise((resolve, reject) => {
+  const uploadStream = cloudinary.uploader.upload_stream(
+    {
+      folder: `realstate/${propertyId}`,
+      public_id: `image-${imageIndex}`,
+      resource_type: 'image',
+      overwrite: true
+    },
+    (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    }
+  );
+  uploadStream.end(imageBuffer);
+});
+```
+
+**Extracción de public_id para borrado:**
+```javascript
+// URL: https://res.cloudinary.com/.../upload/v123/realstate/propId/img.jpg
+// public_id extraído: realstate/propId/img
+const urlParts = imageUrl.split('/');
+const uploadIndex = urlParts.indexOf('upload');
+const pathParts = urlParts.slice(uploadIndex + 2);
+const lastPart = pathParts[pathParts.length - 1].split('.')[0];
+pathParts[pathParts.length - 1] = lastPart;
+const publicId = pathParts.join('/');
+await cloudinary.uploader.destroy(publicId);
+```
+
+---
+
 ## Versión 2.1.9 - 5 de Febrero de 2026
 
 ### 🖼️ Sistema de Descarga y Almacenamiento Local de Imágenes

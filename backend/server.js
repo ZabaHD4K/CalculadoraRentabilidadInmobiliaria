@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -73,6 +74,15 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Configurar Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
+console.log('☁️ Cloudinary configurado correctamente');
+
 // Contraseña de acceso (hash SHA-256 de "3808")
 const crypto = require('crypto');
 const ACCESS_PASSWORD_HASH = crypto.createHash('sha256').update('3808').digest('hex');
@@ -87,11 +97,11 @@ let tokenExpiration = null;
 // ==================== HELPER FUNCTIONS ====================
 
 /**
- * Descarga una imagen desde una URL y la guarda localmente
+ * Descarga una imagen desde una URL y la sube a Cloudinary
  * @param {string} imageUrl - URL de la imagen a descargar
  * @param {string} propertyId - ID único de la propiedad
  * @param {number} imageIndex - Índice de la imagen (0, 1, 2...)
- * @returns {Promise<string>} Ruta local de la imagen guardada (/uploads/propertyId/image-0.jpg)
+ * @returns {Promise<string>} URL pública de Cloudinary
  */
 async function downloadAndSaveImage(imageUrl, propertyId, imageIndex) {
   try {
@@ -122,31 +132,31 @@ async function downloadAndSaveImage(imageUrl, propertyId, imageIndex) {
       validateStatus: (status) => status < 500 // Aceptar todos los status < 500
     });
 
-    // Crear directorio si no existe
-    const uploadDir = path.join(__dirname, '../frontend/public/uploads', propertyId);
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    // Subir imagen a Cloudinary desde buffer
+    console.log('☁️ Subiendo imagen a Cloudinary...');
 
-    // Determinar extensión del archivo (jpg por defecto)
-    const contentType = response.headers['content-type'] || 'image/jpeg';
-    let extension = 'jpg';
-    if (contentType.includes('png')) extension = 'png';
-    else if (contentType.includes('webp')) extension = 'webp';
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: `realstate/${propertyId}`,
+          public_id: `image-${imageIndex}`,
+          resource_type: 'image',
+          overwrite: true
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
 
-    // Guardar imagen
-    const fileName = `image-${imageIndex}.${extension}`;
-    const filePath = path.join(uploadDir, fileName);
-    fs.writeFileSync(filePath, response.data);
+      uploadStream.end(response.data);
+    });
 
-    // Retornar ruta pública (relativa para el frontend)
-    const publicPath = `/uploads/${propertyId}/${fileName}`;
-    console.log(`✅ Imagen guardada: ${publicPath}`);
-
-    return publicPath;
+    console.log(`✅ Imagen subida a Cloudinary: ${uploadResult.secure_url}`);
+    return uploadResult.secure_url;
 
   } catch (error) {
-    console.error(`❌ Error descargando imagen ${imageIndex + 1}:`, error.message);
+    console.error(`❌ Error descargando/subiendo imagen ${imageIndex + 1}:`, error.message);
     // Retornar null si falla la descarga
     return null;
   }
@@ -359,12 +369,6 @@ async function capturePropertyScreenshot(url, propertyId) {
     });
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Crear directorio para las imágenes
-    const uploadDir = path.join(__dirname, '../frontend/public/uploads', propertyId);
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
     // ESTRATEGIA 1: Buscar todos los img tags y analizar cuáles son de la galería
     console.log('🔍 Analizando imágenes en la página...');
     const images = await page.evaluate(() => {
@@ -418,18 +422,36 @@ async function capturePropertyScreenshot(url, propertyId) {
       const element = await page.$(selector);
       if (element) {
         console.log(`✅ Elemento encontrado con selector: ${selector}`);
-        const screenshotPath = path.join(uploadDir, 'image-0.jpg');
 
         try {
-          await element.screenshot({
-            path: screenshotPath,
+          // Capturar screenshot como buffer
+          const screenshotBuffer = await element.screenshot({
             type: 'jpeg',
             quality: 90
           });
 
-          console.log(`✅ Screenshot capturado: /uploads/${propertyId}/image-0.jpg`);
+          console.log('☁️ Subiendo screenshot a Cloudinary...');
+
+          // Subir a Cloudinary
+          const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: `realstate/${propertyId}`,
+                public_id: 'image-0',
+                resource_type: 'image',
+                overwrite: true
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            );
+            uploadStream.end(screenshotBuffer);
+          });
+
+          console.log(`✅ Screenshot subido a Cloudinary: ${uploadResult.secure_url}`);
           await browser.close();
-          return [`/uploads/${propertyId}/image-0.jpg`];
+          return [uploadResult.secure_url];
         } catch (screenshotError) {
           console.log(`⚠️ No se pudo capturar screenshot del selector ${selector}: ${screenshotError.message}`);
           continue;
@@ -440,18 +462,36 @@ async function capturePropertyScreenshot(url, propertyId) {
     // ESTRATEGIA 3: Si no encontramos elementos específicos, tomar screenshot del viewport completo
     if (!screenshotCaptured) {
       console.log('📸 Capturando screenshot de toda la página...');
-      const screenshotPath = path.join(uploadDir, 'image-0.jpg');
 
-      await page.screenshot({
-        path: screenshotPath,
+      // Capturar screenshot como buffer
+      const screenshotBuffer = await page.screenshot({
         type: 'jpeg',
         quality: 90,
         fullPage: false // Solo el viewport visible
       });
 
-      console.log(`✅ Screenshot completo capturado: /uploads/${propertyId}/image-0.jpg`);
+      console.log('☁️ Subiendo screenshot a Cloudinary...');
+
+      // Subir a Cloudinary
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: `realstate/${propertyId}`,
+            public_id: 'image-0',
+            resource_type: 'image',
+            overwrite: true
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(screenshotBuffer);
+      });
+
+      console.log(`✅ Screenshot completo subido a Cloudinary: ${uploadResult.secure_url}`);
       await browser.close();
-      return [`/uploads/${propertyId}/image-0.jpg`];
+      return [uploadResult.secure_url];
     }
 
     await browser.close();
@@ -969,23 +1009,65 @@ app.get('/api/properties', (req, res) => {
 });
 
 // Endpoint para eliminar una propiedad
-app.delete('/api/properties/:id', (req, res) => {
-  const { id } = req.params;
-  const index = properties.findIndex(p => p.id === id);
+app.delete('/api/properties/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const index = properties.findIndex(p => p.id === id);
 
-  if (index === -1) {
-    return res.status(404).json({
+    if (index === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Propiedad no encontrada'
+      });
+    }
+
+    const property = properties[index];
+
+    // Borrar imágenes de Cloudinary si existen
+    if (property.imagenes && property.imagenes.length > 0) {
+      console.log('🗑️ Borrando imágenes de Cloudinary...');
+
+      for (const imageUrl of property.imagenes) {
+        try {
+          // Extraer public_id de la URL de Cloudinary
+          // URL formato: https://res.cloudinary.com/cloud_name/image/upload/v123456/realstate/propertyId/image-0.jpg
+          const urlParts = imageUrl.split('/');
+          const uploadIndex = urlParts.indexOf('upload');
+
+          if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
+            // Extraer path después de /upload/v123456/
+            const pathParts = urlParts.slice(uploadIndex + 2);
+            // Remover extensión del último elemento
+            const lastPart = pathParts[pathParts.length - 1].split('.')[0];
+            pathParts[pathParts.length - 1] = lastPart;
+            const publicId = pathParts.join('/');
+
+            await cloudinary.uploader.destroy(publicId);
+            console.log(`✅ Imagen borrada: ${publicId}`);
+          }
+        } catch (error) {
+          console.error(`⚠️ Error al borrar imagen: ${error.message}`);
+          // Continuar aunque falle el borrado de una imagen
+        }
+      }
+    }
+
+    // Borrar la propiedad del array
+    properties.splice(index, 1);
+
+    res.json({
+      success: true,
+      message: 'Propiedad e imágenes eliminadas correctamente'
+    });
+
+  } catch (error) {
+    console.error('Error al eliminar propiedad:', error.message);
+    res.status(500).json({
       success: false,
-      error: 'Propiedad no encontrada'
+      error: 'Error al eliminar la propiedad',
+      details: error.message
     });
   }
-
-  properties.splice(index, 1);
-
-  res.json({
-    success: true,
-    message: 'Propiedad eliminada'
-  });
 });
 
 // Endpoint para actualizar una propiedad existente

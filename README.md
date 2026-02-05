@@ -52,6 +52,7 @@
 - 🔗 **Analiza propiedades de Idealista** pegando simplemente la URL (con indicador de progreso de hasta 50 segundos)
 - 🤖 **Utiliza IA (GPT-4/GPT-5)** para estimaciones de alquiler y análisis de mercado
 - 🖼️ **Extrae imágenes automáticamente** (3-5 imágenes por propiedad) mediante IA con sistema de triple fallback
+- ☁️ **Almacenamiento en Cloudinary** para imágenes permanentes con CDN global y URLs públicas
 - 💰 **Calcula impuestos precisos** (ITP, IVA, AJD) por Comunidad Autónoma
 - 🏦 **Simula hipotecas** (fijas y variables con Euribor actualizado en tiempo real)
 - 📊 **Calcula ROI total real** incluyendo cash flow, amortización de deuda y revalorización del inmueble
@@ -282,8 +283,10 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 | **Node.js** | 18+ | Runtime JavaScript |
 | **Express** | 4.18.2 | Framework web |
 | **OpenAI API** | 6.15.0 | Integración GPT-4 |
+| **Cloudinary** | 2.9.0 | Almacenamiento de imágenes en la nube |
 | **Axios** | - | Cliente HTTP para scraping |
 | **Cheerio** | - | Parsing HTML (web scraping) |
+| **Puppeteer** | - | Navegador headless para screenshots |
 | **CORS** | 2.8.5 | Cross-Origin Resource Sharing |
 | **dotenv** | 16.3.1 | Gestión de variables de entorno |
 
@@ -400,17 +403,17 @@ propertyData.imagenes = propertyData.imagenes.map(url =>
 │  │  • Gestor de propiedades (CRUD en memoria)        │     │
 │  └───────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────┘
-           ↓                                    ↓
-┌──────────────────────┐           ┌────────────────────────┐
-│   OpenAI API         │           │  Idealista.com         │
-│   (GPT-4 / GPT-5)    │           │  (Extracción de datos) │
-│                      │           │                        │
-│  • Análisis de       │           │  • Datos públicos      │
-│    propiedades       │           │  • Imágenes (GPT-5)    │
-│  • Estimación de     │           │  • Características     │
-│    alquileres        │           │  • Sin API oficial     │
-│  • Web search        │           │    para imágenes       │
-└──────────────────────┘           └────────────────────────┘
+           ↓                ↓                    ↓
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│   OpenAI API     │  │  Cloudinary CDN  │  │  Idealista.com   │
+│ (GPT-4/GPT-5)    │  │  (Imágenes)      │  │  (Datos)         │
+│                  │  │                  │  │                  │
+│ • Análisis de    │  │ • Almacenamiento │  │ • Datos públicos │
+│   propiedades    │  │   permanente     │  │ • Imágenes       │
+│ • Estimación     │  │ • CDN global     │  │ • Características│
+│   alquileres     │  │ • URLs públicas  │  │ • Web scraping   │
+│ • Web search     │  │ • 25 GB gratis   │  │   con GPT-5      │
+└──────────────────┘  └──────────────────┘  └──────────────────┘
 ```
 
 ### 🎯 Integración con Idealista - Detalles Técnicos
@@ -436,17 +439,111 @@ RealStateAI NO utiliza la API oficial de Idealista debido a sus limitaciones (10
 - ✅ **Cumplimiento**: Respeta los términos de uso de Idealista para uso personal/educativo
 ```
 
+### ☁️ Almacenamiento de Imágenes con Cloudinary
+
+**RealStateAI** utiliza **Cloudinary** como sistema de almacenamiento de imágenes en la nube, sustituyendo el almacenamiento local efímero.
+
+#### ¿Por qué Cloudinary?
+
+**Problema anterior:**
+- Railway (hosting del backend) tiene almacenamiento efímero
+- Las imágenes se borraban al reiniciar el servidor
+- No había persistencia real de las imágenes
+
+**Solución con Cloudinary:**
+- ✅ **Almacenamiento permanente:** Las imágenes nunca se pierden
+- ✅ **CDN global:** Carga rápida desde cualquier ubicación
+- ✅ **URLs públicas:** Funcionan desde cualquier dominio
+- ✅ **Plan gratuito generoso:** 25 GB almacenamiento + 25 GB bandwidth/mes
+- ✅ **Optimización automática:** Cloudinary optimiza las imágenes
+- ✅ **Limpieza automática:** Borrado de imágenes al eliminar propiedades
+
+#### Flujo de Imágenes con Cloudinary
+
+```
+1. USUARIO BUSCA PROPIEDAD
+   ↓
+2. BACKEND EXTRAE IMÁGENES CON PUPPETEER/GPT
+   • Screenshot de la página de Idealista
+   • O descarga de URLs extraídas por GPT
+   ↓
+3. BACKEND SUBE A CLOUDINARY
+   • Upload mediante streams (eficiente)
+   • Organización: realstate/{propertyId}/image-{index}
+   • Retorna URL pública permanente
+   ↓
+4. FRONTEND MUESTRA IMAGEN
+   • URL de Cloudinary con CDN global
+   • Ejemplo: https://res.cloudinary.com/.../realstate/123/image-0.jpg
+   ↓
+5. USUARIO BORRA PROPIEDAD (OPCIONAL)
+   • Backend detecta URLs de Cloudinary
+   • Extrae public_id y borra de Cloudinary
+   • Limpieza automática del almacenamiento
+```
+
+#### Configuración de Cloudinary
+
+**1. Crear cuenta gratuita:**
+- Ir a [cloudinary.com/users/register/free](https://cloudinary.com/users/register/free)
+- Completar registro (email, nombre, contraseña)
+
+**2. Obtener credenciales:**
+- Ir al dashboard: [console.cloudinary.com](https://console.cloudinary.com/)
+- Copiar las 3 credenciales del cuadro "Product Environment Credentials":
+  - **Cloud Name:** ej. `dxxxxxxxx`
+  - **API Key:** ej. `123456789012345`
+  - **API Secret:** ej. `xxxxxxxxxxxxxxxxxxx`
+
+**3. Configurar en el backend:**
+```env
+# backend/.env
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=tu_api_key
+CLOUDINARY_API_SECRET=tu_api_secret
+```
+
+**4. Despliegue en Railway:**
+- Agregar las mismas 3 variables en la sección "Variables" de Railway
+- Railway reiniciará automáticamente el servicio
+
+#### Capacidad del Plan Gratuito
+
+Con el plan gratuito de Cloudinary puedes almacenar:
+- **25 GB de almacenamiento**
+- **25 GB de bandwidth/mes**
+- **~5,000 propiedades** (asumiendo 5 imágenes de 1 MB cada una)
+- **25,000 transformaciones/mes**
+
+#### Gestión Automática del Almacenamiento
+
+**Limpieza inteligente:**
+- Al borrar una propiedad, se borran automáticamente sus imágenes de Cloudinary
+- No quedan "imágenes huérfanas" ocupando espacio
+- Uso eficiente del plan gratuito
+
+**Código de borrado:**
+```javascript
+// Extrae public_id de la URL
+const publicId = extractPublicIdFromUrl(imageUrl);
+// Borra de Cloudinary
+await cloudinary.uploader.destroy(publicId);
+```
+
+---
+
 ### Flujo de Datos Principal
 
 1. **Usuario ingresa URL de Idealista** en el frontend
 2. **Frontend envía petición** a `POST /api/analyze`
-3. **Backend hace scraping** de la página de Idealista
-4. **Backend envía datos a OpenAI** para análisis con IA
-5. **OpenAI devuelve análisis** estructurado
-6. **Backend combina** datos scraped + análisis IA
-7. **Frontend recibe y muestra** datos en formulario auto-rellenado
-8. **Usuario revisa, edita y guarda** la propiedad
-9. **Propiedad se almacena** y aparece en dashboard
+3. **Backend hace scraping** de la página de Idealista con Puppeteer
+4. **Backend captura screenshots** y sube imágenes a Cloudinary
+5. **Backend envía datos a OpenAI** para análisis con IA
+6. **OpenAI devuelve análisis** estructurado
+7. **Backend combina** datos scraped + análisis IA + URLs de Cloudinary
+8. **Frontend recibe y muestra** datos con imágenes desde Cloudinary CDN
+9. **Usuario revisa, edita y guarda** la propiedad
+10. **Propiedad se almacena** y aparece en dashboard con imágenes permanentes
 
 ### Estructura del Proyecto
 
@@ -493,6 +590,7 @@ Antes de comenzar, asegúrate de tener instalado:
 - **npm** v9 o superior (incluido con Node.js)
 - **Git** ([Descargar](https://git-scm.com/))
 - **Clave API de OpenAI** ([Obtener aquí](https://platform.openai.com/api-keys))
+- **Cuenta de Cloudinary** (gratuita, 25 GB) ([Registrarse aquí](https://cloudinary.com/users/register/free))
 
 ### 1️⃣ Clonar el Repositorio
 
@@ -519,7 +617,19 @@ npm start
 
 **Variables de Entorno (`.env`):**
 ```env
+# OpenAI API
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Cloudinary (obtener desde tu dashboard en cloudinary.com)
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=123456789012345
+CLOUDINARY_API_SECRET=tu_api_secret
+
+# Idealista API (opcional, para scraping avanzado)
+IDEALISTA_API_KEY=tu_idealista_api_key
+IDEALISTA_SECRET=tu_idealista_secret
+
+# Server Config
 PORT=3000
 NODE_ENV=development
 ```
