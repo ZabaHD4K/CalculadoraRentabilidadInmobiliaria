@@ -2,12 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const cheerio = require('cheerio');
-const puppeteer = require('puppeteer');
-const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,445 +68,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Configurar Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
-});
-console.log('☁️ Cloudinary configurado correctamente');
-
 // Contraseña de acceso (hash SHA-256 de "3808")
 const crypto = require('crypto');
 const ACCESS_PASSWORD_HASH = crypto.createHash('sha256').update('3808').digest('hex');
 console.log('🔐 Sistema de autenticación habilitado');
 
-// Credenciales de Idealista API
-const IDEALISTA_API_KEY = process.env.IDEALISTA_API_KEY;
-const IDEALISTA_SECRET = process.env.IDEALISTA_SECRET;
-let idealistaToken = null;
-let tokenExpiration = null;
-
-// ==================== HELPER FUNCTIONS ====================
-
-/**
- * Descarga una imagen desde una URL y la sube a Cloudinary
- * @param {string} imageUrl - URL de la imagen a descargar
- * @param {string} propertyId - ID único de la propiedad
- * @param {number} imageIndex - Índice de la imagen (0, 1, 2...)
- * @returns {Promise<string>} URL pública de Cloudinary
- */
-async function downloadAndSaveImage(imageUrl, propertyId, imageIndex) {
-  try {
-    console.log(`📥 Descargando imagen ${imageIndex + 1}: ${imageUrl}`);
-
-    // Descargar imagen con axios (responseType: 'arraybuffer' para binario)
-    // Simular un navegador real con headers completos
-    const response = await axios.get(imageUrl, {
-      responseType: 'arraybuffer',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://www.idealista.com/',
-        'Origin': 'https://www.idealista.com',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Sec-Fetch-Dest': 'image',
-        'Sec-Fetch-Mode': 'no-cors',
-        'Sec-Fetch-Site': 'same-site',
-        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"'
-      },
-      timeout: 15000, // 15 segundos de timeout
-      maxRedirects: 5, // Seguir redirects automáticamente
-      validateStatus: (status) => status < 500 // Aceptar todos los status < 500
-    });
-
-    // Subir imagen a Cloudinary desde buffer
-    console.log('☁️ Subiendo imagen a Cloudinary...');
-
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: `realstate/${propertyId}`,
-          public_id: `image-${imageIndex}`,
-          resource_type: 'image',
-          overwrite: true
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-
-      uploadStream.end(response.data);
-    });
-
-    console.log(`✅ Imagen subida a Cloudinary: ${uploadResult.secure_url}`);
-    return uploadResult.secure_url;
-
-  } catch (error) {
-    console.error(`❌ Error descargando/subiendo imagen ${imageIndex + 1}:`, error.message);
-    // Retornar null si falla la descarga
-    return null;
-  }
-}
-
-// ==================== IDEALISTA API INTEGRATION ====================
-
-/**
- * Obtiene un token OAuth de la API de Idealista
- */
-async function getIdealistaToken() {
-  // Si ya tenemos un token válido, devolverlo
-  if (idealistaToken && tokenExpiration && Date.now() < tokenExpiration) {
-    return idealistaToken;
-  }
-
-  try {
-    const credentials = Buffer.from(`${IDEALISTA_API_KEY}:${IDEALISTA_SECRET}`).toString('base64');
-    
-    const response = await axios.post(
-      'https://api.idealista.com/oauth/token',
-      'grant_type=client_credentials&scope=read',
-      {
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    );
-
-    idealistaToken = response.data.access_token;
-    // El token dura 3600 segundos (1 hora), lo renovamos 5 minutos antes
-    tokenExpiration = Date.now() + ((response.data.expires_in - 300) * 1000);
-    
-    console.log('✅ Token de Idealista obtenido correctamente');
-    return idealistaToken;
-  } catch (error) {
-    console.error('❌ Error al obtener token de Idealista:', error.response?.data || error.message);
-    throw new Error('No se pudo autenticar con la API de Idealista');
-  }
-}
-
-/**
- * Extrae el ID de propiedad de una URL de Idealista
- * Ejemplo: https://www.idealista.com/inmueble/12345678/ -> 12345678
- */
-function extractPropertyIdFromUrl(url) {
-  const match = url.match(/\/inmueble\/(\d+)\//);
-  return match ? match[1] : null;
-}
-
-/**
- * Extrae las URLs reales de las imágenes desde el HTML de Idealista
- * usando Puppeteer (navegador headless real) para pasar protecciones anti-bot
- */
-async function getIdealistaPropertyImages(url) {
-  let browser = null;
-  try {
-    console.log(`🔍 Scraping con Puppeteer (navegador real): ${url}`);
-
-    // Lanzar navegador headless
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process'
-      ]
-    });
-
-    const page = await browser.newPage();
-
-    // Configurar user agent y viewport
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    await page.setViewport({ width: 1920, height: 1080 });
-
-    // Navegar a la página
-    console.log('🌐 Navegando a Idealista...');
-    await page.goto(url, {
-      waitUntil: 'networkidle2',
-      timeout: 30000
-    });
-
-    // Esperar a que carguen las imágenes
-    console.log('⏳ Esperando a que carguen las imágenes...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Extraer URLs de imágenes del HTML/JSON
-    const imageUrls = await page.evaluate(() => {
-      const urls = [];
-
-      // Estrategia 1: Buscar el JSON de datos de la propiedad
-      const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-      scripts.forEach(script => {
-        try {
-          const data = JSON.parse(script.textContent);
-          if (data.image) {
-            if (Array.isArray(data.image)) {
-              urls.push(...data.image);
-            } else if (typeof data.image === 'string') {
-              urls.push(data.image);
-            }
-          }
-        } catch (e) {}
-      });
-
-      // Estrategia 2: Buscar en el HTML el carrusel de fotos
-      const photoElements = document.querySelectorAll('.detail-multimedia-gallery img, .multimedia-gallery img, [class*="gallery"] img');
-      photoElements.forEach(img => {
-        const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy');
-        if (src && src.includes('idealista.com')) {
-          let cleanUrl = src.replace('/WEB_LISTING-S/', '/WEB_LISTING/');
-          cleanUrl = cleanUrl.replace('/WEB_LISTING-M/', '/WEB_LISTING/');
-          cleanUrl = cleanUrl.split('?')[0];
-          if (!urls.includes(cleanUrl)) {
-            urls.push(cleanUrl);
-          }
-        }
-      });
-
-      // Estrategia 3: Buscar todas las imágenes grandes
-      const allImages = document.querySelectorAll('img');
-      allImages.forEach(img => {
-        const src = img.src || img.getAttribute('data-src');
-        if (src && src.includes('idealista.com') && src.includes('id.pro.es.image.master')) {
-          let cleanUrl = src.replace('/WEB_LISTING-S/', '/WEB_LISTING/');
-          cleanUrl = cleanUrl.replace('/WEB_LISTING-M/', '/WEB_LISTING/');
-          cleanUrl = cleanUrl.split('?')[0];
-          if (!urls.includes(cleanUrl) && cleanUrl.length > 50) {
-            urls.push(cleanUrl);
-          }
-        }
-      });
-
-      return urls;
-    });
-
-    console.log(`✅ ${imageUrls.length} URLs de imágenes extraídas con Puppeteer`);
-    console.log('📋 URLs extraídas:', imageUrls.slice(0, 5));
-
-    await browser.close();
-    return imageUrls.length > 0 ? imageUrls : null;
-
-  } catch (error) {
-    console.error('❌ Error al hacer scraping con Puppeteer:', error.message);
-    if (browser) {
-      await browser.close();
-    }
-    return null;
-  }
-}
-
-/**
- * Captura screenshot de la página de Idealista y extrae la imagen principal
- * Usa Puppeteer para evitar bloqueos anti-bot
- */
-async function capturePropertyScreenshot(url, propertyId) {
-  let browser = null;
-  try {
-    console.log(`📸 Capturando screenshot de Idealista con Puppeteer...`);
-
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process'
-      ]
-    });
-
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1920, height: 1080 });
-
-    // Configurar headers para parecer navegador real
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
-    console.log('🌐 Navegando a la página...');
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-
-    // Intentar aceptar cookies si aparece el banner
-    try {
-      console.log('🍪 Buscando banner de cookies...');
-      const cookieButton = await page.$('#didomi-notice-agree-button, .didomi-button-highlight, button[id*="accept"], button[id*="cookie"]');
-      if (cookieButton) {
-        await cookieButton.click();
-        console.log('✅ Cookies aceptadas');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    } catch (e) {
-      console.log('⚠️ No se encontró banner de cookies');
-    }
-
-    // Hacer scroll para activar lazy loading
-    console.log('📜 Haciendo scroll para cargar imágenes...');
-    await page.evaluate(() => {
-      window.scrollBy(0, 500);
-    });
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    await page.evaluate(() => {
-      window.scrollBy(0, 500);
-    });
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Scroll back to top
-    await page.evaluate(() => {
-      window.scrollTo(0, 0);
-    });
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // ESTRATEGIA 1: Buscar todos los img tags y analizar cuáles son de la galería
-    console.log('🔍 Analizando imágenes en la página...');
-    const images = await page.evaluate(() => {
-      const allImages = Array.from(document.querySelectorAll('img'));
-      return allImages.map(img => ({
-        src: img.src,
-        alt: img.alt || '',
-        className: img.className || '',
-        width: img.width,
-        height: img.height
-      }));
-    });
-
-    console.log(`📋 Encontradas ${images.length} imágenes en total`);
-
-    // Debug: mostrar todas las URLs de imágenes
-    if (images.length > 0) {
-      console.log('📋 Primeras 5 imágenes encontradas:');
-      images.slice(0, 5).forEach((img, i) => {
-        console.log(`  ${i + 1}. ${img.src.substring(0, 80)}... (${img.width}x${img.height})`);
-      });
-    }
-
-    // Filtrar imágenes que parezcan de la galería (grandes, con blur en URL)
-    const galleryImages = images.filter(img =>
-      img.src.includes('idealista.com') &&
-      (img.src.includes('blur') || img.src.includes('image.master')) &&
-      img.width > 200 &&
-      img.height > 200
-    );
-
-    console.log(`🖼️ Imágenes de galería encontradas: ${galleryImages.length}`);
-    if (galleryImages.length > 0) {
-      console.log(`📍 Primera imagen: ${galleryImages[0].src.substring(0, 100)}...`);
-    }
-
-    // ESTRATEGIA 2: Capturar screenshot de la sección de multimedia completa
-    const selectors = [
-      '#main-multimedia',
-      '.detail-multimedia',
-      '[class*="multimedia"]',
-      '.detail-gallery',
-      '[class*="gallery"]',
-      'picture img',
-      'figure img'
-    ];
-
-    let screenshotCaptured = false;
-
-    for (const selector of selectors) {
-      const element = await page.$(selector);
-      if (element) {
-        console.log(`✅ Elemento encontrado con selector: ${selector}`);
-
-        try {
-          // Capturar screenshot como buffer
-          const screenshotBuffer = await element.screenshot({
-            type: 'jpeg',
-            quality: 90
-          });
-
-          console.log('☁️ Subiendo screenshot a Cloudinary...');
-
-          // Subir a Cloudinary
-          const uploadResult = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-              {
-                folder: `realstate/${propertyId}`,
-                public_id: 'image-0',
-                resource_type: 'image',
-                overwrite: true
-              },
-              (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-              }
-            );
-            uploadStream.end(screenshotBuffer);
-          });
-
-          console.log(`✅ Screenshot subido a Cloudinary: ${uploadResult.secure_url}`);
-          await browser.close();
-          return [uploadResult.secure_url];
-        } catch (screenshotError) {
-          console.log(`⚠️ No se pudo capturar screenshot del selector ${selector}: ${screenshotError.message}`);
-          continue;
-        }
-      }
-    }
-
-    // ESTRATEGIA 3: Si no encontramos elementos específicos, tomar screenshot del viewport completo
-    if (!screenshotCaptured) {
-      console.log('📸 Capturando screenshot de toda la página...');
-
-      // Capturar screenshot como buffer
-      const screenshotBuffer = await page.screenshot({
-        type: 'jpeg',
-        quality: 90,
-        fullPage: false // Solo el viewport visible
-      });
-
-      console.log('☁️ Subiendo screenshot a Cloudinary...');
-
-      // Subir a Cloudinary
-      const uploadResult = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: `realstate/${propertyId}`,
-            public_id: 'image-0',
-            resource_type: 'image',
-            overwrite: true
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        uploadStream.end(screenshotBuffer);
-      });
-
-      console.log(`✅ Screenshot completo subido a Cloudinary: ${uploadResult.secure_url}`);
-      await browser.close();
-      return [uploadResult.secure_url];
-    }
-
-    await browser.close();
-    return null;
-
-  } catch (error) {
-    console.error('❌ Error al capturar screenshot:', error.message);
-    if (browser) {
-      await browser.close();
-    }
-    return null;
-  }
-}
-
-/**
- * Obtiene detalles de una propiedad desde Idealista
- * Usa screenshot para obtener la imagen
- */
-async function getPropertyFromIdealista(url) {
-  return null; // GPT extraerá los datos de texto
-}
 
 // ==================== AUTHENTICATION ====================
 
@@ -726,7 +286,9 @@ app.post('/api/analyze-property', async (req, res) => {
     let propertyData;
 
     // Usar GPT-5 para extraer información de la propiedad
-    const prompt = `Analiza este enlace de propiedad inmobiliaria de Idealista y extrae TODA la información disponible en formato JSON estricto.
+    const prompt = `Analiza este enlace de propiedad inmobiliaria de Idealista y extrae la información disponible en formato JSON estricto.
+
+**IMPORTANTE: Debes acceder a la página web usando web search para obtener el contenido real.**
 
 URL: ${url}
 
@@ -741,21 +303,13 @@ Debes extraer:
 - gastosAnuales: gastos anuales estimados (IBI, comunidad, etc.)
 - descripcion: descripción completa de la propiedad
 - caracteristicas: array con todas las características (ascensor, terraza, etc.)
-- imagenes: array con URLs de TODAS las imágenes de la propiedad (OBLIGATORIO extraer las URLs completas desde la página web)
 - estado: si está disponible, reservado, vendido, alquilado
 - tipoPropiedad: piso, casa, local, etc.
 
-CRÍTICO PARA IMÁGENES:
-- Debes extraer las URLs COMPLETAS de las imágenes desde la página web de Idealista
-- Las URLs suelen estar en formato: https://img4.idealista.com/... o https://img3.idealista.com/...
-- Extrae AL MENOS 3-5 imágenes de la propiedad
-- Las imágenes son OBLIGATORIAS, no pueden ser null ni array vacío
-
-IMPORTANTE:
-1. Responde SOLO con el objeto JSON, sin texto adicional
-2. Si no encuentras un dato, usa null (EXCEPTO imágenes, que deben estar)
-3. Las imágenes deben ser URLs completas y válidas (https://img4.idealista.com/...)
-4. Los números deben ser números, no strings
+FORMATO DE RESPUESTA:
+1. Responde SOLO con el objeto JSON, sin texto adicional antes ni después
+2. Si no encuentras un dato, usa null
+3. Los números deben ser números, no strings
 
 Ejemplo de formato:
 {
@@ -769,7 +323,6 @@ Ejemplo de formato:
   "gastosAnuales": 1500,
   "descripcion": "Precioso piso...",
   "caracteristicas": ["ascensor", "terraza", "exterior"],
-  "imagenes": ["https://img4.idealista.com/blur/WEB_LISTING/0/id.pro.es.image.master/abc.jpg", "https://img4.idealista.com/blur/WEB_LISTING/0/id.pro.es.image.master/def.jpg"],
   "estado": "disponible",
   "tipoPropiedad": "piso"
 }`;
@@ -789,7 +342,7 @@ Ejemplo de formato:
         verbosity: 'medium'
       },
       reasoning: {
-        effort: 'low'
+        effort: 'medium'
       },
       tools: [
         {
@@ -835,109 +388,6 @@ Ejemplo de formato:
       // Generar ID único para la propiedad
       const propertyId = Date.now().toString();
       propertyData.id = propertyId;
-
-      // PASO 3A: Intentar obtener imágenes desde Idealista API (método oficial)
-      const propertyCode = extractPropertyIdFromUrl(url);
-      let apiImageUrls = null;
-
-      if (propertyCode && IDEALISTA_API_KEY && IDEALISTA_SECRET) {
-        try {
-          console.log(`🔑 Intentando obtener imágenes desde API oficial de Idealista (ID: ${propertyCode})...`);
-          const token = await getIdealistaToken();
-
-          // Buscar propiedad por código
-          const apiResponse = await axios.get(
-            `https://api.idealista.com/3.5/es/search`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              },
-              params: {
-                center: '40.416729,-3.703339',
-                country: 'es',
-                propertyType: 'homes',
-                operation: 'sale',
-                maxItems: 50
-              }
-            }
-          );
-
-          if (apiResponse.data && apiResponse.data.elementList) {
-            const property = apiResponse.data.elementList.find(p => p.propertyCode === propertyCode);
-
-            if (property && property.multimedia && property.multimedia.images) {
-              apiImageUrls = property.multimedia.images.map(img => img.url);
-              console.log(`✅ ${apiImageUrls.length} imágenes obtenidas desde API oficial`);
-            }
-          }
-        } catch (apiError) {
-          console.log('⚠️ No se pudieron obtener imágenes de la API oficial:', apiError.message);
-        }
-      }
-
-      // Si obtuvimos imágenes de la API, descargarlas
-      if (apiImageUrls && apiImageUrls.length > 0) {
-        console.log(`📥 Descargando ${apiImageUrls.length} imágenes desde API oficial...`);
-
-        const downloadPromises = apiImageUrls.map((imageUrl, index) =>
-          downloadAndSaveImage(imageUrl, propertyId, index)
-        );
-
-        const localImagePaths = await Promise.all(downloadPromises);
-        const successfulImages = localImagePaths.filter(path => path !== null);
-
-        if (successfulImages.length > 0) {
-          propertyData.imagenes = successfulImages;
-          propertyData.urlImagen = successfulImages[0];
-          console.log(`✅ ${successfulImages.length} imágenes descargadas desde API oficial`);
-        }
-      }
-      // PASO 3B: Si no hay imágenes de API, intentar screenshot
-      else {
-        console.log('📸 Intentando capturar screenshot de las imágenes...');
-        const screenshotPaths = await capturePropertyScreenshot(url, propertyId);
-
-        if (screenshotPaths && screenshotPaths.length > 0) {
-          // Screenshot exitoso - usar imagen capturada
-          propertyData.imagenes = screenshotPaths;
-          propertyData.urlImagen = screenshotPaths[0];
-          console.log('✅ Screenshot capturado exitosamente');
-        }
-      }
-
-      // PASO 3C: Fallback final a URLs de GPT (guardar las que tenemos en variable temporal)
-      const gptImageUrls = propertyData.imagenes ? [...propertyData.imagenes] : [];
-
-      if ((!propertyData.imagenes || propertyData.imagenes.length === 0 || typeof propertyData.imagenes[0] === 'string' && propertyData.imagenes[0].startsWith('http')) && gptImageUrls.length > 0) {
-        // Fallback: intentar descargar URLs de GPT si API y screenshot fallaron
-        console.log(`📥 Screenshot falló. Intentando descargar ${propertyData.imagenes.length} imágenes de GPT...`);
-
-        // Guardar URLs originales
-        const originalUrls = [...propertyData.imagenes];
-        console.log('📋 URLs de GPT:', JSON.stringify(originalUrls.slice(0, 3), null, 2));
-
-        // Descargar todas las imágenes en paralelo
-        const downloadPromises = propertyData.imagenes.map((imageUrl, index) =>
-          downloadAndSaveImage(imageUrl, propertyId, index)
-        );
-
-        const localImagePaths = await Promise.all(downloadPromises);
-
-        // Filtrar imágenes que fallaron (null)
-        const successfulImages = localImagePaths.filter(path => path !== null);
-
-        if (successfulImages.length > 0) {
-          propertyData.imagenes = successfulImages;
-          propertyData.urlImagen = successfulImages[0];
-          console.log(`✅ ${successfulImages.length} imágenes descargadas desde GPT URLs`);
-        } else {
-          propertyData.imagenes = originalUrls;
-          propertyData.urlImagen = originalUrls[0];
-          console.log(`⚠️ Todas las descargas fallaron. Manteniendo URLs originales.`);
-        }
-      } else {
-        console.log('⚠️ No se pudo obtener ninguna imagen (ni screenshot ni GPT)');
-      }
     } catch (parseError) {
       console.error('❌ Error al parsear JSON desde GPT:', parseError);
       return res.status(500).json({
@@ -1021,43 +471,12 @@ app.delete('/api/properties/:id', async (req, res) => {
       });
     }
 
-    const property = properties[index];
-
-    // Borrar imágenes de Cloudinary si existen
-    if (property.imagenes && property.imagenes.length > 0) {
-      console.log('🗑️ Borrando imágenes de Cloudinary...');
-
-      for (const imageUrl of property.imagenes) {
-        try {
-          // Extraer public_id de la URL de Cloudinary
-          // URL formato: https://res.cloudinary.com/cloud_name/image/upload/v123456/realstate/propertyId/image-0.jpg
-          const urlParts = imageUrl.split('/');
-          const uploadIndex = urlParts.indexOf('upload');
-
-          if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
-            // Extraer path después de /upload/v123456/
-            const pathParts = urlParts.slice(uploadIndex + 2);
-            // Remover extensión del último elemento
-            const lastPart = pathParts[pathParts.length - 1].split('.')[0];
-            pathParts[pathParts.length - 1] = lastPart;
-            const publicId = pathParts.join('/');
-
-            await cloudinary.uploader.destroy(publicId);
-            console.log(`✅ Imagen borrada: ${publicId}`);
-          }
-        } catch (error) {
-          console.error(`⚠️ Error al borrar imagen: ${error.message}`);
-          // Continuar aunque falle el borrado de una imagen
-        }
-      }
-    }
-
     // Borrar la propiedad del array
     properties.splice(index, 1);
 
     res.json({
       success: true,
-      message: 'Propiedad e imágenes eliminadas correctamente'
+      message: 'Propiedad eliminada correctamente'
     });
 
   } catch (error) {
