@@ -3,6 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+const cheerio = require('cheerio');
+const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +30,74 @@ let tokenExpiration = null;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Descarga una imagen desde una URL y la guarda localmente
+ * @param {string} imageUrl - URL de la imagen a descargar
+ * @param {string} propertyId - ID único de la propiedad
+ * @param {number} imageIndex - Índice de la imagen (0, 1, 2...)
+ * @returns {Promise<string>} Ruta local de la imagen guardada (/uploads/propertyId/image-0.jpg)
+ */
+async function downloadAndSaveImage(imageUrl, propertyId, imageIndex) {
+  try {
+    console.log(`📥 Descargando imagen ${imageIndex + 1}: ${imageUrl}`);
+
+    // Descargar imagen con axios (responseType: 'arraybuffer' para binario)
+    // Simular un navegador real con headers completos
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://www.idealista.com/',
+        'Origin': 'https://www.idealista.com',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'image',
+        'Sec-Fetch-Mode': 'no-cors',
+        'Sec-Fetch-Site': 'same-site',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"'
+      },
+      timeout: 15000, // 15 segundos de timeout
+      maxRedirects: 5, // Seguir redirects automáticamente
+      validateStatus: (status) => status < 500 // Aceptar todos los status < 500
+    });
+
+    // Crear directorio si no existe
+    const uploadDir = path.join(__dirname, '../frontend/public/uploads', propertyId);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Determinar extensión del archivo (jpg por defecto)
+    const contentType = response.headers['content-type'] || 'image/jpeg';
+    let extension = 'jpg';
+    if (contentType.includes('png')) extension = 'png';
+    else if (contentType.includes('webp')) extension = 'webp';
+
+    // Guardar imagen
+    const fileName = `image-${imageIndex}.${extension}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.writeFileSync(filePath, response.data);
+
+    // Retornar ruta pública (relativa para el frontend)
+    const publicPath = `/uploads/${propertyId}/${fileName}`;
+    console.log(`✅ Imagen guardada: ${publicPath}`);
+
+    return publicPath;
+
+  } catch (error) {
+    console.error(`❌ Error descargando imagen ${imageIndex + 1}:`, error.message);
+    // Retornar null si falla la descarga
+    return null;
+  }
+}
 
 // ==================== IDEALISTA API INTEGRATION ====================
 
@@ -74,77 +146,279 @@ function extractPropertyIdFromUrl(url) {
 }
 
 /**
- * Extrae la imagen principal directamente desde la URL de Idealista
- * usando técnicas de scraping de la página
+ * Extrae las URLs reales de las imágenes desde el HTML de Idealista
+ * usando Puppeteer (navegador headless real) para pasar protecciones anti-bot
  */
-async function getIdealistaPropertyImage(url) {
+async function getIdealistaPropertyImages(url) {
+  let browser = null;
   try {
-    // Extraer el ID de la propiedad
-    const propertyId = extractPropertyIdFromUrl(url);
-    if (!propertyId) return null;
+    console.log(`🔍 Scraping con Puppeteer (navegador real): ${url}`);
 
-    // Intentar obtener la imagen desde el thumbnail de Idealista
-    // Las imágenes de Idealista siguen un patrón predecible
-    const imageUrl = `https://img4.idealista.com/blur/WEB_LISTING-M/0/id.pro.es.image.master/inmueble/${propertyId}.jpg`;
-    
-    console.log(`🖼️ URL de imagen generada: ${imageUrl}`);
-    return imageUrl;
+    // Lanzar navegador headless
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process'
+      ]
+    });
+
+    const page = await browser.newPage();
+
+    // Configurar user agent y viewport
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    // Navegar a la página
+    console.log('🌐 Navegando a Idealista...');
+    await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
+
+    // Esperar a que carguen las imágenes
+    console.log('⏳ Esperando a que carguen las imágenes...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Extraer URLs de imágenes del HTML/JSON
+    const imageUrls = await page.evaluate(() => {
+      const urls = [];
+
+      // Estrategia 1: Buscar el JSON de datos de la propiedad
+      const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+      scripts.forEach(script => {
+        try {
+          const data = JSON.parse(script.textContent);
+          if (data.image) {
+            if (Array.isArray(data.image)) {
+              urls.push(...data.image);
+            } else if (typeof data.image === 'string') {
+              urls.push(data.image);
+            }
+          }
+        } catch (e) {}
+      });
+
+      // Estrategia 2: Buscar en el HTML el carrusel de fotos
+      const photoElements = document.querySelectorAll('.detail-multimedia-gallery img, .multimedia-gallery img, [class*="gallery"] img');
+      photoElements.forEach(img => {
+        const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy');
+        if (src && src.includes('idealista.com')) {
+          let cleanUrl = src.replace('/WEB_LISTING-S/', '/WEB_LISTING/');
+          cleanUrl = cleanUrl.replace('/WEB_LISTING-M/', '/WEB_LISTING/');
+          cleanUrl = cleanUrl.split('?')[0];
+          if (!urls.includes(cleanUrl)) {
+            urls.push(cleanUrl);
+          }
+        }
+      });
+
+      // Estrategia 3: Buscar todas las imágenes grandes
+      const allImages = document.querySelectorAll('img');
+      allImages.forEach(img => {
+        const src = img.src || img.getAttribute('data-src');
+        if (src && src.includes('idealista.com') && src.includes('id.pro.es.image.master')) {
+          let cleanUrl = src.replace('/WEB_LISTING-S/', '/WEB_LISTING/');
+          cleanUrl = cleanUrl.replace('/WEB_LISTING-M/', '/WEB_LISTING/');
+          cleanUrl = cleanUrl.split('?')[0];
+          if (!urls.includes(cleanUrl) && cleanUrl.length > 50) {
+            urls.push(cleanUrl);
+          }
+        }
+      });
+
+      return urls;
+    });
+
+    console.log(`✅ ${imageUrls.length} URLs de imágenes extraídas con Puppeteer`);
+    console.log('📋 URLs extraídas:', imageUrls.slice(0, 5));
+
+    await browser.close();
+    return imageUrls.length > 0 ? imageUrls : null;
+
   } catch (error) {
-    console.error('Error al obtener imagen:', error.message);
+    console.error('❌ Error al hacer scraping con Puppeteer:', error.message);
+    if (browser) {
+      await browser.close();
+    }
     return null;
   }
 }
 
 /**
- * Busca una propiedad específica en Idealista por ID
- * Como la API no tiene endpoint directo por ID, usamos GPT + obtención de imágenes
+ * Captura screenshot de la página de Idealista y extrae la imagen principal
+ * Usa Puppeteer para evitar bloqueos anti-bot
  */
-async function searchIdealistaProperty(propertyId, url) {
+async function capturePropertyScreenshot(url, propertyId) {
+  let browser = null;
   try {
-    // Intentar obtener la imagen desde el patrón de URLs de Idealista
-    const imageUrl = await getIdealistaPropertyImage(url);
-    
-    return {
-      thumbnail: imageUrl,
-      propertyCode: propertyId
-    };
+    console.log(`📸 Capturando screenshot de Idealista con Puppeteer...`);
+
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process'
+      ]
+    });
+
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    // Configurar headers para parecer navegador real
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    console.log('🌐 Navegando a la página...');
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+    // Intentar aceptar cookies si aparece el banner
+    try {
+      console.log('🍪 Buscando banner de cookies...');
+      const cookieButton = await page.$('#didomi-notice-agree-button, .didomi-button-highlight, button[id*="accept"], button[id*="cookie"]');
+      if (cookieButton) {
+        await cookieButton.click();
+        console.log('✅ Cookies aceptadas');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } catch (e) {
+      console.log('⚠️ No se encontró banner de cookies');
+    }
+
+    // Hacer scroll para activar lazy loading
+    console.log('📜 Haciendo scroll para cargar imágenes...');
+    await page.evaluate(() => {
+      window.scrollBy(0, 500);
+    });
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    await page.evaluate(() => {
+      window.scrollBy(0, 500);
+    });
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Scroll back to top
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+    });
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Crear directorio para las imágenes
+    const uploadDir = path.join(__dirname, '../frontend/public/uploads', propertyId);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // ESTRATEGIA 1: Buscar todos los img tags y analizar cuáles son de la galería
+    console.log('🔍 Analizando imágenes en la página...');
+    const images = await page.evaluate(() => {
+      const allImages = Array.from(document.querySelectorAll('img'));
+      return allImages.map(img => ({
+        src: img.src,
+        alt: img.alt || '',
+        className: img.className || '',
+        width: img.width,
+        height: img.height
+      }));
+    });
+
+    console.log(`📋 Encontradas ${images.length} imágenes en total`);
+
+    // Debug: mostrar todas las URLs de imágenes
+    if (images.length > 0) {
+      console.log('📋 Primeras 5 imágenes encontradas:');
+      images.slice(0, 5).forEach((img, i) => {
+        console.log(`  ${i + 1}. ${img.src.substring(0, 80)}... (${img.width}x${img.height})`);
+      });
+    }
+
+    // Filtrar imágenes que parezcan de la galería (grandes, con blur en URL)
+    const galleryImages = images.filter(img =>
+      img.src.includes('idealista.com') &&
+      (img.src.includes('blur') || img.src.includes('image.master')) &&
+      img.width > 200 &&
+      img.height > 200
+    );
+
+    console.log(`🖼️ Imágenes de galería encontradas: ${galleryImages.length}`);
+    if (galleryImages.length > 0) {
+      console.log(`📍 Primera imagen: ${galleryImages[0].src.substring(0, 100)}...`);
+    }
+
+    // ESTRATEGIA 2: Capturar screenshot de la sección de multimedia completa
+    const selectors = [
+      '#main-multimedia',
+      '.detail-multimedia',
+      '[class*="multimedia"]',
+      '.detail-gallery',
+      '[class*="gallery"]',
+      'picture img',
+      'figure img'
+    ];
+
+    let screenshotCaptured = false;
+
+    for (const selector of selectors) {
+      const element = await page.$(selector);
+      if (element) {
+        console.log(`✅ Elemento encontrado con selector: ${selector}`);
+        const screenshotPath = path.join(uploadDir, 'image-0.jpg');
+
+        try {
+          await element.screenshot({
+            path: screenshotPath,
+            type: 'jpeg',
+            quality: 90
+          });
+
+          console.log(`✅ Screenshot capturado: /uploads/${propertyId}/image-0.jpg`);
+          await browser.close();
+          return [`/uploads/${propertyId}/image-0.jpg`];
+        } catch (screenshotError) {
+          console.log(`⚠️ No se pudo capturar screenshot del selector ${selector}: ${screenshotError.message}`);
+          continue;
+        }
+      }
+    }
+
+    // ESTRATEGIA 3: Si no encontramos elementos específicos, tomar screenshot del viewport completo
+    if (!screenshotCaptured) {
+      console.log('📸 Capturando screenshot de toda la página...');
+      const screenshotPath = path.join(uploadDir, 'image-0.jpg');
+
+      await page.screenshot({
+        path: screenshotPath,
+        type: 'jpeg',
+        quality: 90,
+        fullPage: false // Solo el viewport visible
+      });
+
+      console.log(`✅ Screenshot completo capturado: /uploads/${propertyId}/image-0.jpg`);
+      await browser.close();
+      return [`/uploads/${propertyId}/image-0.jpg`];
+    }
+
+    await browser.close();
+    return null;
+
   } catch (error) {
-    console.error('Error al buscar propiedad en Idealista:', error.response?.data || error.message);
+    console.error('❌ Error al capturar screenshot:', error.message);
+    if (browser) {
+      await browser.close();
+    }
     return null;
   }
 }
 
 /**
- * Obtiene detalles de una propiedad desde Idealista (principalmente imágenes)
+ * Obtiene detalles de una propiedad desde Idealista
+ * Usa screenshot para obtener la imagen
  */
 async function getPropertyFromIdealista(url) {
-  try {
-    const propertyId = extractPropertyIdFromUrl(url);
-    
-    if (!propertyId) {
-      console.log('⚠️ No se pudo extraer ID de la URL');
-      return null;
-    }
-
-    console.log(`🔍 Extrayendo imagen para propiedad ID: ${propertyId}`);
-    const property = await searchIdealistaProperty(propertyId, url);
-    
-    if (!property || !property.thumbnail) {
-      console.log('⚠️ No se pudo obtener la imagen de Idealista');
-      return null;
-    }
-
-    console.log('✅ Imagen obtenida desde Idealista');
-    
-    // Devolver solo la imagen, GPT extraerá el resto de datos
-    return {
-      imagenes: [property.thumbnail],
-      urlImagen: property.thumbnail
-    };
-  } catch (error) {
-    console.error('Error en getPropertyFromIdealista:', error.message);
-    return null;
-  }
+  return null; // GPT extraerá los datos de texto
 }
 
 // ==================== AUTHENTICATION ====================
@@ -349,12 +623,14 @@ app.post('/api/analyze-property', async (req, res) => {
     console.log('\n=== Analizando propiedad ===');
     console.log('URL:', url);
 
-    // PASO 1: Extraer imagen directamente desde Idealista (no requiere API)
-    console.log('🖼️ Obteniendo imagen desde Idealista...');
-    const idealistaImage = await getPropertyFromIdealista(url);
+    // PASO 1: Dejar que GPT extraiga todo (sistema simple que funcionaba ayer)
+    console.log('🖼️ GPT extraerá los datos y las URLs de las imágenes...');
+    const idealistaImage = null; // Simplificado: GPT hace todo
 
     // PASO 2: Usar GPT-5 para extraer toda la información
     console.log('🔄 Extrayendo datos con GPT-5 (puede tardar 30-60 segundos)...');
+
+    let propertyData;
 
     // Usar GPT-5 para extraer información de la propiedad
     const prompt = `Analiza este enlace de propiedad inmobiliaria de Idealista y extrae TODA la información disponible en formato JSON estricto.
@@ -462,25 +738,112 @@ Ejemplo de formato:
 
       propertyData = JSON.parse(cleanResponse);
       console.log('✅ Datos parseados correctamente desde GPT');
-      
-      // PASO 3: Asegurar que siempre haya imagen (de GPT o de Idealista)
-      if (!propertyData.imagenes || propertyData.imagenes.length === 0) {
-        // Si GPT no extrajo imágenes, usar la de Idealista como fallback
-        if (idealistaImage && idealistaImage.urlImagen) {
-          propertyData.imagenes = [idealistaImage.urlImagen];
-          propertyData.urlImagen = idealistaImage.urlImagen;
-          console.log('✅ Usando imagen de fallback de Idealista');
+
+      // Generar ID único para la propiedad
+      const propertyId = Date.now().toString();
+      propertyData.id = propertyId;
+
+      // PASO 3A: Intentar obtener imágenes desde Idealista API (método oficial)
+      const propertyCode = extractPropertyIdFromUrl(url);
+      let apiImageUrls = null;
+
+      if (propertyCode && IDEALISTA_API_KEY && IDEALISTA_SECRET) {
+        try {
+          console.log(`🔑 Intentando obtener imágenes desde API oficial de Idealista (ID: ${propertyCode})...`);
+          const token = await getIdealistaToken();
+
+          // Buscar propiedad por código
+          const apiResponse = await axios.get(
+            `https://api.idealista.com/3.5/es/search`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              params: {
+                center: '40.416729,-3.703339',
+                country: 'es',
+                propertyType: 'homes',
+                operation: 'sale',
+                maxItems: 50
+              }
+            }
+          );
+
+          if (apiResponse.data && apiResponse.data.elementList) {
+            const property = apiResponse.data.elementList.find(p => p.propertyCode === propertyCode);
+
+            if (property && property.multimedia && property.multimedia.images) {
+              apiImageUrls = property.multimedia.images.map(img => img.url);
+              console.log(`✅ ${apiImageUrls.length} imágenes obtenidas desde API oficial`);
+            }
+          }
+        } catch (apiError) {
+          console.log('⚠️ No se pudieron obtener imágenes de la API oficial:', apiError.message);
+        }
+      }
+
+      // Si obtuvimos imágenes de la API, descargarlas
+      if (apiImageUrls && apiImageUrls.length > 0) {
+        console.log(`📥 Descargando ${apiImageUrls.length} imágenes desde API oficial...`);
+
+        const downloadPromises = apiImageUrls.map((imageUrl, index) =>
+          downloadAndSaveImage(imageUrl, propertyId, index)
+        );
+
+        const localImagePaths = await Promise.all(downloadPromises);
+        const successfulImages = localImagePaths.filter(path => path !== null);
+
+        if (successfulImages.length > 0) {
+          propertyData.imagenes = successfulImages;
+          propertyData.urlImagen = successfulImages[0];
+          console.log(`✅ ${successfulImages.length} imágenes descargadas desde API oficial`);
+        }
+      }
+      // PASO 3B: Si no hay imágenes de API, intentar screenshot
+      else {
+        console.log('📸 Intentando capturar screenshot de las imágenes...');
+        const screenshotPaths = await capturePropertyScreenshot(url, propertyId);
+
+        if (screenshotPaths && screenshotPaths.length > 0) {
+          // Screenshot exitoso - usar imagen capturada
+          propertyData.imagenes = screenshotPaths;
+          propertyData.urlImagen = screenshotPaths[0];
+          console.log('✅ Screenshot capturado exitosamente');
+        }
+      }
+
+      // PASO 3C: Fallback final a URLs de GPT (guardar las que tenemos en variable temporal)
+      const gptImageUrls = propertyData.imagenes ? [...propertyData.imagenes] : [];
+
+      if ((!propertyData.imagenes || propertyData.imagenes.length === 0 || typeof propertyData.imagenes[0] === 'string' && propertyData.imagenes[0].startsWith('http')) && gptImageUrls.length > 0) {
+        // Fallback: intentar descargar URLs de GPT si API y screenshot fallaron
+        console.log(`📥 Screenshot falló. Intentando descargar ${propertyData.imagenes.length} imágenes de GPT...`);
+
+        // Guardar URLs originales
+        const originalUrls = [...propertyData.imagenes];
+        console.log('📋 URLs de GPT:', JSON.stringify(originalUrls.slice(0, 3), null, 2));
+
+        // Descargar todas las imágenes en paralelo
+        const downloadPromises = propertyData.imagenes.map((imageUrl, index) =>
+          downloadAndSaveImage(imageUrl, propertyId, index)
+        );
+
+        const localImagePaths = await Promise.all(downloadPromises);
+
+        // Filtrar imágenes que fallaron (null)
+        const successfulImages = localImagePaths.filter(path => path !== null);
+
+        if (successfulImages.length > 0) {
+          propertyData.imagenes = successfulImages;
+          propertyData.urlImagen = successfulImages[0];
+          console.log(`✅ ${successfulImages.length} imágenes descargadas desde GPT URLs`);
         } else {
-          console.log('⚠️ No se encontraron imágenes');
+          propertyData.imagenes = originalUrls;
+          propertyData.urlImagen = originalUrls[0];
+          console.log(`⚠️ Todas las descargas fallaron. Manteniendo URLs originales.`);
         }
       } else {
-        // Si GPT extrajo imágenes, limpiarlas y usarlas
-        // Eliminar "/blur" de las URLs de Idealista para acceso directo
-        propertyData.imagenes = propertyData.imagenes.map(url => 
-          typeof url === 'string' ? url.replace('/blur/WEB_LISTING/', '/WEB_LISTING/').replace('/blur/WEB_LISTING-M/', '/WEB_LISTING/') : url
-        );
-        propertyData.urlImagen = propertyData.imagenes[0];
-        console.log(`✅ ${propertyData.imagenes.length} imágenes extraídas y procesadas`);
+        console.log('⚠️ No se pudo obtener ninguna imagen (ni screenshot ni GPT)');
       }
     } catch (parseError) {
       console.error('❌ Error al parsear JSON desde GPT:', parseError);
@@ -491,7 +854,7 @@ Ejemplo de formato:
       });
     }
 
-    // Enviar respuesta con los datos combinados
+    // Enviar respuesta con los datos combinados (incluye ID generado)
     res.json({
       success: true,
       data: propertyData,
@@ -516,9 +879,9 @@ app.post('/api/properties', async (req, res) => {
   try {
     const propertyData = req.body;
 
-    // Generar ID único
+    // Usar el ID existente (si viene del análisis) o generar uno nuevo
     const property = {
-      id: Date.now().toString(),
+      id: propertyData.id || Date.now().toString(),
       ...propertyData,
       createdAt: new Date().toISOString()
     };

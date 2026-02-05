@@ -1,5 +1,81 @@
 # 📝 Notas de Cambios - RealState AI
 
+## Versión 2.1.9 - 5 de Febrero de 2026
+
+### 🖼️ Sistema de Descarga y Almacenamiento Local de Imágenes
+
+**Problema identificado**: Las imágenes de Idealista no se mostraban en las tarjetas de propiedades debido a:
+- Protección anti-hotlinking de Idealista que bloquea la carga de imágenes desde dominios externos
+- URLs de imágenes que devolvían placeholders genéricos en lugar de las imágenes reales
+- Loop infinito de peticiones intentando cargar `/no-image.png` que no existía
+
+#### ✅ Soluciones Implementadas
+
+**1. Sistema de Descarga Local**
+- Nueva función `downloadAndSaveImage()` en el backend que descarga imágenes de Idealista con headers HTTP completos
+- Las imágenes se guardan en `/frontend/public/uploads/{propertyId}/`
+- IDs de propiedades consistentes entre análisis y guardado
+- Descarga paralela de todas las imágenes (Promise.all)
+
+**2. Headers HTTP Mejorados**
+```javascript
+headers: {
+  'User-Agent': 'Chrome 120 completo',
+  'Accept': 'image/avif,image/webp,image/apng,image/*',
+  'Accept-Language': 'es-ES,es;q=0.9',
+  'Referer': 'https://www.idealista.com/',
+  'Origin': 'https://www.idealista.com',
+  'Sec-Fetch-Dest': 'image',
+  'Sec-Fetch-Mode': 'no-cors',
+  'Sec-Fetch-Site': 'same-site',
+  // ... y más headers de navegador real
+}
+```
+Simula un navegador real para evitar el bloqueo de Idealista.
+
+**3. Imagen Placeholder Mejorada**
+- Creada carpeta `/frontend/public/`
+- Imagen SVG `no-image.svg` con diseño elegante (icono de casa + texto)
+- Handler `onError` mejorado que previene loops infinitos
+- Verificación para ejecutar solo una vez: `if (target.src.includes('no-image.svg')) return;`
+
+**4. Logging Mejorado**
+- URLs originales de Idealista registradas en los logs para debugging
+- Contador de imágenes descargadas exitosamente
+- Mensajes claros de éxito/error por cada imagen
+
+#### 📁 Estructura de Archivos
+```
+frontend/public/
+├── uploads/
+│   ├── 1738716800123/      # ID de propiedad
+│   │   ├── image-0.jpg
+│   │   ├── image-1.jpg
+│   │   └── image-2.jpg
+│   └── {propertyId}/
+└── no-image.svg           # Fallback elegante
+```
+
+#### 🔧 Archivos Modificados
+
+**Backend** ([server.js](backend/server.js)):
+- `downloadAndSaveImage()` - Nueva función helper (líneas 41-84)
+- Endpoint `/api/analyze-property` - Descarga automática de imágenes (líneas 533-566)
+- Endpoint `/api/properties` - Respeta ID existente (línea 589)
+
+**Frontend** ([page.tsx](frontend/src/app/page.tsx)):
+- Handler `onError` mejorado con protección anti-loop (líneas 842-848)
+
+#### 🎯 Beneficios
+
+- ✅ **Imágenes siempre disponibles**: No dependen de Idealista tras la descarga
+- ✅ **Sin loops infinitos**: Protección robusta en el handler de errores
+- ✅ **Performance mejorado**: Imágenes servidas localmente
+- ✅ **Experiencia de usuario**: Imágenes reales o placeholder elegante
+- ✅ **Independencia**: Las imágenes persisten aunque Idealista las elimine
+
+---
+
 ## Versión 2.1.8 - 5 de Febrero de 2026
 
 ### 🚀 Migración del backend a Railway y solución de error de conexión frontend-backend

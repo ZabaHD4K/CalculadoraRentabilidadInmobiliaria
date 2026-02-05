@@ -840,7 +840,11 @@ export default function Home() {
                         alt={property.nombre}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
+                          const target = e.target as HTMLImageElement;
+                          // Evitar loop infinito: solo ejecutar una vez
+                          if (target.src.includes('no-image.svg')) return;
+                          target.onerror = null;
+                          target.src = '/no-image.svg';
                         }}
                       />
                       

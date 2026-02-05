@@ -68,11 +68,18 @@
 **Prueba la aplicación en vivo:**  
 🌐 **Frontend:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)
 
-⚠️ **Si ves "Error al conectar con el servidor"**:
-- **El backend está dormido** (servicios gratuitos de Render se duermen tras 15 min)
-- **Solución**: Espera 30-60 segundos y recarga la página
-- El backend se despierta automáticamente al primer request
-- Tip: Abre primero el enlace del backend para despertarlo antes de usar la app
+
+### 🚀 Backend ahora en Railway
+
+Antes el backend estaba desplegado en Render, pero Render dormía el servicio tras 15 minutos de inactividad, lo que provocaba esperas y errores de conexión al iniciar sesión o usar la app.
+
+Ahora el backend está desplegado en Railway, que **no se duerme** y garantiza disponibilidad continua y mayor rapidez en la conexión. Así se elimina el problema de backend dormido y la experiencia de usuario mejora notablemente.
+
+**Motivo del cambio:**
+- Render (gratuito) dormía el backend y causaba esperas y fallos de conexión.
+- Railway mantiene el backend siempre activo, ideal para producción y demos.
+
+Ya no es necesario "despertar" el backend manualmente: la app responde siempre al instante.
 
 ### 🎨 Características de la demo:
 - 🔐 **Sistema de autenticación** con modal animado espectacular
