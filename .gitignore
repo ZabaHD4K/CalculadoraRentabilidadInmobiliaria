@@ -39,3 +39,7 @@ Thumbs.db
 
 # Claude
 .claude/
+
+#sonnarqube
+.sonar/
+.scannerwork/
