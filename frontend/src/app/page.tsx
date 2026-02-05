@@ -830,145 +830,92 @@ export default function Home() {
                   </svg>
                 </button>
 
-                {/* Imagen con badges superpuestos */}
-                <div 
+                {/* Área visual con gradiente dinámico e icono */}
+                <div
                   onClick={() => handleOpenDetails(property)}
                   className="cursor-pointer relative"
                 >
-                  {property.urlImagen ? (
-                    <div className="h-48 bg-slate-900 relative">
-                      <img
-                        src={property.urlImagen}
-                        alt={property.nombre}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          // Evitar loop infinito: solo ejecutar una vez
-                          if (target.src.includes('no-image.svg')) return;
-                          target.onerror = null;
-                          target.src = '/no-image.svg';
-                        }}
-                      />
-                      
-                      {/* Badge ROI - Arriba izquierda */}
-                      {(() => {
-                        const roiData = calculateROI(property);
-                        if (roiData.status === 'pending') {
-                          return (
-                            <div className="absolute top-3 left-3 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg shadow-lg">
-                              <p className="text-gray-400 text-xs font-semibold">ROI</p>
-                              <p className="text-white text-sm font-bold">Por calcular</p>
-                            </div>
-                          );
-                        }
-                        
-                        const roi = roiData.value!;
-                        let bgColor = '';
-                        let textColor = '';
-                        let borderColor = '';
-                        let extraClass = '';
-                        
-                        if (roi < 5) {
-                          bgColor = 'bg-red-900/90';
-                          textColor = 'text-red-300';
-                          borderColor = 'border-red-500';
-                        } else if (roi >= 5 && roi < 10) {
-                          bgColor = 'bg-green-900/90';
-                          textColor = 'text-green-300';
-                          borderColor = 'border-green-500';
-                        } else if (roi >= 10 && roi < 15) {
-                          bgColor = 'bg-green-900/90';
-                          textColor = 'text-green-300';
-                          borderColor = 'border-green-500';
-                          extraClass = 'roi-particles';
-                        } else {
-                          bgColor = 'bg-blue-900/90';
-                          textColor = 'text-blue-300';
-                          borderColor = 'border-blue-500';
-                          extraClass = 'roi-sparkle';
-                        }
-                        
+                  {/* Gradiente dinámico basado en ROI + Icono grande */}
+                  <div className={`h-48 flex items-center justify-center relative overflow-hidden ${
+                    (() => {
+                      const roiData = calculateROI(property);
+                      if (roiData.status === 'pending') {
+                        return 'bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900';
+                      }
+
+                      const roi = roiData.value!;
+                      if (roi < 5) {
+                        return 'bg-gradient-to-br from-red-900 via-red-800 to-slate-900';
+                      } else if (roi >= 5 && roi < 10) {
+                        return 'bg-gradient-to-br from-green-900 via-green-800 to-slate-900';
+                      } else if (roi >= 10 && roi < 15) {
+                        return 'bg-gradient-to-br from-green-700 via-green-800 to-emerald-900';
+                      } else {
+                        return 'bg-gradient-to-br from-blue-700 via-cyan-800 to-teal-900';
+                      }
+                    })()
+                  }`}>
+                    {/* Icono grande de edificio/casa */}
+                    <svg className="w-32 h-32 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+
+                    {/* Badge ROI - Arriba izquierda */}
+                    {(() => {
+                      const roiData = calculateROI(property);
+                      if (roiData.status === 'pending') {
                         return (
-                          <div className={`absolute top-3 left-3 px-3 py-2 backdrop-blur-sm border rounded-lg shadow-lg ${bgColor} ${borderColor} ${extraClass}`}>
-                            <p className="text-xs font-semibold opacity-80">ROI</p>
-                            <p className={`text-lg font-bold ${textColor}`}>{roi.toFixed(1)}%</p>
+                          <div className="absolute top-3 left-3 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg shadow-lg">
+                            <p className="text-gray-400 text-xs font-semibold">ROI</p>
+                            <p className="text-white text-sm font-bold">Por calcular</p>
                           </div>
                         );
-                      })()}
-                      
-                      {/* Badge Alquiler - Abajo derecha */}
-                      <div className="absolute bottom-3 right-3 px-3 py-2 bg-purple-900/90 backdrop-blur-sm border border-purple-500 rounded-lg shadow-lg">
-                        <p className="text-purple-300 text-xs font-semibold">Alquiler</p>
-                        {property.alquilerMensual ? (
-                          <p className="text-white text-sm font-bold">{property.alquilerMensual}€/mes</p>
-                        ) : (
-                          <p className="text-gray-400 text-sm font-bold">Por añadir</p>
-                        )}
-                      </div>
+                      }
+
+                      const roi = roiData.value!;
+                      let bgColor = '';
+                      let textColor = '';
+                      let borderColor = '';
+                      let extraClass = '';
+
+                      if (roi < 5) {
+                        bgColor = 'bg-red-900/90';
+                        textColor = 'text-red-300';
+                        borderColor = 'border-red-500';
+                      } else if (roi >= 5 && roi < 10) {
+                        bgColor = 'bg-green-900/90';
+                        textColor = 'text-green-300';
+                        borderColor = 'border-green-500';
+                      } else if (roi >= 10 && roi < 15) {
+                        bgColor = 'bg-green-900/90';
+                        textColor = 'text-green-300';
+                        borderColor = 'border-green-500';
+                        extraClass = 'roi-particles';
+                      } else {
+                        bgColor = 'bg-blue-900/90';
+                        textColor = 'text-blue-300';
+                        borderColor = 'border-blue-500';
+                        extraClass = 'roi-sparkle';
+                      }
+
+                      return (
+                        <div className={`absolute top-3 left-3 px-3 py-2 backdrop-blur-sm border rounded-lg shadow-lg ${bgColor} ${borderColor} ${extraClass}`}>
+                          <p className="text-xs font-semibold opacity-80">ROI</p>
+                          <p className={`text-lg font-bold ${textColor}`}>{roi.toFixed(1)}%</p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Badge Alquiler - Abajo derecha */}
+                    <div className="absolute bottom-3 right-3 px-3 py-2 bg-purple-900/90 backdrop-blur-sm border border-purple-500 rounded-lg shadow-lg">
+                      <p className="text-purple-300 text-xs font-semibold">Alquiler</p>
+                      {property.alquilerMensual ? (
+                        <p className="text-white text-sm font-bold">{property.alquilerMensual}€/mes</p>
+                      ) : (
+                        <p className="text-gray-400 text-sm font-bold">Por añadir</p>
+                      )}
                     </div>
-                  ) : (
-                    <div className="h-48 bg-slate-900 flex items-center justify-center relative">
-                      <svg className="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      
-                      {/* Badge ROI - También en placeholder */}
-                      {(() => {
-                        const roiData = calculateROI(property);
-                        if (roiData.status === 'pending') {
-                          return (
-                            <div className="absolute top-3 left-3 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg shadow-lg">
-                              <p className="text-gray-400 text-xs font-semibold">ROI</p>
-                              <p className="text-white text-sm font-bold">Por calcular</p>
-                            </div>
-                          );
-                        }
-                        
-                        const roi = roiData.value!;
-                        let bgColor = '';
-                        let textColor = '';
-                        let borderColor = '';
-                        let extraClass = '';
-                        
-                        if (roi < 5) {
-                          bgColor = 'bg-red-900/90';
-                          textColor = 'text-red-300';
-                          borderColor = 'border-red-500';
-                        } else if (roi >= 5 && roi < 10) {
-                          bgColor = 'bg-green-900/90';
-                          textColor = 'text-green-300';
-                          borderColor = 'border-green-500';
-                        } else if (roi >= 10 && roi < 15) {
-                          bgColor = 'bg-green-900/90';
-                          textColor = 'text-green-300';
-                          borderColor = 'border-green-500';
-                          extraClass = 'roi-particles';
-                        } else {
-                          bgColor = 'bg-blue-900/90';
-                          textColor = 'text-blue-300';
-                          borderColor = 'border-blue-500';
-                          extraClass = 'roi-sparkle';
-                        }
-                        
-                        return (
-                          <div className={`absolute top-3 left-3 px-3 py-2 backdrop-blur-sm border rounded-lg shadow-lg ${bgColor} ${borderColor} ${extraClass}`}>
-                            <p className="text-xs font-semibold opacity-80">ROI</p>
-                            <p className={`text-lg font-bold ${textColor}`}>{roi.toFixed(1)}%</p>
-                          </div>
-                        );
-                      })()}
-                      
-                      {/* Badge Alquiler - También en placeholder */}
-                      <div className="absolute bottom-3 right-3 px-3 py-2 bg-purple-900/90 backdrop-blur-sm border border-purple-500 rounded-lg shadow-lg">
-                        <p className="text-purple-300 text-xs font-semibold">Alquiler</p>
-                        {property.alquilerMensual ? (
-                          <p className="text-white text-sm font-bold">{property.alquilerMensual}€/mes</p>
-                        ) : (
-                          <p className="text-gray-400 text-sm font-bold">Por añadir</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Contenido */}
