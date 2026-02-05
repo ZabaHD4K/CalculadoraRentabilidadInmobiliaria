@@ -12,17 +12,24 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configuración de CORS
-const allowedOrigins = ['https://calculadora-rentabilidad-inmobiliar-six.vercel.app'];
+const allowedOrigins = [
+  'https://calculadora-rentabilidad-inmobiliar-six.vercel.app',
+];
+
+// CORS config robusta
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+    // Permite requests sin origin (ej: Postman o server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      return callback(new Error(`CORS Error: ${origin} no permitido`));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true, // Permitir cookies si es necesario
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
 };
 app.use(cors(corsOptions));
 
