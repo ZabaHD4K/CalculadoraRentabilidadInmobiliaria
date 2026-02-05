@@ -11,6 +11,24 @@ const puppeteer = require('puppeteer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configuración de CORS
+const allowedOrigins = ['https://calculadora-rentabilidad-inmobiliar-six.vercel.app'];
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true, // Permitir cookies si es necesario
+};
+app.use(cors(corsOptions));
+
+// Middleware para parsear JSON
+app.use(express.json());
+
 // Inicializar cliente de OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -26,10 +44,6 @@ const IDEALISTA_API_KEY = process.env.IDEALISTA_API_KEY;
 const IDEALISTA_SECRET = process.env.IDEALISTA_SECRET;
 let idealistaToken = null;
 let tokenExpiration = null;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -1322,6 +1336,5 @@ app.get('/', (req, res) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`Prueba el endpoint GPT en: http://localhost:${PORT}/api/hello-gpt`);
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
