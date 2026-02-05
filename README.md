@@ -66,9 +66,7 @@
 ## 🎯 Demo
 
 **Prueba la aplicación en vivo:**  
-🌐 **Frontend:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)  
-🔧 **Backend:** [https://calculadorarentabilidadinmobiliaria-1.onrender.com](https://calculadorarentabilidadinmobiliaria-1.onrender.com)  
-🔐 **Contraseña de acceso:** `3808`
+🌐 **Frontend:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)
 
 ⚠️ **Si ves "Error al conectar con el servidor"**:
 - **El backend está dormido** (servicios gratuitos de Render se duermen tras 15 min)

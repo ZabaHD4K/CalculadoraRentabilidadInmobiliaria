@@ -1,5 +1,17 @@
 # 📝 Notas de Cambios - RealState AI
 
+## Versión 2.1.8 - 5 de Febrero de 2026
+
+### 🚀 Migración del backend a Railway y solución de error de conexión frontend-backend
+
+- El backend se ha desplegado en Railway, configurando correctamente la raíz del proyecto y las variables de entorno.
+- Se ha corregido el error de conexión entre frontend (Vercel) y backend (Railway) al iniciar sesión:
+  - Se ha añadido el prefijo `https://` a la variable `NEXT_PUBLIC_API_URL` en Vercel para que el frontend apunte correctamente al backend.
+  - Se ha revisado la configuración de CORS en el backend para aceptar peticiones desde el dominio de Vercel.
+- Ahora el login y la comunicación entre ambos servicios funcionan correctamente en producción.
+
+---
+
 ## Versión 2.1.7 - 4 de Febrero de 2026
 
 ### 📈 ROI Total: Incluyendo Amortización y Revalorización
