@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 interface AuthModalProps {
   onAuthenticated: () => void;
 }
@@ -18,7 +20,7 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/verify-password', {
+      const response = await fetch(`${API_URL}/api/verify-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

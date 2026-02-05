@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor } from "@/services/api";
 import AuthModal from "@/components/AuthModal";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 export default function Home() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -596,7 +598,7 @@ export default function Home() {
 
     setConsultingRent(true);
     try {
-      const response = await fetch('http://localhost:3000/api/estimate-rent', {
+      const response = await fetch(`${API_URL}/api/estimate-rent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1196,7 +1198,7 @@ export default function Home() {
                       onClick={async () => {
                         setConsultingRent(true);
                         try {
-                          const response = await fetch('http://localhost:3000/api/estimate-rent', {
+                          const response = await fetch(`${API_URL}/api/estimate-rent`, {
                             method: 'POST',
                             headers: {
                               'Content-Type': 'application/json',
