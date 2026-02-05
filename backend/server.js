@@ -11,27 +11,59 @@ const puppeteer = require('puppeteer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuración de CORS
+// Configuración de CORS para producción
 const allowedOrigins = [
   'https://calculadora-rentabilidad-inmobiliar-six.vercel.app',
-];
+  process.env.FRONTEND_URL, // URL desde variable de entorno
+].filter(Boolean); // Eliminar valores undefined
 
-// CORS config robusta
+console.log('🌐 CORS: Orígenes permitidos:', allowedOrigins);
+
+// CORS config robusta para producción
 const corsOptions = {
   origin: (origin, callback) => {
-    // Permite requests sin origin (ej: Postman o server-to-server)
-    if (!origin) return callback(null, true);
+    console.log('📨 Request desde origen:', origin);
 
-    if (allowedOrigins.includes(origin)) {
+    // Permite requests sin origin (Postman, server-to-server, mismo dominio)
+    if (!origin) {
+      console.log('✅ Sin origin - permitido');
       return callback(null, true);
-    } else {
-      return callback(new Error(`CORS Error: ${origin} no permitido`));
     }
+
+    // Verificar si el origin está en la lista permitida
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ Origin en lista permitida');
+      return callback(null, true);
+    }
+
+    // Permitir todos los subdominios de Vercel (para preview deployments)
+    if (origin.endsWith('.vercel.app')) {
+      console.log('✅ Dominio Vercel detectado - permitido');
+      return callback(null, true);
+    }
+
+    // En desarrollo, permitir localhost (siempre, no solo en development)
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      console.log('✅ Localhost detectado - permitido');
+      return callback(null, true);
+    }
+
+    console.log('❌ CORS Error: Origin no permitido:', origin);
+    return callback(new Error(`CORS Error: ${origin} no permitido`));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
+  optionsSuccessStatus: 200 // Para navegadores legacy
 };
+
 app.use(cors(corsOptions));
+
+// Log adicional para debugging en producción
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.get('origin') || 'sin origin'}`);
+  next();
+});
 
 // Middleware para parsear JSON
 app.use(express.json());
