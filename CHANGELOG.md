@@ -1,5 +1,62 @@
 # 📝 Notas de Cambios - RealState AI
 
+## Versión 2.3.0 - 6 de Febrero de 2026
+
+### 🤖 Mejora de Estimación de Alquiler: GPT-5-mini con Web Search
+
+**Cambio principal**: La estimación de alquiler ahora utiliza GPT-5-mini con web search en lugar de GPT-4o, permitiendo al modelo consultar alquileres reales en portales inmobiliarios para estimaciones basadas en datos de mercado actuales.
+
+#### ❌ Antes (GPT-4o sin web search)
+- El modelo estimaba basándose únicamente en su conocimiento de entrenamiento
+- Sin acceso a datos de mercado en tiempo real
+- Fecha hardcodeada "diciembre 2024"
+- Respuesta en texto plano: `"1400-1700€/mes"`
+- Sin justificación ni nivel de confianza
+
+#### ✅ Ahora (GPT-5-mini con web search)
+- El modelo **busca en internet** alquileres reales de propiedades similares (Idealista, Fotocasa, pisos.com)
+- Fecha dinámica generada automáticamente
+- Comunidad Autónoma incluida en el prompt para mejor contexto geográfico
+- Respuesta estructurada en JSON con datos desglosados
+- Incluye justificación basada en datos de mercado consultados
+- Incluye nivel de confianza (alta/media/baja)
+- Patrón de fallback a GPT-4o si GPT-5-mini falla
+
+#### 🔧 Cambios Técnicos
+
+**Backend ([server.js](backend/server.js)):**
+- Endpoint `/api/estimate-rent` reescrito con `openai.responses.create()` y herramienta `web_search`
+- Parámetros GPT-5: `reasoning: { effort: 'medium' }`, `verbosity: 'medium'`
+- Prompt reestructurado: solicita búsqueda activa en portales inmobiliarios
+- Fecha dinámica con `new Date().toLocaleDateString('es-ES', ...)`
+- Campo `comunidadAutonoma` añadido al prompt
+- Respuesta JSON estructurada: `{ min, max, media, confianza, justificacion }`
+- Fallback a GPT-4o con `openai.chat.completions.create()` y `max_completion_tokens: 400`
+- Parsing de markdown (`\`\`\`json...`) en ambos modelos
+
+**Frontend ([api.ts](frontend/src/services/api.ts)):**
+- `EstimateRentResponse`: añadidos campos `min`, `max`, `media`, `confianza`, `justificacion`
+- `PropertyData`: añadidos campos `alquilerJustificacion` y `alquilerConfianza`
+
+**Frontend ([page.tsx](frontend/src/app/page.tsx)):**
+- `handleEstimateRent`: guarda justificación y confianza junto con la estimación
+- UI del alquiler estimado ampliada: muestra badge de confianza (verde/amarillo/rojo) y texto de justificación
+
+#### 📊 Comparativa
+
+| Aspecto | Antes (GPT-4o) | Ahora (GPT-5-mini + web search) |
+|---------|-----------------|----------------------------------|
+| Fuente de datos | Entrenamiento del modelo | Búsqueda web en tiempo real |
+| Fecha | Hardcodeada "diciembre 2024" | Dinámica (fecha actual) |
+| CCAA en prompt | No | Sí |
+| Formato respuesta | Texto plano | JSON estructurado |
+| Justificación | No | Sí (datos de mercado consultados) |
+| Confianza | No | Sí (alta/media/baja) |
+| Fallback | No | GPT-4o como respaldo |
+| Max tokens | 150 | Sin límite (GPT-5) / 400 (fallback) |
+
+---
+
 ## Versión 2.2.0 - 5 de Febrero de 2026
 
 ### ☁️ Migración a Cloudinary para Almacenamiento de Imágenes

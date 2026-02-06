@@ -354,10 +354,15 @@ export default function Home() {
     const result = await estimateRent(property);
 
     if (result.success && result.estimate) {
-      // Actualizar la propiedad con el alquiler estimado
+      // Actualizar la propiedad con el alquiler estimado y justificación
       setProperties(prev => prev.map(p =>
         p.id === property.id
-          ? { ...p, alquilerEstimado: result.estimate }
+          ? {
+              ...p,
+              alquilerEstimado: result.estimate,
+              alquilerJustificacion: result.justificacion || null,
+              alquilerConfianza: result.confianza || null
+            }
           : p
       ));
     } else {
@@ -947,8 +952,22 @@ export default function Home() {
 
                   {property.alquilerEstimado && (
                     <div className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-3 mb-4">
-                      <p className="text-gray-400 text-xs mb-1">Alquiler estimado (GPT)</p>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-gray-400 text-xs">Alquiler estimado (IA + datos de mercado)</p>
+                        {property.alquilerConfianza && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            property.alquilerConfianza === 'alta' ? 'bg-green-900/50 text-green-400' :
+                            property.alquilerConfianza === 'media' ? 'bg-yellow-900/50 text-yellow-400' :
+                            'bg-red-900/50 text-red-400'
+                          }`}>
+                            Confianza {property.alquilerConfianza}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-purple-400 font-bold">{property.alquilerEstimado}</p>
+                      {property.alquilerJustificacion && (
+                        <p className="text-gray-500 text-xs mt-1">{property.alquilerJustificacion}</p>
+                      )}
                     </div>
                   )}
 

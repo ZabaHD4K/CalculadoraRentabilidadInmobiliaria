@@ -17,6 +17,8 @@ export interface PropertyData {
   banos: number;
   alquilerMensual?: number | null;
   alquilerEstimado?: string | null;
+  alquilerJustificacion?: string | null;
+  alquilerConfianza?: string | null;
   gastosAnuales?: number | null;
   descripcion: string;
   caracteristicas: string[];
@@ -280,6 +282,11 @@ export async function deleteProperty(id: string): Promise<PropertiesResponse> {
 export interface EstimateRentResponse {
   success: boolean;
   estimate?: string;
+  min?: number;
+  max?: number;
+  media?: number;
+  confianza?: string;
+  justificacion?: string;
   error?: string;
 }
 

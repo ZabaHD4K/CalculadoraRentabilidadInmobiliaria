@@ -537,7 +537,7 @@ app.put('/api/properties/:id', (req, res) => {
   }
 });
 
-// Endpoint para estimar alquiler con GPT
+// Endpoint para estimar alquiler con GPT-5-mini + web search
 app.post('/api/estimate-rent', async (req, res) => {
   try {
     const propertyData = req.body;
@@ -545,10 +545,13 @@ app.post('/api/estimate-rent', async (req, res) => {
     console.log('\n=== Estimando alquiler ===');
     console.log('Propiedad:', propertyData.nombre);
 
-    const prompt = `Eres un experto en tasación de alquileres inmobiliarios en España. Analiza EN PROFUNDIDAD esta propiedad y estima un rango de alquiler mensual realista.
+    const fechaActual = new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+    const prompt = `Eres un experto en tasación de alquileres inmobiliarios en España. Busca en internet alquileres de propiedades similares en la misma zona y estima un rango de alquiler mensual realista basándote en datos reales del mercado actual.
 
 DATOS DE LA PROPIEDAD:
 - Ubicación: ${propertyData.direccion}
+${propertyData.comunidadAutonoma ? `- Comunidad Autónoma: ${propertyData.comunidadAutonoma}` : ''}
 - Tipo: ${propertyData.tipoPropiedad}
 - Superficie: ${propertyData.superficie}m²
 - Habitaciones: ${propertyData.habitaciones}
@@ -557,58 +560,116 @@ DATOS DE LA PROPIEDAD:
 ${propertyData.descripcion ? `- Descripción completa: ${propertyData.descripcion}` : ''}
 ${propertyData.caracteristicas && propertyData.caracteristicas.length > 0 ? `- Características específicas: ${propertyData.caracteristicas.join(', ')}` : ''}
 
-ANÁLISIS REQUERIDO:
+INSTRUCCIONES:
 
-1. **Ubicación y zona específica**:
-   - Identifica el barrio, distrito y ciudad exactos
-   - Analiza si es zona premium, céntrica, residencial o periférica
-   - Considera la demanda de alquiler en esa ubicación específica
-   - Valora cercanía a transporte, servicios, comercios
+1. **Busca en internet** alquileres reales de propiedades similares en la misma zona (Idealista, Fotocasa, pisos.com u otros portales).
+2. Analiza la ubicación específica: barrio, distrito, demanda, cercanía a transporte y servicios.
+3. Considera las características: estado, calidades, extras (terraza, garaje, ascensor, etc.).
+4. Usa el precio de compra de ${propertyData.precio}€ como referencia de coherencia (rentabilidad típica 3-6% bruto anual).
+5. Proporciona un rango REALISTA de alquiler mensual actual (${fechaActual}).
 
-2. **Características de la propiedad**:
-   - Estado de conservación (nuevo, reformado, a reformar)
-   - Calidades (suelos, acabados, materiales)
-   - Servicios del edificio (ascensor, portero, piscina, gimnasio)
-   - Orientación, vistas, luminosidad
-   - Extras (terraza, garaje, trastero, aire acondicionado)
+Responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adicional ni markdown:
+{"min": 1400, "max": 1700, "media": 1550, "confianza": "alta", "justificacion": "Breve explicación de 1-2 frases con los datos de mercado consultados"}
 
-3. **Comparativa de mercado**:
-   - Busca alquileres similares en la misma zona
-   - Considera propiedades con características parecidas
-   - Ajusta según las ventajas/desventajas de esta propiedad
+El campo "confianza" debe ser "alta", "media" o "baja" según la cantidad de datos de mercado encontrados.`;
 
-4. **Precio de compra como referencia**:
-   - Usa el precio de ${propertyData.precio}€ para validar la estimación
-   - La rentabilidad típica en alquiler es 3-6% bruto anual
-   - Verifica que el rango sea coherente con el valor del inmueble
+    let estimate;
 
-Proporciona un rango REALISTA de alquiler mensual actual (diciembre 2024).
-
-Responde ÚNICAMENTE con el rango en este formato exacto: "XXX-YYY€/mes"
-Ejemplo para un piso de 100m² en Madrid centro: "1400-1700€/mes"`;
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'Eres un experto tasador de propiedades inmobiliarias en España con 20 años de experiencia. Conoces en detalle el mercado de alquiler en todas las ciudades españolas. Proporciona estimaciones precisas, realistas y basadas en datos del mercado actual.'
+    // Intentar con GPT-5-mini + web search (acceso a datos reales de mercado)
+    try {
+      console.log('🔍 Intentando estimación con GPT-5-mini + web search...');
+      const response = await openai.responses.create({
+        model: 'gpt-5-mini',
+        input: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        text: {
+          format: {
+            type: 'text'
+          },
+          verbosity: 'medium'
         },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.2,
-      max_completion_tokens: 150
-    });
+        reasoning: {
+          effort: 'medium'
+        },
+        tools: [
+          {
+            type: 'web_search'
+          }
+        ],
+        store: true
+      });
 
-    const estimate = completion.choices[0].message.content.trim();
-    console.log('Estimación:', estimate);
+      let gptResponse;
+      if (response.output_text) {
+        gptResponse = response.output_text;
+      } else if (response.output && response.output.length > 0) {
+        const messageOutput = response.output.find(item => item.type === 'message');
+        if (messageOutput && messageOutput.content && messageOutput.content.length > 0) {
+          gptResponse = messageOutput.content[0].text;
+        }
+      }
+
+      if (gptResponse) {
+        // Limpiar markdown si viene envuelto
+        let cleanResponse = gptResponse.trim();
+        if (cleanResponse.startsWith('```json')) {
+          cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        } else if (cleanResponse.startsWith('```')) {
+          cleanResponse = cleanResponse.replace(/```\n?/g, '');
+        }
+
+        estimate = JSON.parse(cleanResponse);
+        console.log('✅ Estimación con GPT-5-mini + web search exitosa:', estimate);
+      } else {
+        throw new Error('Sin respuesta de GPT-5-mini');
+      }
+
+    } catch (gpt5Error) {
+      // Fallback a GPT-4o sin web search
+      console.log('⚠️ Fallback a GPT-4o:', gpt5Error.message);
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un experto tasador de propiedades inmobiliarias en España con 20 años de experiencia. Responde SOLO con JSON válido, sin texto adicional ni markdown.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.2,
+        max_completion_tokens: 400
+      });
+
+      let fallbackResponse = completion.choices[0].message.content.trim();
+      if (fallbackResponse.startsWith('```json')) {
+        fallbackResponse = fallbackResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (fallbackResponse.startsWith('```')) {
+        fallbackResponse = fallbackResponse.replace(/```\n?/g, '');
+      }
+
+      estimate = JSON.parse(fallbackResponse);
+      console.log('✅ Estimación con GPT-4o (fallback) exitosa:', estimate);
+    }
+
+    // Construir string de rango para compatibilidad con el frontend
+    const rangeStr = `${estimate.min}-${estimate.max}€/mes`;
 
     res.json({
       success: true,
-      estimate
+      estimate: rangeStr,
+      min: estimate.min,
+      max: estimate.max,
+      media: estimate.media,
+      confianza: estimate.confianza,
+      justificacion: estimate.justificacion
     });
 
   } catch (error) {
