@@ -43,3 +43,9 @@ Thumbs.db
 #sonnarqube
 .sonar/
 .scannerwork/
+
+# Windows artifacts
+nul
+
+# TypeScript build cache
+*.tsbuildinfo

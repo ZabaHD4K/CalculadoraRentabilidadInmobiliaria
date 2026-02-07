@@ -155,7 +155,7 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
           {/* Footer */}
           <div className="mt-8 text-center">
             <p className="text-slate-500 text-sm">
-              🏡 RealStateAI - Demo Privada
+              🏡 RealEstateAI - Demo Privada
             </p>
           </div>
         </div>

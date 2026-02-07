@@ -416,13 +416,27 @@ export function calculateIVA(precio: number): number {
 }
 
 export function calculateAJD(precio: number, comunidadAutonoma: string): number {
-  // AJD varía entre 0.5% y 1.5% según la comunidad
+  // AJD varía entre 0.5% y 1.5% según la comunidad autónoma
   const porcentajes: { [key: string]: number } = {
-    'Madrid': 0.75,
-    'Cataluña': 1.5,
-    'País Vasco': 0.5,
     'Andalucía': 1.2,
-    'Comunidad Valenciana': 1,
+    'Aragón': 1.5,
+    'Asturias': 1.2,
+    'Baleares': 1.2,
+    'Canarias': 0.75,
+    'Cantabria': 1.5,
+    'Castilla y León': 1.5,
+    'Castilla-La Mancha': 1.5,
+    'Cataluña': 1.5,
+    'Comunidad Valenciana': 1.5,
+    'Extremadura': 1.5,
+    'Galicia': 1.5,
+    'Madrid': 0.75,
+    'Murcia': 1.5,
+    'Navarra': 0.5,
+    'País Vasco': 0.5,
+    'La Rioja': 1,
+    'Ceuta': 0.5,
+    'Melilla': 0.5,
   };
   const porcentaje = porcentajes[comunidadAutonoma] || 1;
   return Math.round((precio * porcentaje) / 100);

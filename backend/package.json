@@ -1,7 +1,7 @@
 {
-  "name": "realstateai-backend",
+  "name": "realestateai-backend",
   "version": "1.0.0",
-  "description": "Backend for RealStateAI project",
+  "description": "Backend for RealEstateAI project",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

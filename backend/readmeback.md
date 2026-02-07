@@ -1,6 +1,6 @@
-# RealStateAI Backend
+# RealEstateAI Backend
 
-Backend del proyecto RealStateAI con integración de OpenAI GPT.
+Backend del proyecto RealEstateAI con integración de OpenAI GPT.
 
 ## Deployment
 

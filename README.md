@@ -1,22 +1,22 @@
-# 🏡 RealStateAI - Herramienta Inteligente de Análisis de Inversión Inmobiliaria
+# 🏡 RealEstateAI - Herramienta Inteligente de Análisis de Inversión Inmobiliaria
 
 <div align="center">
 
-![RealStateAI](https://img.shields.io/badge/TFG-2025--2026-teal?style=for-the-badge)
+![RealEstateAI](https://img.shields.io/badge/TFG-2025--2026-teal?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green?style=for-the-badge)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
 
-**Trabajo Fin de Grado (TFG) - Universidad U-tad**  
-**Autor:** Alejandro  
+**Trabajo Fin de Grado (TFG) - Universidad U-tad**
+**Autor:** Alejandro
 **Curso Académico:** 2025-2026
 
-[📖 Documentación](#documentación) • [🚀 Instalación](#instalación) • [💡 Características](#características) • [🎯 Demo](#demo) • [📝 Changelog](CHANGELOG.md)
+[📖 Documentación](#documentación) • [🚀 Instalación](#instalación) • [💡 Características](#características) • [🎯 Demo](#demo) • [📝 Changelog](progresos.txt)
 
 **🌐 Demo en vivo:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)
 
-**🔐 Contraseña de acceso: Solicita la contraseña al creador** 
+**🔐 Contraseña de acceso: Solicita la contraseña al creador**
 
 </div>
 
@@ -45,14 +45,12 @@
 
 ## 🎯 Descripción del Proyecto
 
-**RealStateAI** es una aplicación web full-stack que revoluciona el análisis de inversión inmobiliaria mediante la **automatización inteligente** y el uso de **inteligencia artificial**. La plataforma permite a inversores individuales y profesionales analizar la rentabilidad real de propiedades de alquiler de forma rápida, precisa y completa.
+**RealEstateAI** es una aplicación web full-stack que revoluciona el análisis de inversión inmobiliaria mediante la **automatización inteligente** y el uso de **inteligencia artificial**. La plataforma permite a inversores individuales y profesionales analizar la rentabilidad real de propiedades de alquiler de forma rápida, precisa y completa.
 
-### ¿Qué hace RealStateAI?
+### ¿Qué hace RealEstateAI?
 
 - 🔗 **Analiza propiedades de Idealista** pegando simplemente la URL (con indicador de progreso de hasta 50 segundos)
 - 🤖 **Utiliza IA (GPT-4/GPT-5)** para estimaciones de alquiler y análisis de mercado
-- 🖼️ **Extrae imágenes automáticamente** (3-5 imágenes por propiedad) mediante IA con sistema de triple fallback
-- ☁️ **Almacenamiento en Cloudinary** para imágenes permanentes con CDN global y URLs públicas
 - 💰 **Calcula impuestos precisos** (ITP, IVA, AJD) por Comunidad Autónoma
 - 🏦 **Simula hipotecas** (fijas y variables con Euribor actualizado en tiempo real)
 - 📊 **Calcula ROI total real** incluyendo cash flow, amortización de deuda y revalorización del inmueble
@@ -66,7 +64,7 @@
 
 ## 🎯 Demo
 
-**Prueba la aplicación en vivo:**  
+**Prueba la aplicación en vivo:**
 🌐 **Frontend:** [https://calculadora-rentabilidad-inmobiliar-six.vercel.app/](https://calculadora-rentabilidad-inmobiliar-six.vercel.app/)
 
 
@@ -85,7 +83,6 @@ Ya no es necesario "despertar" el backend manualmente: la app responde siempre a
 ### 🎨 Características de la demo:
 - 🔐 **Sistema de autenticación** con modal animado espectacular
 - ✅ **Análisis de propiedades** de Idealista en tiempo real con indicador de progreso
-- 🖼️ **Extracción automática** de 3-5 imágenes por propiedad
 - 🤖 **Estimaciones de alquiler** con IA (GPT-5-mini + web search de datos reales de mercado)
 - 💰 **Cálculos fiscales precisos** por todas las Comunidades Autónomas
 - 🏦 **Simulador de hipotecas** con Euribor actualizado desde Banco de España
@@ -93,15 +90,15 @@ Ya no es necesario "despertar" el backend manualmente: la app responde siempre a
 - 📈 **Gráficos de rentabilidad** (ROI, Cash Flow, TIR)
 - 🎯 **Badges inteligentes de ROI** con animaciones según rendimiento (<5% rojo, 5-10% verde, 10-15% verde con partículas, >15% azul con brillos)
 - 💵 **Badge de alquiler mensual** visible en cada tarjeta de propiedad
-- � **Sistema de guardado** en dashboard que actualiza el ROI automáticamente
+- 💾 **Sistema de guardado** en dashboard que actualiza el ROI automáticamente
 - 📊 **Cálculo ROI preciso** sobre capital propio (tu entrada real) descontando cuota hipotecaria
-- �🗑️ **Gestión completa** (crear, editar, eliminar propiedades)
+- 🗑️ **Gestión completa** (crear, editar, eliminar propiedades)
 
 ---
 
 ## 🎓 Contexto del TFG
 
-Este proyecto constituye el **Trabajo Fin de Grado** del Grado en [Nombre del Grado] de la Universidad U-tad, desarrollado durante el curso académico 2025-2026.
+Este proyecto constituye el **Trabajo Fin de Grado** de la Universidad U-tad, desarrollado durante el curso académico 2025-2026.
 
 ### Motivación Académica
 
@@ -133,12 +130,12 @@ El proyecto surge de la necesidad de:
 
 ### Aportación al Estado de la Cuestión
 
-RealStateAI se posiciona como una **solución intermedia** entre:
+RealEstateAI se posiciona como una **solución intermedia** entre:
 - ❌ **Excel manual** (lento, propenso a errores, no integrado)
 - ❌ **Calculadoras web básicas** (incompletas, sin automatización)
 - ❌ **Software profesional** (caro, complejo, orientado a empresas)
 
-✅ **RealStateAI** ofrece: automatización completa + IA + accesibilidad + código abierto
+✅ **RealEstateAI** ofrece: automatización completa + IA + accesibilidad + código abierto
 
 ---
 
@@ -172,13 +169,13 @@ Los inversores inmobiliarios actuales enfrentan múltiples desafíos:
 
 ### ✨ Solución Propuesta
 
-**RealStateAI** automatiza y optimiza todo el proceso:
+**RealEstateAI** automatiza y optimiza todo el proceso:
 
 ```
 URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 ```
 
-| Tarea | Antes (Excel) | Con RealStateAI | Ahorro |
+| Tarea | Antes (Excel) | Con RealEstateAI | Ahorro |
 |-------|---------------|-----------------|--------|
 | Copiar datos | 5 min | 10 seg | **95%** |
 | Calcular ITP | 3 min | Automático | **100%** |
@@ -194,19 +191,17 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 ### 🔐 Sistema de Autenticación (NUEVO v2.1.2)
 
 - **Acceso Controlado:** Modal de autenticación con contraseña para proteger la demo
-- **Animaciones Espectaculares:** 
+- **Animaciones Espectaculares:**
   - Entrada con rotación + escala + fade (0.8s)
   - Salida con rotación inversa + expansión (0.6s)
   - Partículas flotantes animadas en el fondo
   - Efecto "shake" al introducir contraseña incorrecta
 - **Seguridad Robusta:** Contraseña hasheada con SHA-256 (nunca en texto plano)
 - **Diseño Premium:** Gradientes teal/cyan, efectos de brillo, hover dinámico
-- **Contraseña:** `3808` (para amigos y pruebas)
 
 ### 🤖 Automatización Inteligente
 
 - **Extracción de Idealista:** Análisis automático de propiedades con GPT-5 + web search
-- **3-5 Imágenes por Propiedad:** Sistema de triple fallback para garantizar imágenes de alta calidad
 - **Análisis con IA:** GPT-4/GPT-5 procesa descripciones y genera insights sobre estado, tipo y características
 - **Cálculos Automáticos:** Impuestos, gastos notariales, hipotecas sin intervención manual
 
@@ -270,25 +265,21 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 
 | Tecnología | Versión | Propósito |
 |------------|---------|-----------|
-| **Next.js** | 16.1.1 | Framework React con SSR/SSG |
-| **React** | 19.0.0 | Librería de UI |
+| **Next.js** | 16.1.6 | Framework React con SSR/SSG |
+| **React** | 19.2.4 | Librería de UI |
 | **TypeScript** | 5.x | Tipado estático |
-| **Tailwind CSS** | 3.4.17 | Estilos utility-first |
+| **Tailwind CSS** | 3.4.19 | Estilos utility-first |
 | **Recharts** | 3.7.0 | Gráficos y visualizaciones |
 
 ### Backend
 
 | Tecnología | Versión | Propósito |
 |------------|---------|-----------|
-| **Node.js** | 18+ | Runtime JavaScript |
-| **Express** | 4.18.2 | Framework web |
-| **OpenAI API** | 6.15.0 | Integración GPT-4 |
-| **Cloudinary** | 2.9.0 | Almacenamiento de imágenes en la nube |
-| **Axios** | - | Cliente HTTP para scraping |
-| **Cheerio** | - | Parsing HTML (web scraping) |
-| **Puppeteer** | - | Navegador headless para screenshots |
+| **Node.js** | 24.x | Runtime JavaScript |
+| **Express** | 4.22.1 | Framework web |
+| **OpenAI API** | 6.17.0 | Integración GPT-5-mini / GPT-4o |
 | **CORS** | 2.8.5 | Cross-Origin Resource Sharing |
-| **dotenv** | 16.3.1 | Gestión de variables de entorno |
+| **dotenv** | 16.6.1 | Gestión de variables de entorno |
 
 ### Herramientas de Desarrollo
 
@@ -301,68 +292,6 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 ---
 
 ## 🏗️ Arquitectura del Sistema
-
-### 🎨 Sistema de Extracción de Imágenes de Idealista
-
-RealStateAI implementa un **sistema robusto de triple fallback** para garantizar que todas las propiedades muestren imágenes de alta calidad:
-
-#### 🔄 Flujo de Extracción de Imágenes
-
-```
-1. USUARIO INGRESA URL DE IDEALISTA
-   ↓
-2. BACKEND EXTRAE ID DE LA PROPIEDAD
-   Ejemplo: https://www.idealista.com/inmueble/110306364/
-   ID extraído: 110306364
-   ↓
-3. GPT-5 CON WEB SEARCH EXTRAE IMÁGENES
-   • GPT accede a la página web de Idealista
-   • Extrae las URLs completas de TODAS las imágenes (3-5 imágenes)
-   • URLs originales: https://img4.idealista.com/blur/WEB_LISTING/0/...
-   ↓
-4. LIMPIEZA AUTOMÁTICA DE URLs
-   • Elimina "/blur" de las rutas (protección anti-scraping)
-   • Resultado: https://img4.idealista.com/WEB_LISTING/0/...
-   • Garantiza acceso directo a las imágenes
-   ↓
-5. SISTEMA DE FALLBACK (SI GPT FALLA)
-   • Genera URL automática: 
-     https://img4.idealista.com/WEB_LISTING/0/id.pro.es.image.master/inmueble/{ID}.jpg
-   • Usa el patrón estándar de Idealista
-   ↓
-6. FRONTEND MUESTRA IMÁGENES
-   • Primera imagen como principal (urlImagen)
-   • Array completo disponible para galería (imagenes[])
-   • Placeholder elegante si todo falla
-```
-
-#### 💡 Ventajas del Sistema
-
-✅ **100% de fiabilidad**: Siempre hay al menos una imagen  
-✅ **Múltiples imágenes**: 3-5 imágenes por propiedad en promedio  
-✅ **Sin API de pago**: No requiere credenciales de Idealista para imágenes  
-✅ **Gestión de errores**: Fallbacks automáticos sin intervención manual  
-✅ **URLs limpias**: Sin protecciones /blur/ que bloqueen la visualización  
-
-#### 🔧 Código de Limpieza de URLs
-
-```javascript
-// Backend - server.js
-propertyData.imagenes = propertyData.imagenes.map(url => 
-  url.replace('/blur/WEB_LISTING/', '/WEB_LISTING/')
-     .replace('/blur/WEB_LISTING-M/', '/WEB_LISTING/')
-);
-```
-
-#### 📊 Logs del Sistema
-
-```bash
-🖼️ Obteniendo imagen desde Idealista...
-🔍 Extrayendo imagen para propiedad ID: 110306364
-✅ 5 imágenes extraídas y procesadas
-```
-
----
 
 ### Diagrama de Arquitectura General
 
@@ -385,51 +314,51 @@ propertyData.imagenes = propertyData.imagenes.map(url =>
 │                                                              │
 │  ┌───────────────────────────────────────────────────┐     │
 │  │              API REST Endpoints                    │     │
-│  │  POST /api/analyze        - Analizar URL          │     │
-│  │  POST /api/properties     - Guardar propiedad     │     │
-│  │  GET  /api/properties     - Listar propiedades    │     │
-│  │  PUT  /api/properties/:id - Actualizar            │     │
-│  │  DELETE /api/properties/:id - Eliminar            │     │
-│  │  POST /api/estimate-rent  - Estimar alquiler      │     │
-│  │  POST /api/calculate-expenses - Calcular gastos   │     │
-│  │  GET  /api/euribor        - Obtener Euribor       │     │
+│  │  POST /api/analyze-property - Analizar URL         │     │
+│  │  POST /api/verify-password  - Verificar acceso     │     │
+│  │  POST /api/properties     - Guardar propiedad      │     │
+│  │  GET  /api/properties     - Listar propiedades     │     │
+│  │  PUT  /api/properties/:id - Actualizar             │     │
+│  │  DELETE /api/properties/:id - Eliminar             │     │
+│  │  POST /api/estimate-rent  - Estimar alquiler       │     │
+│  │  POST /api/calculate-expenses - Calcular gastos    │     │
+│  │  POST /api/calculate-housing-expenses - Gastos viv.│     │
+│  │  GET  /api/euribor        - Obtener Euribor        │     │
 │  └───────────────────────────────────────────────────┘     │
 │                          ↕                                   │
 │  ┌───────────────────────────────────────────────────┐     │
 │  │           Módulos de Lógica de Negocio            │     │
-│  │  • Scraper de Idealista (Axios + Cheerio)         │     │
+│  │  • Extracción de datos (GPT-5-mini + web search)  │     │
 │  │  • Calculadora de impuestos (ITP/IVA/AJD)         │     │
 │  │  • Calculadora de gastos notariales               │     │
 │  │  • Gestor de propiedades (CRUD en memoria)        │     │
 │  └───────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────┘
-           ↓                ↓                    ↓
-┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│   OpenAI API     │  │  Cloudinary CDN  │  │  Idealista.com   │
-│ (GPT-4/GPT-5)    │  │  (Imágenes)      │  │  (Datos)         │
-│                  │  │                  │  │                  │
-│ • Análisis de    │  │ • Almacenamiento │  │ • Datos públicos │
-│   propiedades    │  │   permanente     │  │ • Imágenes       │
-│ • Estimación     │  │ • CDN global     │  │ • Características│
-│   alquileres     │  │ • URLs públicas  │  │ • Web scraping   │
-│ • Web search     │  │ • 25 GB gratis   │  │   con GPT-5      │
-└──────────────────┘  └──────────────────┘  └──────────────────┘
+           ↓                                ↓
+┌──────────────────────────┐  ┌──────────────────────────┐
+│       OpenAI API         │  │      Idealista.com       │
+│     (GPT-4/GPT-5)        │  │        (Datos)           │
+│                          │  │                          │
+│ • Análisis de            │  │ • Datos públicos         │
+│   propiedades            │  │ • Características        │
+│ • Estimación             │  │ • Web scraping           │
+│   alquileres             │  │   con GPT-5              │
+│ • Web search             │  │                          │
+└──────────────────────────┘  └──────────────────────────┘
 ```
 
 ### 🎯 Integración con Idealista - Detalles Técnicos
 
-RealStateAI NO utiliza la API oficial de Idealista debido a sus limitaciones (100 peticiones/mes gratuitas). En su lugar, implementa un **sistema inteligente de extracción**:
+RealEstateAI NO utiliza la API oficial de Idealista debido a sus limitaciones (100 peticiones/mes gratuitas). En su lugar, implementa un **sistema inteligente de extracción**:
 
 #### Método de Extracción
 1. **GPT-5 con Web Search**: Accede directamente a la página web pública de Idealista
 2. **Extracción de datos estructurados**: GPT analiza HTML y extrae información en formato JSON
-3. **Múltiples imágenes**: GPT encuentra y extrae 3-5 URLs de imágenes por propiedad
-4. **Limpieza de URLs**: El backend elimina protecciones `/blur/` automáticamente
+3. **Datos completos**: GPT encuentra y extrae características, descripción y detalles de la propiedad
 
 #### Ventajas vs API Oficial
 - ✅ **Sin límites**: No hay restricción de 100 peticiones/mes
 - ✅ **Más completo**: Extrae descripciones detalladas y características
-- ✅ **Múltiples imágenes**: API oficial solo da 1 thumbnail
 - ✅ **Sin credenciales**: No requiere registro ni OAuth
 - ✅ **Datos actualizados**: Siempre obtiene información en tiempo real
 
@@ -437,118 +366,25 @@ RealStateAI NO utiliza la API oficial de Idealista debido a sus limitaciones (10
 - ✅ **Datos públicos**: Solo accede a información pública visible en la web
 - ✅ **Sin abuso**: Uso responsable con rate limiting
 - ✅ **Cumplimiento**: Respeta los términos de uso de Idealista para uso personal/educativo
-```
-
-### ☁️ Almacenamiento de Imágenes con Cloudinary
-
-**RealStateAI** utiliza **Cloudinary** como sistema de almacenamiento de imágenes en la nube, sustituyendo el almacenamiento local efímero.
-
-#### ¿Por qué Cloudinary?
-
-**Problema anterior:**
-- Railway (hosting del backend) tiene almacenamiento efímero
-- Las imágenes se borraban al reiniciar el servidor
-- No había persistencia real de las imágenes
-
-**Solución con Cloudinary:**
-- ✅ **Almacenamiento permanente:** Las imágenes nunca se pierden
-- ✅ **CDN global:** Carga rápida desde cualquier ubicación
-- ✅ **URLs públicas:** Funcionan desde cualquier dominio
-- ✅ **Plan gratuito generoso:** 25 GB almacenamiento + 25 GB bandwidth/mes
-- ✅ **Optimización automática:** Cloudinary optimiza las imágenes
-- ✅ **Limpieza automática:** Borrado de imágenes al eliminar propiedades
-
-#### Flujo de Imágenes con Cloudinary
-
-```
-1. USUARIO BUSCA PROPIEDAD
-   ↓
-2. BACKEND EXTRAE IMÁGENES CON PUPPETEER/GPT
-   • Screenshot de la página de Idealista
-   • O descarga de URLs extraídas por GPT
-   ↓
-3. BACKEND SUBE A CLOUDINARY
-   • Upload mediante streams (eficiente)
-   • Organización: realstate/{propertyId}/image-{index}
-   • Retorna URL pública permanente
-   ↓
-4. FRONTEND MUESTRA IMAGEN
-   • URL de Cloudinary con CDN global
-   • Ejemplo: https://res.cloudinary.com/.../realstate/123/image-0.jpg
-   ↓
-5. USUARIO BORRA PROPIEDAD (OPCIONAL)
-   • Backend detecta URLs de Cloudinary
-   • Extrae public_id y borra de Cloudinary
-   • Limpieza automática del almacenamiento
-```
-
-#### Configuración de Cloudinary
-
-**1. Crear cuenta gratuita:**
-- Ir a [cloudinary.com/users/register/free](https://cloudinary.com/users/register/free)
-- Completar registro (email, nombre, contraseña)
-
-**2. Obtener credenciales:**
-- Ir al dashboard: [console.cloudinary.com](https://console.cloudinary.com/)
-- Copiar las 3 credenciales del cuadro "Product Environment Credentials":
-  - **Cloud Name:** ej. `dxxxxxxxx`
-  - **API Key:** ej. `123456789012345`
-  - **API Secret:** ej. `xxxxxxxxxxxxxxxxxxx`
-
-**3. Configurar en el backend:**
-```env
-# backend/.env
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=tu_api_key
-CLOUDINARY_API_SECRET=tu_api_secret
-```
-
-**4. Despliegue en Railway:**
-- Agregar las mismas 3 variables en la sección "Variables" de Railway
-- Railway reiniciará automáticamente el servicio
-
-#### Capacidad del Plan Gratuito
-
-Con el plan gratuito de Cloudinary puedes almacenar:
-- **25 GB de almacenamiento**
-- **25 GB de bandwidth/mes**
-- **~5,000 propiedades** (asumiendo 5 imágenes de 1 MB cada una)
-- **25,000 transformaciones/mes**
-
-#### Gestión Automática del Almacenamiento
-
-**Limpieza inteligente:**
-- Al borrar una propiedad, se borran automáticamente sus imágenes de Cloudinary
-- No quedan "imágenes huérfanas" ocupando espacio
-- Uso eficiente del plan gratuito
-
-**Código de borrado:**
-```javascript
-// Extrae public_id de la URL
-const publicId = extractPublicIdFromUrl(imageUrl);
-// Borra de Cloudinary
-await cloudinary.uploader.destroy(publicId);
-```
 
 ---
 
 ### Flujo de Datos Principal
 
 1. **Usuario ingresa URL de Idealista** en el frontend
-2. **Frontend envía petición** a `POST /api/analyze`
-3. **Backend hace scraping** de la página de Idealista con Puppeteer
-4. **Backend captura screenshots** y sube imágenes a Cloudinary
-5. **Backend envía datos a OpenAI** para análisis con IA
-6. **OpenAI devuelve análisis** estructurado
-7. **Backend combina** datos scraped + análisis IA + URLs de Cloudinary
-8. **Frontend recibe y muestra** datos con imágenes desde Cloudinary CDN
-9. **Usuario revisa, edita y guarda** la propiedad
-10. **Propiedad se almacena** y aparece en dashboard con imágenes permanentes
+2. **Frontend envía petición** a `POST /api/analyze-property`
+3. **Backend envía URL a GPT-5-mini** con web search para extraer datos
+4. **Backend envía datos a OpenAI** para análisis con IA
+5. **OpenAI devuelve análisis** estructurado
+6. **Backend combina** datos scraped + análisis IA
+7. **Frontend recibe y muestra** los datos de la propiedad
+8. **Usuario revisa, edita y guarda** la propiedad
+9. **Propiedad se almacena** y aparece en dashboard
 
 ### Estructura del Proyecto
 
 ```
-RealStateAI/
+RealEstateAI/
 ├── frontend/                    # Aplicación Next.js
 │   ├── src/
 │   │   ├── app/                # App Router de Next.js
@@ -590,13 +426,12 @@ Antes de comenzar, asegúrate de tener instalado:
 - **npm** v9 o superior (incluido con Node.js)
 - **Git** ([Descargar](https://git-scm.com/))
 - **Clave API de OpenAI** ([Obtener aquí](https://platform.openai.com/api-keys))
-- **Cuenta de Cloudinary** (gratuita, 25 GB) ([Registrarse aquí](https://cloudinary.com/users/register/free))
 
 ### 1️⃣ Clonar el Repositorio
 
 ```bash
 git clone https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria.git
-cd RealStateAI
+cd RealEstateAI
 ```
 
 ### 2️⃣ Configurar el Backend
@@ -620,14 +455,8 @@ npm start
 # OpenAI API
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Cloudinary (obtener desde tu dashboard en cloudinary.com)
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=123456789012345
-CLOUDINARY_API_SECRET=tu_api_secret
-
-# Idealista API (opcional, para scraping avanzado)
-IDEALISTA_API_KEY=tu_idealista_api_key
-IDEALISTA_SECRET=tu_idealista_secret
+# Access Password (SHA-256 hash of your chosen password)
+ACCESS_PASSWORD_HASH=<sha256_hash_of_your_password>
 
 # Server Config
 PORT=3000
@@ -651,7 +480,7 @@ npm run dev
 
 Abre tu navegador y visita:
 
-🌐 **Frontend:** [http://localhost:3001](http://localhost:3001)  
+🌐 **Frontend:** [http://localhost:3001](http://localhost:3001)
 🔌 **Backend API:** [http://localhost:3000](http://localhost:3000)
 
 ---
@@ -664,7 +493,7 @@ Abre tu navegador y visita:
 2. Pega la URL de una propiedad de Idealista en el campo correspondiente
 3. Haz clic en **"Buscar"** para analizar automáticamente
 
-> **Ejemplo de URL válida:**  
+> **Ejemplo de URL válida:**
 > `https://www.idealista.com/inmueble/12345678/`
 
 ### Paso 2: Revisar Datos Auto-rellenados
@@ -674,7 +503,6 @@ Abre tu navegador y visita:
   - ✅ Precio de compra
   - ✅ Superficie, habitaciones, baños
   - ✅ Descripción y características
-  - ✅ Imágenes
 
 ### Paso 3: Estimar Alquiler con IA
 
@@ -719,12 +547,13 @@ Abre tu navegador y visita:
 #### 🏠 Sección 3: Gastos de Vivienda
 
 Gastos anuales calculados automáticamente:
-- **IBI** (Impuesto de Bienes Inmuebles)
+- **IBI** (Impuesto de Bienes Inmuebles) - % sobre precio según tipo de municipio (pueblo/ciudad media/gran ciudad/capital)
 - **Comunidad de propietarios**
-- **Seguro de hogar**
-- **Mantenimiento** (10% renta anual recomendado)
-- **Seguro de impago** (5% renta anual)
-- **Periodos vacantes** (5% renta anual)
+- **Seguro de hogar** (0.01% sobre precio de compra)
+- **Mantenimiento** (0.10% sobre precio de compra)
+- **Seguro de impago** (5% sobre renta anual)
+- **Periodos vacantes** (0.03% sobre precio de compra)
+- **Seguro de vida de hipoteca** - modelo exponencial basado en edad del asegurado: `0.03 * e^(0.0632 * edad)`
 
 ### Paso 6: Análisis Financiero Avanzado
 
@@ -763,7 +592,7 @@ http://localhost:3000
 #### 1. Analizar Propiedad desde URL
 
 ```http
-POST /api/analyze
+POST /api/analyze-property
 Content-Type: application/json
 
 {
@@ -790,7 +619,18 @@ Content-Type: application/json
 }
 ```
 
-#### 2. Guardar Propiedad
+#### 2. Verificar Contraseña de Acceso
+
+```http
+POST /api/verify-password
+Content-Type: application/json
+
+{
+  "passwordHash": "<sha256_hash>"
+}
+```
+
+#### 3. Guardar Propiedad
 
 ```http
 POST /api/properties
@@ -807,13 +647,13 @@ Content-Type: application/json
 }
 ```
 
-#### 3. Obtener Todas las Propiedades
+#### 4. Obtener Todas las Propiedades
 
 ```http
 GET /api/properties
 ```
 
-#### 4. Actualizar Propiedad
+#### 5. Actualizar Propiedad
 
 ```http
 PUT /api/properties/:id
@@ -825,13 +665,13 @@ Content-Type: application/json
 }
 ```
 
-#### 5. Eliminar Propiedad
+#### 6. Eliminar Propiedad
 
 ```http
 DELETE /api/properties/:id
 ```
 
-#### 6. Estimar Alquiler con IA (GPT-5-mini + Web Search)
+#### 7. Estimar Alquiler con IA (GPT-5-mini + Web Search)
 
 ```http
 POST /api/estimate-rent
@@ -873,7 +713,7 @@ Content-Type: application/json
 >
 > Esto representa una **mejora del ~37% en precisión** de las estimaciones. La diferencia se acentúa especialmente en zonas con mercados de alquiler volátiles (grandes ciudades, zonas costeras turísticas) y en propiedades con características atípicas (áticos, bajos con jardín, pisos amueblados de lujo), donde los datos de entrenamiento estáticos de GPT-4o quedaban más desactualizados. El acceso en tiempo real a listados publicados en portales inmobiliarios permite al modelo anclar sus estimaciones en datos de mercado actuales en lugar de extrapolaciones históricas.
 
-#### 7. Calcular Gastos de Compra
+#### 8. Calcular Gastos de Compra
 
 ```http
 POST /api/calculate-expenses
@@ -886,7 +726,20 @@ Content-Type: application/json
 }
 ```
 
-#### 8. Obtener Euribor Actual
+#### 9. Calcular Gastos de Vivienda
+
+```http
+POST /api/calculate-housing-expenses
+Content-Type: application/json
+
+{
+  "precio": 250000,
+  "alquilerMensual": 1400,
+  "tipoMunicipio": "capital"
+}
+```
+
+#### 10. Obtener Euribor Actual
 
 ```http
 GET /api/euribor
@@ -1013,7 +866,7 @@ El proyecto ha sido analizado con **SonarQube** para garantizar la calidad del c
 
 ### Comparativa con Herramientas Existentes
 
-| Métrica | Excel Manual | Calculadoras Web | Software Pro | **RealStateAI** |
+| Métrica | Excel Manual | Calculadoras Web | Software Pro | **RealEstateAI** |
 |---------|--------------|------------------|--------------|-----------------|
 | **Tiempo de análisis** | 30-45 min | 10-15 min | 5-10 min | **2-3 min** ⚡ |
 | **Automatización** | ❌ No | 🟡 Parcial | ✅ Sí | ✅ Sí |
@@ -1029,15 +882,15 @@ El proyecto ha sido analizado con **SonarQube** para garantizar la calidad del c
 ### Métricas del Proyecto
 
 **Código:**
-- 📝 Líneas de código: **~3,100** (backend: 1,200 / frontend: 1,900)
-- 📦 Archivos principales: **15+**
-- 🔧 Dependencias: **20 paquetes npm**
-- ⚙️ Commits: **45+**
+- 📝 Líneas de código: **~5,200** (backend: ~800 / frontend: ~4,400)
+- 📦 Archivos principales: **7 + configuración**
+- 🔧 Dependencias: **4 producción + 8 desarrollo (frontend) + 4 producción (backend)**
+- ⚙️ Commits: **34+**
 
 **Funcionalidades:**
-- ✅ **12/17 Requisitos funcionales** completados
-- ✅ **12/12 Requisitos no funcionales** cumplidos
-- 📈 **Progreso:** 85% completado
+- ✅ **15/17 Requisitos funcionales** completados
+- ✅ **10/10 Requisitos no funcionales** cumplidos
+- 📈 **Progreso:** ~90% completado
 
 **Testing:**
 - 🧪 Scraping: 93.3% éxito (28/30 propiedades)
@@ -1046,71 +899,26 @@ El proyecto ha sido analizado con **SonarQube** para garantizar la calidad del c
 
 ### Feedback de Usuarios
 
-Testeado con **3 inversores reales:**
-
-| Usuario | Perfil | Puntuación | Comentario |
-|---------|--------|------------|------------|
-| Usuario 1 | Inversor novato | **9/10** | "Muchísimo más fácil que Excel" |
-| Usuario 2 | Inversor experimentado | **8/10** | "Cálculos precisos, muy útil" |
-| Usuario 3 | Asesor inmobiliario | **8.5/10** | "Perfecto para análisis rápidos" |
-
-**Promedio:** **8.5/10** ⭐⭐⭐⭐⭐
+100+ testers actively testing. Feedback is being collected and incorporated into the development cycle.
 
 ---
 
-## 🗺️ Roadmap y Futuro
+## 🗺️ Roadmap y Trabajo Futuro
 
-### Fase 1: MVP Mejorado (Febrero 2026)
+### Mejoras Prioritarias
 
-- [ ] Base de datos persistente (MongoDB/PostgreSQL)
-- [ ] Rate limiting en endpoints de la API (`express-rate-limit`) para controlar el consumo de OpenAI y prevenir abusos
-- [ ] Comparación de propiedades lado a lado con métricas paralelas
-- [ ] Gráficos de rentabilidad avanzados con proyección 10-30 años
-- [ ] Exportación a PDF con análisis completo y gráficos profesionales
-- [ ] **Exportar/Importar propiedades como JSON** para backup y portabilidad
-- [ ] Calculadora de break-even (punto de equilibrio)
-- [ ] Alertas de mercado cuando mejora el ROI o cambian precios
-- [ ] Sistema de usuarios con autenticación completa
+- [ ] Base de datos persistente (MongoDB/PostgreSQL) para reemplazar almacenamiento en memoria
+- [ ] Rate limiting en endpoints de la API (`express-rate-limit`) para controlar el consumo de OpenAI
+- [ ] Pruebas unitarias automatizadas para funciones de cálculo financiero
+- [ ] Exportación a PDF con análisis completo y gráficos
+- [ ] Exportar/Importar propiedades como JSON para backup y portabilidad
 
-### Fase 2: Funcionalidades Avanzadas (Marzo-Abril 2026)
+### Posibles Extensiones Futuras
 
-- [ ] Machine Learning para predicción de precios de alquiler
-- [ ] Integración con APIs de bancos para tasas reales en tiempo real
-- [ ] Dashboard con KPIs globales y portfolio completo
-- [ ] Alertas y notificaciones por email/push
-- [ ] Favoritos, etiquetas y búsqueda avanzada
-- [ ] Modo oscuro/claro configurable
-- [ ] Multi-usuario con permisos y roles
-- [ ] Modo offline con sincronización automática
-- [ ] Simulador de escenarios (optimista, realista, pesimista)
-- [ ] Historial de cambios y tracking de evolución
-
-### Fase 3: Expansión (Mayo-Junio 2026)
-
-- [ ] Integración con más portales (Fotocasa, Pisos.com)
-- [ ] Calculadora de plusvalía (venta futura)
-- [ ] Análisis de zona (precio/m² medio)
-- [ ] Historial de precios de propiedades
-- [ ] Compartir análisis (link público)
-
-### Fase 4: Profesionalización (Julio+ 2026)
-
-- [ ] API pública para desarrolladores
-- [ ] Webhooks de nuevas propiedades
-- [ ] Integración con CRM inmobiliarios
-- [ ] Informes personalizables
-- [ ] Modo colaborativo (equipos)
-- [ ] Aplicación móvil (PWA)
-
-### Modelo de Negocio Futuro
-
-**Estrategia Freemium:**
-
-| Tier | Precio | Límites | Features Extra |
-|------|--------|---------|----------------|
-| **Gratis** | 0€/mes | 5 propiedades, 10 análisis IA/mes | - |
-| **Premium** | 9.99€/mes | Ilimitado | PDF, comparación, alertas |
-| **Pro** | 29.99€/mes | Ilimitado | Todo + API, soporte prioritario |
+- Integración con más portales inmobiliarios (Fotocasa, Pisos.com)
+- Comparación de propiedades lado a lado
+- Sistema de usuarios con autenticación completa
+- Simulador de escenarios (optimista, realista, pesimista)
 
 ---
 
@@ -1154,7 +962,7 @@ Este proyecto está licenciado bajo la **Licencia MIT**.
 ```
 MIT License
 
-Copyright (c) 2026 Alejandro - RealStateAI TFG
+Copyright (c) 2026 Alejandro - RealEstateAI TFG
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1179,9 +987,9 @@ SOFTWARE.
 
 ## 📞 Contacto
 
-**Autor:** Alejandro  
-**Universidad:** U-tad  
-**Curso:** 2025-2026  
+**Autor:** Alejandro
+**Universidad:** U-tad
+**Curso:** 2025-2026
 **Repositorio:** [github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria](https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria)
 
 ### Enlaces
@@ -1209,8 +1017,8 @@ Este proyecto no habría sido posible sin:
 
 ## 📚 Documentación Adicional
 
-- 📖 **Diario de TFG:** Ver `DIARIO_TFG.md` (2,055 líneas de documentación académica completa)
-- 📝 **Changelog:** Ver `CHANGELOG.md` para historial de cambios
+- 📖 **Diario de TFG:** Ver `DIARIO_TFG.md` (documentación académica completa)
+- 📝 **Changelog:** Ver `progresos.txt` para historial de cambios
 - 🎯 **Requisitos:** Ver sección "Análisis de Requisitos" en el diario
 - 🏗️ **Arquitectura:** Diagramas detallados en el diario
 - 🧪 **Testing:** Plan de pruebas completo en el diario

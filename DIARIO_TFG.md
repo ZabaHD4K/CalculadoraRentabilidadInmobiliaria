@@ -1,9 +1,9 @@
-# DIARIO DE TRABAJO FIN DE GRADO
-## RealEstateAI - Herramienta de Análisis de Inversión Inmobiliaria
+# DIARIO DE TRABAJO FIN DE GRADO.
+## RealStateAI - Herramienta de Análisis de Inversión Inmobiliaria
 
 **Autor:** Alejandro Zabaleta
 **Fecha de Inicio:** Curso 2025-2026
-**Última Actualización:** 5 de Febrero de 2026
+**Última Actualización:** 7 de Febrero de 2026
 **Repositorio GitHub:** https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria
 **Universidad:** U-tad
 
@@ -15,15 +15,15 @@
 2. [Estado de la Cuestión](#estado-de-la-cuestión)
 3. [Justificación y Motivación](#justificación-y-motivación)
 4. [Objetivos del Proyecto](#objetivos-del-proyecto)
-5. [Metodología](#metodología)
-6. [Arquitectura del Sistema](#arquitectura-del-sistema)
-7. [Desarrollo e Implementación](#desarrollo-e-implementación)
-8. [Validación y Pruebas](#validación-y-pruebas)
-9. [Riesgos y Consideraciones Éticas](#riesgos-y-consideraciones-éticas)
-10. [Estado Actual del Proyecto](#estado-actual-del-proyecto)
-11. [Análisis de Requisitos](#análisis-de-requisitos)
-12. [Casos de Uso](#casos-de-uso)
-13. [Planificación y Cronograma](#planificación-y-cronograma)
+5. [Análisis de Requisitos](#análisis-de-requisitos)
+6. [Casos de Uso](#casos-de-uso)
+7. [Metodología](#metodología)
+8. [Planificación y Cronograma](#planificación-y-cronograma)
+9. [Arquitectura del Sistema](#arquitectura-del-sistema)
+10. [Desarrollo e Implementación](#desarrollo-e-implementación)
+11. [Validación y Pruebas](#validación-y-pruebas)
+12. [Riesgos y Consideraciones Éticas](#riesgos-y-consideraciones-éticas)
+13. [Estado Actual del Proyecto](#estado-actual-del-proyecto)
 14. [Conclusiones Preliminares](#conclusiones-preliminares)
 15. [Bibliografía](#bibliografía)
 
@@ -58,7 +58,7 @@ Una plataforma web que:
 
 El sector PropTech (Property Technology) ha experimentado un crecimiento significativo en España durante la última década. Según el mapa PropTech elaborado por la consultora Finnovating (2024), existen más de 500 startups PropTech en España, pero la mayoría se concentran en la intermediación y gestión de activos para grandes carteras, dejando desatendido al inversor particular.
 
-Mur y García (2023) señalan que la digitalización del sector inmobiliario español ha avanzado principalmente en la fase de comercialización (portales de anuncios), pero existe un déficit notable en herramientas de análisis financiero accesibles para el pequeño inversor (pp. 45-67).
+Asensio-Soto (2023) señala en su tesis doctoral sobre la digitalización de la intermediación inmobiliaria en España que el sector PropTech ha avanzado principalmente en la fase de comercialización (portales de anuncios y plataformas de intermediación online), pero existe un déficit notable en herramientas de análisis financiero accesibles para el pequeño inversor.
 
 ### 2. Análisis de Herramientas Existentes
 
@@ -80,13 +80,13 @@ Los principales portales inmobiliarios españoles ofrecen funcionalidades de bú
 
 #### Herramientas Profesionales
 
-Existen soluciones profesionales como PlanRadar, CBRE Analytics o JLL Research que ofrecen análisis completos, pero están orientadas a fondos de inversión y grandes promotoras, con costes de licencia que las hacen inaccesibles para el inversor individual (García-Teruel, 2023, pp. 112-130).
+Existen soluciones profesionales como PlanRadar, CBRE Analytics o JLL Research que ofrecen análisis completos, pero están orientadas a fondos de inversión y grandes promotoras, con costes de licencia que las hacen inaccesibles para el inversor individual (Asensio-Soto, 2023).
 
 ### 3. Uso de LLMs en el Sector Inmobiliario
 
 La aplicación de modelos de lenguaje de gran escala (LLMs) al sector inmobiliario es un área de investigación emergente. Estudios recientes han explorado el uso de GPT-4 y modelos similares para la estimación de precios inmobiliarios con resultados prometedores pero con limitaciones significativas.
 
-Kok et al. (2024) demuestran que los LLMs pueden procesar descripciones textuales de propiedades y extraer información estructurada con una precisión del 85-92%, aunque señalan que las estimaciones de precios basadas exclusivamente en LLMs presentan una desviación estándar mayor que los modelos hedónicos tradicionales (pp. 234-251).
+Geerts et al. (2025) demuestran que los LLMs pueden aprovechar variables hedónicas de las propiedades (superficie, ubicación, equipamientos) para producir estimaciones de precio significativas, aunque los modelos de machine learning tradicionales superan a los LLMs en precisión predictiva pura. Los autores señalan además que los LLMs presentan sobreconfianza en los intervalos de predicción y capacidades limitadas de razonamiento espacial, pero destacan su potencial para mejorar la transparencia en la valoración inmobiliaria.
 
 Es importante señalar las **limitaciones inherentes** de este enfoque:
 - Los LLMs no tienen acceso a datos de transacciones reales en tiempo real.
@@ -107,13 +107,17 @@ Existe un **hueco de mercado** identificado: no hay una herramienta accesible, a
 
 ### Motivación Personal
 
+El interés por la inversión inmobiliaria surge de la observación directa del entorno: en conversaciones con familiares y conocidos que han invertido en vivienda para alquilar, se detectó un patrón recurrente: la mayoría calculaban la rentabilidad de forma simplificada (dividiendo el alquiler anual entre el precio de compra) sin tener en cuenta los gastos reales asociados —impuestos de transmisión, notaría, registro, IBI, comunidad, seguros, periodos vacantes— lo que llevaba a sobreestimar la rentabilidad real de sus inversiones. Esta brecha entre la rentabilidad percibida y la rentabilidad real motivó la idea de crear una herramienta que automatizase estos cálculos de forma completa y accesible.
+
+Además, como estudiante de ingeniería de software, este proyecto representaba una oportunidad de integrar múltiples áreas de conocimiento: desarrollo web full-stack, integración de APIs de inteligencia artificial, cálculos financieros, fiscalidad española y diseño de interfaces interactivas, todo en un producto con utilidad real.
+
 El mercado inmobiliario es el vehículo de inversión más popular en España según el Banco de España (2024), pero el análisis de rentabilidad real es complejo y requiere considerar múltiples variables que a menudo son pasadas por alto por inversores particulares: fiscalidad autonómica, gastos notariales, seguros, periodos vacantes y mantenimiento.
 
 ### Necesidad Detectada
 
 A través de la investigación realizada en el estado de la cuestión, se identificó que:
 
-1. Los inversores particulares **subestiman sistemáticamente los gastos** asociados a la compra (ITP, notaría, registro, gestoría) según el informe de la OCU sobre transparencia en costes de compraventa (OCU, 2024).
+1. Los inversores particulares **subestiman sistemáticamente los gastos** asociados a la compra (ITP, notaría, registro, gestoría) según el análisis de la OCU sobre gastos de compraventa de vivienda (OCU, 2023).
 2. **No existe una herramienta gratuita y completa** que integre cálculos fiscales autonómicos con análisis de rentabilidad.
 3. La fragmentación de información entre portales, calculadoras de hipotecas y normativa fiscal dificulta la toma de decisiones informada.
 4. Las herramientas profesionales existentes están fuera del alcance económico del inversor particular.
@@ -150,7 +154,7 @@ Desarrollar una aplicación web que permita a inversores inmobiliarios particula
 - [x] Extracción automática de datos desde URLs de Idealista (precio, superficie, habitaciones, dirección, descripción, características).
 - [x] Cálculo de impuestos (ITP/IVA/AJD) por comunidad autónoma con tipos actualizados.
 - [x] Cálculo de gastos de compra (notaría, registro, gestoría, tasación).
-- [x] Estimación de alquiler mensual mediante IA (GPT-4o).
+- [x] Estimación de alquiler mensual mediante IA (GPT-5-mini con web search; GPT-4o como fallback).
 - [x] Estimación de gastos anuales de vivienda mediante IA (IBI, comunidad, seguros).
 - [x] Cálculo de hipoteca con sistema francés de amortización (fija y variable con Euribor).
 - [x] Dashboard financiero con: ROI, TIR, VAN, cash flow, rentabilidad bruta/neta, payback period.
@@ -165,6 +169,149 @@ Desarrollar una aplicación web que permita a inversores inmobiliarios particula
 - [x] Feedback visual en tiempo real (loading states, animaciones).
 - [x] Validación de datos en formularios.
 - [x] Simulación interactiva de escenarios financieros (sliders para editar gastos, hipoteca, inflación).
+
+---
+
+## ANÁLISIS DE REQUISITOS
+
+### Requisitos Funcionales
+
+| ID | Requisito | Prioridad | Estado |
+|-----|-----------|-----------|--------|
+| RF1 | Añadir propiedades mediante URL de Idealista | Alta | Completado |
+| RF2 | Extraer automáticamente datos de la propiedad | Alta | Completado |
+| RF3 | Calcular impuestos según comunidad autónoma | Alta | Completado |
+| RF4 | Calcular gastos notariales y de registro | Alta | Completado |
+| RF5 | Estimar precio de alquiler mediante IA | Media | Completado |
+| RF6 | Calcular cuota de hipoteca (fija y variable) | Alta | Completado |
+| RF7 | Calcular gastos anuales de vivienda | Alta | Completado |
+| RF8 | Editar datos de propiedades | Media | Completado |
+| RF9 | Almacenar múltiples propiedades | Alta | Completado |
+| RF10 | Eliminar propiedades | Media | Completado |
+| RF11 | Dashboard con todas las propiedades y ROI | Alta | Completado |
+| RF12 | Consultar Euribor actual automáticamente | Media | Completado |
+| RF13 | Dashboard financiero con métricas avanzadas | Alta | Completado |
+| RF14 | Gráficos interactivos de rentabilidad | Alta | Completado |
+| RF15 | Simulación de escenarios financieros | Alta | Completado |
+| RF16 | Sistema de autenticación | Media | Completado |
+| RF17 | Persistencia en base de datos | Media | Planificado para fase posterior |
+
+### Requisitos No Funcionales
+
+| ID | Categoría | Requisito |
+|-----|-----------|-----------|
+| RNF1 | Rendimiento | Análisis de URL completado en menos de 60 segundos |
+| RNF2 | Rendimiento | Dashboard financiero carga en menos de 2 segundos |
+| RNF3 | Usabilidad | Interfaz intuitiva sin necesidad de manual |
+| RNF4 | Usabilidad | Diseño responsive funcional en móviles y tablets |
+| RNF5 | Seguridad | API keys almacenadas en variables de entorno |
+| RNF6 | Seguridad | Contraseña de acceso hasheada (SHA-256) |
+| RNF7 | Seguridad | CORS configurado con validación dinámica de orígenes |
+| RNF8 | Mantenibilidad | Código modular con separación frontend/backend |
+| RNF9 | Mantenibilidad | TypeScript para type-safety en el frontend |
+| RNF10 | Disponibilidad | Despliegue en Vercel (frontend) y Railway (backend) |
+
+---
+
+## CASOS DE USO
+
+### CU-001: Analizar Propiedad desde URL
+
+**Actor Principal:** Usuario Inversor
+
+**Precondiciones:**
+- El usuario está autenticado.
+- El usuario tiene una URL válida de Idealista.
+
+**Flujo Principal:**
+1. El usuario hace clic en "Añadir Propiedad".
+2. El sistema muestra el formulario de nueva propiedad.
+3. El usuario pega la URL de Idealista.
+4. El usuario hace clic en "Analizar URL".
+5. El sistema envía la URL al backend.
+6. El backend utiliza GPT-5-mini con web search para acceder a la URL y extraer datos.
+7. El backend parsea la respuesta JSON del modelo.
+8. El frontend recibe los datos y rellena automáticamente el formulario.
+9. El usuario revisa y ajusta datos si es necesario.
+10. El usuario guarda la propiedad.
+
+**Flujos Alternativos:**
+- FA1: Si el modelo no puede acceder a la URL, el sistema muestra un error y el usuario introduce datos manualmente.
+- FA2: Si el JSON devuelto por el modelo es inválido, el sistema muestra la respuesta raw y el usuario introduce datos manualmente.
+
+### CU-002: Analizar Rentabilidad en Dashboard Financiero
+
+**Actor Principal:** Usuario Inversor
+
+**Precondiciones:**
+- Existe una propiedad guardada con datos básicos y gastos configurados.
+
+**Flujo Principal:**
+1. El usuario hace clic en "Ver Dashboard" desde la card de una propiedad.
+2. El sistema navega a `/dashboard/[id]` y carga los datos de la propiedad.
+3. El sistema calcula automáticamente todas las métricas financieras.
+4. El usuario visualiza gráficos y métricas: ROI, TIR, VAN, cash flow, payback.
+5. El usuario puede modificar parámetros (alquiler, gastos, hipoteca, inflación) para simular escenarios.
+6. Los gráficos y métricas se recalculan en tiempo real.
+7. El usuario puede guardar los cambios realizados.
+
+### CU-003: Simular Escenarios Financieros
+
+**Actor Principal:** Usuario Inversor
+
+**Precondiciones:**
+- El usuario se encuentra en el dashboard financiero de una propiedad guardada.
+
+**Flujo Principal:**
+1. El usuario modifica uno o varios parámetros mediante los sliders y campos editables: precio de compra, alquiler mensual, capital propio, plazo de hipoteca, tipo de interés, inflación anual o incremento de alquiler.
+2. El sistema recalcula automáticamente todas las métricas financieras (ROI, TIR, VAN, cash flow, payback).
+3. Los gráficos (evolución de rentabilidad, desglose de gastos, tabla de amortización) se actualizan en tiempo real.
+4. El usuario compara visualmente el efecto de los cambios en la rentabilidad de la inversión.
+5. El usuario puede guardar la configuración del escenario simulado.
+
+**Flujos Alternativos:**
+- FA1: Si el usuario introduce valores incoherentes (por ejemplo, capital propio superior al precio), el sistema muestra una advertencia y ajusta los cálculos.
+
+### CU-004: Estimar Alquiler de una Propiedad
+
+**Actor Principal:** Usuario Inversor
+
+**Precondiciones:**
+- El usuario está autenticado.
+- Existe una propiedad con datos básicos rellenados (dirección, superficie, habitaciones, precio).
+
+**Flujo Principal:**
+1. El usuario hace clic en "Estimar Alquiler" desde el modal de detalles de la propiedad.
+2. El sistema envía los datos de la propiedad al backend (`POST /api/estimate-rent`).
+3. El backend utiliza GPT-5-mini con web search para buscar alquileres reales de propiedades similares en la zona.
+4. El modelo devuelve un rango de estimación (mínimo, máximo, media) con nivel de confianza y justificación.
+5. El frontend muestra la estimación con la justificación del modelo.
+6. El usuario puede aceptar la estimación o editar manualmente el valor de alquiler.
+
+**Flujos Alternativos:**
+- FA1: Si GPT-5-mini no está disponible, el sistema recurre a GPT-4o como fallback y muestra la estimación igualmente.
+- FA2: Si el modelo no puede encontrar comparables en la zona, devuelve una estimación con confianza baja y el usuario la valida manualmente.
+
+### CU-005: Configurar Gastos de Compra y Vivienda
+
+**Actor Principal:** Usuario Inversor
+
+**Precondiciones:**
+- Existe una propiedad con datos básicos rellenados.
+- El usuario ha seleccionado la comunidad autónoma de la propiedad.
+
+**Flujo Principal:**
+1. El usuario accede a la sección de gastos desde el modal de detalles de la propiedad.
+2. El sistema calcula automáticamente los impuestos (ITP o IVA+AJD) según la comunidad autónoma y si es obra nueva o segunda mano.
+3. El usuario hace clic en "Estimar Gastos" para obtener estimaciones de IA para notaría, registro, gestoría, tasación e IBI.
+4. El backend utiliza GPT-4o-mini para estimar los gastos contextualizados según precio, ubicación y tipo de propiedad.
+5. El frontend rellena los campos con las estimaciones.
+6. El usuario revisa y ajusta los valores si es necesario.
+7. El usuario guarda la propiedad con los gastos configurados.
+
+**Flujos Alternativos:**
+- FA1: El usuario omite la estimación por IA e introduce todos los gastos manualmente.
+- FA2: Si la estimación de IA falla, el sistema muestra un error y el usuario introduce los valores manualmente.
 
 ---
 
@@ -244,7 +391,7 @@ FASE 6: DOCUMENTACIÓN Y DEFENSA (Semanas 13-14)
 #### Backend
 | Tecnología | Versión | Justificación |
 |---|---|---|
-| **Node.js** | 20.x | Entorno de ejecución JavaScript en servidor, permite JavaScript en todo el stack (OpenJS Foundation, 2025). |
+| **Node.js** | 24.x | Entorno de ejecución JavaScript en servidor, permite JavaScript en todo el stack (OpenJS Foundation, 2025). |
 | **Express** | 4.22.1 | Framework web minimalista para Node.js, estándar de la industria para APIs REST (StrongLoop/IBM, 2025). |
 | **OpenAI SDK** | 6.17.0 | SDK oficial para integración con modelos GPT-5-mini (extracción con web search) y GPT-4o (estimaciones). |
 | **dotenv** | 16.6.1 | Gestión segura de variables de entorno (API keys, configuración). |
@@ -258,6 +405,43 @@ FASE 6: DOCUMENTACIÓN Y DEFENSA (Semanas 13-14)
 | **Vercel** | Despliegue del frontend (CI/CD automático). |
 | **Railway** | Despliegue del backend (hosting Node.js). |
 | **ESLint** | Linting de código JavaScript/TypeScript. |
+
+---
+
+## PLANIFICACIÓN Y CRONOGRAMA
+
+### Cronograma General
+
+```
+ENERO 2026
+────────────────────────────────────────────
+Semana 1-2: Investigación, planificación, diseño de arquitectura
+Semana 3-4: Desarrollo backend (Express, OpenAI, endpoints)
+
+FEBRERO 2026
+────────────────────────────────────────────
+Semana 1: Desarrollo frontend (dashboard, formularios, modales)
+Semana 2: Dashboard financiero, gráficos, simulaciones, validación con usuarios
+Semana 3: Corrección de bugs reportados, pruebas, documentación
+Semana 4: Pulido final, preparación defensa
+
+MARZO 2026
+────────────────────────────────────────────
+Semana 1: Buffer y correcciones finales
+Semana 2-3: Ensayos de presentación
+Semana 4: Presentación TFG
+```
+
+### Hitos
+
+- [x] **15 Enero:** Backend funcional con API REST y OpenAI.
+- [x] **25 Enero:** Frontend con componentes básicos y dashboard principal.
+- [x] **4 Febrero:** Integración completa front-back, despliegue en producción.
+- [x] **5 Febrero:** Dashboard financiero con gráficos y simulaciones.
+- [x] **7 Febrero:** Envío de enlace y credenciales a usuarios para validación masiva.
+- [ ] **12 Febrero:** Análisis de feedback de usuarios, corrección de bugs reportados, documentación parcial.
+- [ ] **20 Febrero:** Testing completo, documentación final.
+- [ ] **15 Marzo:** Presentación TFG.
 
 ---
 
@@ -323,13 +507,16 @@ FASE 6: DOCUMENTACIÓN Y DEFENSA (Semanas 13-14)
 │  - Web search        │       │  real (serie           │
 │  - Extracción datos  │       │  D_1NBAF472)           │
 │                      │       │                        │
-│  GPT-4o:             │       └────────────────────────┘
+│  GPT-5-mini:         │       └────────────────────────┘
 │  - Estimación alq.   │
+│  (fallback: GPT-4o)  │
 │  GPT-4o-mini:        │
 │  - Gastos compra     │
 │  - Gastos vivienda   │
 └──────────────────────┘
 ```
+
+La comunicación entre frontend y backend sigue el estilo arquitectónico REST (Fielding, 2000), intercambiando recursos en formato JSON sobre HTTPS.
 
 ### Flujo de Datos Principal
 
@@ -459,36 +646,36 @@ RealEstateAI/
 ├── frontend/                          # Aplicación Next.js 16
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── page.tsx              # Página principal (2,286 líneas)
+│   │   │   ├── page.tsx              # Página principal (2,565 líneas)
 │   │   │   ├── layout.tsx            # Layout raíz (21 líneas)
 │   │   │   ├── globals.css           # Estilos globales Tailwind
 │   │   │   └── dashboard/
 │   │   │       └── [id]/
-│   │   │           └── page.tsx      # Dashboard financiero (1,262 líneas)
+│   │   │           └── page.tsx      # Dashboard financiero (1,239 líneas)
 │   │   ├── components/
 │   │   │   └── AuthModal.tsx         # Modal de autenticación (225 líneas)
 │   │   └── services/
-│   │       └── api.ts                # Cliente API tipado (443 líneas)
+│   │       └── api.ts                # Cliente API tipado (450 líneas)
 │   ├── tailwind.config.ts
 │   ├── next.config.ts
 │   ├── tsconfig.json
 │   └── package.json
 ├── backend/
-│   ├── server.js                     # Servidor Express (880 líneas)
+│   ├── server.js                     # Servidor Express (941 líneas)
 │   ├── .env                          # Variables de entorno
 │   └── package.json
 ├── DIARIO_TFG.md                     # Este documento
-├── CHANGELOG.md                      # Historial de cambios
+├── progresos.txt                     # Historial de cambios
 └── README.md                         # Documentación general
 ```
 
-**Total de líneas de código fuente:** ~5,117 líneas en archivos principales.
+**Total de líneas de código fuente:** ~5,584 líneas en archivos principales.
 
 ### Módulos Implementados
 
 #### 1. Extracción de Datos de Propiedades (GPT-5-mini + Web Search)
 
-**Enfoque adoptado:** En lugar de utilizar web scraping tradicional con bibliotecas como Cheerio o Puppeteer, se optó por delegar la extracción de datos al modelo GPT-5-mini de OpenAI con la herramienta de web search habilitada. Este enfoque presenta ventajas significativas frente al scraping clásico:
+**Enfoque adoptado:** En lugar de utilizar web scraping tradicional con bibliotecas como Cheerio o Puppeteer —técnica ampliamente documentada por Mitchell (2018)—, se optó por delegar la extracción de datos al modelo GPT-5-mini de OpenAI con la herramienta de web search habilitada. Este enfoque presenta ventajas significativas frente al scraping clásico:
 
 - **Resiliencia ante cambios de estructura HTML:** el modelo interpreta el contenido semánticamente, no depende de selectores CSS específicos.
 - **Extracción de información no estructurada:** el LLM puede interpretar descripciones en texto libre y extraer características relevantes.
@@ -510,26 +697,35 @@ La extracción del JSON de la respuesta requiere una lógica de parsing no trivi
 
 #### 2. Estimación de Alquiler con IA
 
-**Modelo utilizado:** GPT-4o
-**Temperatura:** 0.2 (para respuestas más deterministas)
+**Modelo principal:** GPT-5-mini con herramienta `web_search` habilitada
+**Modelo de fallback:** GPT-4o (sin web search, temperatura 0.2)
 
-El sistema envía al modelo un prompt detallado que incluye:
-- Ubicación exacta (dirección completa).
-- Características físicas (superficie, habitaciones, baños).
-- Precio de compra (como referencia de validación).
+El sistema utiliza GPT-5-mini con acceso a internet como modelo principal para la estimación de alquileres. Esto permite al modelo consultar listados reales de alquiler en portales inmobiliarios (Idealista, Fotocasa, pisos.com) en el momento de la estimación, en lugar de depender exclusivamente de datos de entrenamiento. Si GPT-5-mini no está disponible, el sistema recurre a GPT-4o como fallback.
+
+El prompt enviado incluye:
+- Ubicación exacta (dirección completa y comunidad autónoma).
+- Características físicas (superficie, habitaciones, baños, tipo de propiedad).
+- Precio de compra (como referencia de validación de coherencia).
 - Descripción completa y características del inmueble.
 
-El prompt solicita un análisis en profundidad que considere:
-1. Ubicación y zona específica (barrio, distrito, demanda).
-2. Características de la propiedad (estado, calidades, servicios).
-3. Comparativa de mercado con propiedades similares.
-4. Coherencia con la rentabilidad típica (3-6% bruto anual).
+El prompt solicita al modelo que:
+1. **Busque en internet** alquileres reales de propiedades similares en la misma zona.
+2. Analice la ubicación específica (barrio, distrito, demanda, transporte).
+3. Considere las características de la propiedad (estado, calidades, extras).
+4. Valide la coherencia con la rentabilidad típica (3-6% bruto anual).
+5. Devuelva un rango de alquiler con nivel de confianza (alta/media/baja) y justificación.
+
+La respuesta se estructura como JSON con campos: `min`, `max`, `media`, `confianza` y `justificacion`.
+
+**Ventaja del enfoque con web search frente al modelo sin acceso a internet:**
+El acceso en tiempo real a listados publicados en portales inmobiliarios permite al modelo anclar sus estimaciones en datos de mercado actuales, reduciendo el sesgo temporal inherente a los datos de entrenamiento. Esto es especialmente relevante en zonas con mercados de alquiler volátiles (grandes ciudades, zonas costeras turísticas) y en propiedades con características atípicas.
 
 **Limitaciones reconocidas de este enfoque:**
-- El LLM no tiene acceso a bases de datos de transacciones reales actualizadas en tiempo real.
-- La estimación depende del conocimiento del modelo, que tiene un cutoff de datos de entrenamiento.
+- La calidad de la estimación depende de la disponibilidad de listados comparables en la zona consultada; en zonas rurales o con poca oferta la precisión disminuye.
+- El modelo puede encontrar listados que no sean representativos (precios inflados, propiedades muy diferentes).
 - Las estimaciones se presentan siempre como **orientativas** con formato de rango ("XXX-YYY€/mes"), nunca como valores exactos.
-- Para mayor precisión se recomienda complementar con datos de portales de alquiler y estudios de mercado locales.
+- La variabilidad entre invocaciones se reduce mediante temperatura baja (0.2 en el fallback) y `reasoning: { effort: 'medium' }` en GPT-5-mini, pero no se elimina completamente.
+- Para decisiones de inversión se recomienda complementar con datos de portales de alquiler, estudios de mercado locales y asesoramiento profesional.
 
 #### 3. Cálculos Fiscales por Comunidad Autónoma
 
@@ -570,7 +766,7 @@ Los valores estimados por IA se presentan como valores iniciales editables por e
 **Ruta:** `/dashboard/[id]`
 **Biblioteca de gráficos:** Recharts 3.7.0
 
-El dashboard financiero calcula y muestra:
+El dashboard financiero calcula y muestra las métricas estándar del análisis de inversiones inmobiliarias (Brueggeman & Fisher, 2022; Gallinelli, 2015):
 
 **Métricas Financieras:**
 - **Rentabilidad Bruta** = (Renta Anual / Precio Total) × 100
@@ -578,8 +774,8 @@ El dashboard financiero calcula y muestra:
 - **Cash Flow Mensual/Anual** = Renta - Gastos - Cuota Hipoteca
 - **ROI Simple** = (Cash Flow Anual / Capital Propio) × 100
 - **ROI Total** = ((Cash Flow + Amortización Hipoteca + Revalorización) / Capital Propio) × 100
-- **TIR (Tasa Interna de Retorno):** simulación de flujos de caja a 30 años con valor residual del inmueble, calculada mediante búsqueda binaria (200 iteraciones).
-- **VAN (Valor Actual Neto):** flujos descontados a 30 años usando el tipo de interés de la hipoteca como tasa de descuento.
+- **TIR (Tasa Interna de Retorno):** simulación de flujos de caja a 30 años con valor residual del inmueble, calculada mediante búsqueda binaria (200 iteraciones). Metodología basada en los modelos de valoración de flujos descontados (Damodaran, 2012).
+- **VAN (Valor Actual Neto):** flujos descontados a 30 años usando el tipo de interés de la hipoteca como tasa de descuento (Damodaran, 2012).
 - **Payback Period** = Capital Propio / Cash Flow Anual
 
 **Fórmula de Hipoteca (Sistema Francés):**
@@ -596,8 +792,16 @@ n = Número de cuotas (años × 12)
 
 **Simulaciones Interactivas:**
 - Edición en tiempo real de: precio, alquiler, capital propio, plazo, tipo de interés, inflación, incremento de alquiler.
-- Edición de gastos anuales: comunidad, mantenimiento (% del precio), seguro hogar, seguro impago (% de renta), IBI, periodos vacantes (% de renta).
-- Los gráficos se recalculan automáticamente al modificar cualquier parámetro.
+- Edición de gastos anuales mediante porcentajes dinámicos:
+  - Comunidad de propietarios (valor fijo en euros).
+  - Mantenimiento (% sobre precio de compra, por defecto 0.10%).
+  - Seguro de hogar (% sobre precio de compra, por defecto 0.01%).
+  - Seguro de impago (% sobre renta anual, por defecto 5%).
+  - IBI (% sobre precio de compra, según tipo de municipio: pueblo 0.30%, ciudad media 0.50%, gran ciudad 0.70%, capital 0.90%, con detección automática de municipio desde la dirección).
+  - Periodos vacantes (% sobre precio de compra, por defecto 0.03%).
+  - Seguro de vida de hipoteca (% sobre importe financiado, calculado mediante modelo exponencial basado en la edad del asegurado: `tasa = 0.03 × e^(0.0632 × edad)`, calibrado con datos reales de aseguradoras).
+- Los gráficos y métricas se recalculan automáticamente al modificar cualquier parámetro.
+- La lógica de cálculo de gastos es idéntica entre la vista principal (`page.tsx`) y el dashboard financiero (`dashboard/[id]/page.tsx`), garantizando consistencia.
 
 **Gráficos implementados (Recharts):**
 - Evolución de rentabilidad a 10 años (LineChart).
@@ -638,6 +842,8 @@ El sistema de animaciones del frontend (partículas flotantes en el `AuthModal`,
 
 - **Frontend:** desplegado en Vercel con CI/CD automático desde GitHub.
 - **Backend:** desplegado en Railway.
+
+**Migración de Render a Railway:** inicialmente el backend se desplegó en Render (plan gratuito), pero Render suspende el servicio tras 15 minutos de inactividad, provocando tiempos de arranque en frío de 30-60 segundos y errores de timeout en las primeras peticiones. Se migró a Railway, que mantiene el servicio siempre activo, eliminando este problema y mejorando la experiencia de usuario.
 - **CORS dinámico:** la configuración CORS no utiliza una whitelist estática, sino una función de validación dinámica que evalúa cada origen entrante. Esta función aprueba automáticamente: (1) orígenes de localhost y 127.0.0.1 para desarrollo local, (2) cualquier subdominio de `.vercel.app` mediante comprobación con `.endsWith()` para soportar los preview deployments automáticos que Vercel genera en cada push a GitHub, (3) la URL de producción del frontend, y (4) orígenes adicionales configurados mediante la variable de entorno `FRONTEND_URL`. Este enfoque permite que los preview deployments de Vercel (que tienen URLs dinámicas como `proyecto-xxxx-yyyy.vercel.app`) funcionen sin necesidad de actualizar manualmente la configuración CORS.
 
 ---
@@ -676,7 +882,7 @@ Los cálculos fiscales y financieros se han validado contrastándolos con herram
 **Prueba de estimación de alquiler con IA (muestra de propiedades):**
 - Se analizaron propiedades cuyo alquiler real era conocido.
 - Las estimaciones del modelo se situaron dentro de un rango de ±10-15% del valor de mercado en la mayoría de los casos.
-- Esta desviación es coherente con las limitaciones inherentes a la estimación mediante LLMs señaladas por Kok et al. (2024), y justifica que el sistema presente los resultados como rangos orientativos.
+- Esta desviación es coherente con las limitaciones inherentes a la estimación mediante LLMs señaladas por Geerts et al. (2025), quienes documentan que los LLMs tienden a la sobreconfianza en sus intervalos de predicción y presentan capacidades limitadas de razonamiento espacial, y justifica que el sistema presente los resultados como rangos orientativos.
 
 #### 3. Análisis de Calidad de Código con SonarQube
 
@@ -739,12 +945,24 @@ RESULTADOS DEL PRIMER ESCANEO:
 * Code smells restantes son menores y no afectan funcionalidad.
 ```
 
-#### 4. Validación Prevista (Pendiente)
+#### 4. Validación con Usuarios Reales (En Progreso)
 
-Para la entrega final se planifica:
-- **Pruebas con usuarios reales:** testing con 3-5 personas (inversores o interesados en inversión inmobiliaria) para evaluar usabilidad y utilidad percibida.
-- **Pruebas unitarias:** implementación de tests automatizados para funciones de cálculo financiero (hipoteca, ITP, ROI).
-- **Pruebas de integración:** tests end-to-end de los flujos principales.
+Se ha enviado el enlace de la aplicación en producción junto con las credenciales de acceso a una muestra amplia de usuarios. Actualmente, **más de 100 personas** están probando la aplicación de forma activa y reportando errores y sugerencias de mejora.
+
+**Metodología de validación:**
+- **Distribución:** enlace y credenciales compartidos a través de redes de contactos personales y grupos universitarios.
+- **Perfiles de testers:** inversores particulares con experiencia, estudiantes de ingeniería y finanzas, y usuarios sin conocimientos previos de inversión inmobiliaria.
+- **Canal de feedback:** los testers reportan errores y sugerencias de forma directa (mensajería), que se priorizan y resuelven de forma iterativa.
+- **Métricas de seguimiento previstas:** número de bugs reportados y resueltos, funcionalidades más utilizadas, y valoración de utilidad percibida mediante encuesta breve al finalizar la fase de pruebas.
+
+**Resultados preliminares:**
+- Se han identificado y corregido bugs en flujos reales de uso no detectados en pruebas internas.
+- Se han recibido sugerencias de mejora de usabilidad que se están priorizando para futuras iteraciones.
+- Los resultados cuantitativos completos se recopilarán y documentarán en la memoria final del TFG.
+
+**Pruebas automatizadas previstas:**
+- **Pruebas unitarias:** implementación de tests automatizados para funciones de cálculo financiero (hipoteca, ITP, ROI, TIR, VAN), priorizando las funciones críticas cuyo error tendría mayor impacto en las decisiones del usuario.
+- **Pruebas de integración:** tests end-to-end de los flujos principales (análisis de URL, guardado de propiedad, navegación a dashboard).
 
 ---
 
@@ -765,12 +983,14 @@ El acceso a datos de Idealista presenta riesgos técnicos y legales que deben ab
 
 **Análisis legal del enfoque adoptado:**
 
-Es importante distinguir entre web scraping tradicional (peticiones HTTP directas al servidor) y el enfoque utilizado en este proyecto:
+Krotov, Johnson y Silva (2020) analizan en detalle la legalidad y ética del web scraping, distinguiendo entre diferentes enfoques técnicos y sus implicaciones legales. Es importante distinguir entre web scraping tradicional (peticiones HTTP directas al servidor) y el enfoque utilizado en este proyecto:
 
 - **No se realiza scraping directo:** el backend de RealEstateAI no envía peticiones HTTP a Idealista. Es el servicio de web search de OpenAI el que accede a la página pública.
 - **Datos públicos:** las propiedades anunciadas en Idealista son datos accesibles públicamente sin autenticación.
 - **Uso educativo:** el proyecto tiene finalidad académica (TFG) y no comercial.
 - **Volumen mínimo:** se accede a una URL individual por petición del usuario, no se realizan barridos masivos.
+
+**Marco normativo europeo:** la Directiva 96/9/CE del Parlamento Europeo y del Consejo, sobre la protección jurídica de las bases de datos, establece un derecho *sui generis* que permite al creador de una base de datos prohibir la extracción y/o reutilización no autorizadas de partes sustanciales de su contenido (art. 7). No obstante, los usuarios legítimos pueden extraer partes no sustanciales sin autorización, siempre que no perjudiquen de forma injustificada los intereses legítimos del titular (art. 8). En el contexto de este proyecto, la extracción se limita a una única propiedad por petición individual del usuario, lo que constituye una parte no sustancial del contenido total de la base de datos de Idealista.
 
 No obstante, los **Términos de Servicio de Idealista** prohíben expresamente la extracción automatizada de datos de su plataforma (Idealista, 2025, Condiciones de Uso, sección 5). Aunque el enfoque técnico adoptado reduce la exposición a este riesgo al no realizar peticiones directas, es un aspecto que debe considerarse para un eventual uso comercial del sistema.
 
@@ -778,7 +998,7 @@ No obstante, los **Términos de Servicio de Idealista** prohíben expresamente l
 
 ### 2. Limitaciones de las Estimaciones con IA
 
-Las estimaciones generadas por los modelos LLM (alquiler, gastos) presentan fisuras que deben reconocerse:
+Las estimaciones generadas por los modelos LLM (alquiler, gastos) presentan limitaciones que deben reconocerse:
 
 1. **Sesgo temporal:** los modelos de lenguaje tienen un corte de datos de entrenamiento que puede no reflejar las condiciones actuales del mercado.
 2. **Falta de datos granulares:** el modelo no consulta bases de datos de transacciones reales; sus estimaciones se basan en el conocimiento general adquirido durante el entrenamiento.
@@ -837,143 +1057,22 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 
 | Funcionalidad | Prioridad | Notas |
 |---|---|---|
-| Persistencia con base de datos | Alta | Actualmente los datos se pierden al reiniciar el servidor |
+| Persistencia con base de datos | Media | Se implementará más adelante como mejora de infraestructura |
 | Pruebas unitarias automatizadas | Alta | Para funciones de cálculo financiero |
-| Pruebas con usuarios | Media | 3-5 personas para evaluar usabilidad |
+| Refactorización de componentes | Media | Extracción de subcomponentes de `page.tsx` prevista próximamente |
 | Exportación a PDF | Baja | Trabajo futuro |
 
 ### Métricas del Proyecto
 
 | Métrica | Valor |
 |---|---|
-| Líneas de código (archivos principales) | ~5,117 |
-| Archivos de código fuente | 6 principales + configuración |
+| Líneas de código (archivos principales) | ~5,584 |
+| Archivos de código fuente | 7 principales + configuración |
 | Endpoints API REST | 10 |
-| Commits en Git | 30+ |
+| Commits en Git | 34+ |
 | Dependencias frontend | 4 de producción + 8 de desarrollo |
 | Dependencias backend | 4 de producción |
 | Modelos de IA integrados | 3 (GPT-5-mini, GPT-4o, GPT-4o-mini) |
-
----
-
-## ANÁLISIS DE REQUISITOS
-
-### Requisitos Funcionales
-
-| ID | Requisito | Prioridad | Estado |
-|-----|-----------|-----------|--------|
-| RF1 | Añadir propiedades mediante URL de Idealista | Alta | Completado |
-| RF2 | Extraer automáticamente datos de la propiedad | Alta | Completado |
-| RF3 | Calcular impuestos según comunidad autónoma | Alta | Completado |
-| RF4 | Calcular gastos notariales y de registro | Alta | Completado |
-| RF5 | Estimar precio de alquiler mediante IA | Media | Completado |
-| RF6 | Calcular cuota de hipoteca (fija y variable) | Alta | Completado |
-| RF7 | Calcular gastos anuales de vivienda | Alta | Completado |
-| RF8 | Editar datos de propiedades | Media | Completado |
-| RF9 | Almacenar múltiples propiedades | Alta | Completado |
-| RF10 | Eliminar propiedades | Media | Completado |
-| RF11 | Dashboard con todas las propiedades y ROI | Alta | Completado |
-| RF12 | Consultar Euribor actual automáticamente | Media | Completado |
-| RF13 | Dashboard financiero con métricas avanzadas | Alta | Completado |
-| RF14 | Gráficos interactivos de rentabilidad | Alta | Completado |
-| RF15 | Simulación de escenarios financieros | Alta | Completado |
-| RF16 | Sistema de autenticación | Media | Completado |
-| RF17 | Persistencia en base de datos | Alta | Pendiente |
-
-### Requisitos No Funcionales
-
-| ID | Categoría | Requisito |
-|-----|-----------|-----------|
-| RNF1 | Rendimiento | Análisis de URL completado en menos de 60 segundos |
-| RNF2 | Rendimiento | Dashboard financiero carga en menos de 2 segundos |
-| RNF3 | Usabilidad | Interfaz intuitiva sin necesidad de manual |
-| RNF4 | Usabilidad | Diseño responsive funcional en móviles y tablets |
-| RNF5 | Seguridad | API keys almacenadas en variables de entorno |
-| RNF6 | Seguridad | Contraseña de acceso hasheada (SHA-256) |
-| RNF7 | Seguridad | CORS configurado con whitelist de orígenes |
-| RNF8 | Mantenibilidad | Código modular con separación frontend/backend |
-| RNF9 | Mantenibilidad | TypeScript para type-safety en el frontend |
-| RNF10 | Disponibilidad | Despliegue en Vercel (frontend) y Railway (backend) |
-
----
-
-## CASOS DE USO
-
-### CU-001: Analizar Propiedad desde URL
-
-**Actor Principal:** Usuario Inversor
-
-**Precondiciones:**
-- El usuario está autenticado.
-- El usuario tiene una URL válida de Idealista.
-
-**Flujo Principal:**
-1. El usuario hace clic en "Añadir Propiedad".
-2. El sistema muestra el formulario de nueva propiedad.
-3. El usuario pega la URL de Idealista.
-4. El usuario hace clic en "Analizar URL".
-5. El sistema envía la URL al backend.
-6. El backend utiliza GPT-5-mini con web search para acceder a la URL y extraer datos.
-7. El backend parsea la respuesta JSON del modelo.
-8. El frontend recibe los datos y rellena automáticamente el formulario.
-9. El usuario revisa y ajusta datos si es necesario.
-10. El usuario guarda la propiedad.
-
-**Flujos Alternativos:**
-- FA1: Si el modelo no puede acceder a la URL, el sistema muestra un error y el usuario introduce datos manualmente.
-- FA2: Si el JSON devuelto por el modelo es inválido, el sistema muestra la respuesta raw y el usuario introduce datos manualmente.
-
-### CU-002: Analizar Rentabilidad en Dashboard Financiero
-
-**Actor Principal:** Usuario Inversor
-
-**Precondiciones:**
-- Existe una propiedad guardada con datos básicos y gastos configurados.
-
-**Flujo Principal:**
-1. El usuario hace clic en "Ver Dashboard" desde la card de una propiedad.
-2. El sistema navega a `/dashboard/[id]` y carga los datos de la propiedad.
-3. El sistema calcula automáticamente todas las métricas financieras.
-4. El usuario visualiza gráficos y métricas: ROI, TIR, VAN, cash flow, payback.
-5. El usuario puede modificar parámetros (alquiler, gastos, hipoteca, inflación) para simular escenarios.
-6. Los gráficos y métricas se recalculan en tiempo real.
-7. El usuario puede guardar los cambios realizados.
-
----
-
-## PLANIFICACIÓN Y CRONOGRAMA
-
-### Cronograma General
-
-```
-ENERO 2026
-────────────────────────────────────────────
-Semana 1-2: Investigación, planificación, diseño de arquitectura
-Semana 3-4: Desarrollo backend (Express, OpenAI, endpoints)
-
-FEBRERO 2026
-────────────────────────────────────────────
-Semana 1: Desarrollo frontend (dashboard, formularios, modales)
-Semana 2: Dashboard financiero, gráficos, simulaciones <- ESTAMOS AQUÍ
-Semana 3: Pruebas, validación, documentación
-Semana 4: Pulido final, preparación defensa
-
-MARZO 2026
-────────────────────────────────────────────
-Semana 1: Buffer y correcciones finales
-Semana 2-3: Ensayos de presentación
-Semana 4: Presentación TFG
-```
-
-### Hitos
-
-- [x] **15 Enero:** Backend funcional con API REST y OpenAI.
-- [x] **25 Enero:** Frontend con componentes básicos y dashboard principal.
-- [x] **4 Febrero:** Integración completa front-back, despliegue en producción.
-- [x] **5 Febrero:** Dashboard financiero con gráficos y simulaciones.
-- [ ] **12 Febrero:** Pruebas con usuarios, documentación parcial.
-- [ ] **20 Febrero:** Testing completo, documentación final.
-- [ ] **15 Marzo:** Presentación TFG.
 
 ---
 
@@ -997,7 +1096,7 @@ Semana 4: Presentación TFG
 
 3. **Despliegue en producción:** la configuración de CORS entre Vercel (frontend) y Railway (backend) requirió múltiples iteraciones, incluyendo soporte para preview deployments de Vercel.
 
-4. **Gestión de estado del frontend:** el componente principal (`page.tsx`) acumuló más de 2,200 líneas de código con numerosos estados React interrelacionados (más de 30 variables `useState`), lo que genera una complejidad ciclomática elevada y dificulta la mantenibilidad y testabilidad del componente. Este problema fue señalado por SonarQube como code smell de alta severidad. Como mitigación parcial, se extrajo el dashboard financiero a una ruta independiente (`dashboard/[id]/page.tsx`) y el modal de autenticación a un componente separado (`AuthModal.tsx`), reduciendo la carga del componente principal. No obstante, una refactorización más profunda —dividiendo `page.tsx` en subcomponentes especializados (formulario, listado, modales de detalle)— queda identificada como mejora futura.
+4. **Gestión de estado del frontend:** el componente principal (`page.tsx`) acumuló más de 2,200 líneas de código con numerosos estados React interrelacionados (más de 30 variables `useState`), lo que genera una complejidad ciclomática elevada y dificulta la mantenibilidad y testabilidad del componente. Este problema fue señalado por SonarQube como code smell de alta severidad. Como mitigación parcial, se extrajo el dashboard financiero a una ruta independiente (`dashboard/[id]/page.tsx`) y el modal de autenticación a un componente separado (`AuthModal.tsx`), reduciendo la carga del componente principal. Próximamente se realizará una refactorización más profunda, dividiendo `page.tsx` en subcomponentes especializados (formulario, listado, modales de detalle) para mejorar la mantenibilidad y testabilidad del código.
 
 ### Aprendizajes Clave
 
@@ -1008,7 +1107,8 @@ Semana 4: Presentación TFG
 ### Trabajo Futuro
 
 Como líneas de desarrollo futuro más allá del alcance de este TFG, se identifican:
-- Implementación de base de datos persistente (PostgreSQL o MongoDB).
+- Implementación de base de datos persistente (PostgreSQL o MongoDB) para garantizar la durabilidad de los datos entre reinicios del servidor.
+- Refactorización del componente principal (`page.tsx`) en subcomponentes especializados para mejorar mantenibilidad.
 - Pruebas unitarias automatizadas para funciones de cálculo financiero.
 - Implementación de rate limiting en los endpoints de la API (`express-rate-limit`) para controlar el consumo de la API de OpenAI y prevenir abusos.
 - Exportación de informes en PDF.
@@ -1023,12 +1123,17 @@ Como líneas de desarrollo futuro más allá del alcance de este TFG, se identif
 
 Banco de España. (2024). *Informe de estabilidad financiera. Otoño 2024*. Banco de España. https://www.bde.es/wbe/es/publicaciones/estabilidad-financiera-politica-macroprudencial/informe-estabilidad-financiera/informe-de-estabilidad-financiera-otono-2024.html
 
-
 Idealista. (2025). *Condiciones de uso*. Idealista. https://www.idealista.com/ayuda/categorias/terminos-y-condiciones/
 
 Real Decreto Legislativo 1/1993, de 24 de septiembre, por el que se aprueba el Texto refundido de la Ley del Impuesto sobre Transmisiones Patrimoniales y Actos Jurídicos Documentados. *Boletín Oficial del Estado*, 251. https://www.boe.es/buscar/act.php?id=BOE-A-1993-25359
 
 Real Decreto 828/1995, de 29 de mayo, por el que se aprueba el Reglamento del Impuesto sobre Transmisiones Patrimoniales y Actos Jurídicos Documentados. *Boletín Oficial del Estado*, 148. https://www.boe.es/eli/es/rd/1995/05/29/828/con
+
+Directiva 96/9/CE del Parlamento Europeo y del Consejo, de 11 de marzo de 1996, sobre la protección jurídica de las bases de datos. *Diario Oficial de la Unión Europea*, L 77, pp. 20-28. https://eur-lex.europa.eu/legal-content/ES/ALL/?uri=CELEX:31996L0009
+
+hiQ Labs, Inc. v. LinkedIn Corp., 938 F.3d 985 (9th Cir. 2019). Sentencia del Tribunal de Apelaciones del Noveno Circuito de EE. UU. sobre la legalidad del web scraping de datos públicos en relación con la Computer Fraud and Abuse Act (CFAA). Reafirmada el 18 de abril de 2022 tras *remand* del Tribunal Supremo. https://law.justia.com/cases/federal/appellate-courts/ca9/17-16783/17-16783-2022-04-18.html
+
+Tribunal de Justicia de la Unión Europea. Sentencia de 15 de enero de 2015, asunto C-30/14, *Ryanair Ltd contra PR Aviation BV*, ECLI:EU:C:2015:10. Sobre la aplicabilidad de la Directiva 96/9/CE a bases de datos no protegidas por el derecho *sui generis* y la validez de restricciones contractuales sobre la extracción de datos. https://eur-lex.europa.eu/legal-content/ES/ALL/?uri=CELEX:62014CJ0030
 
 ### Bibliografía Académica y Sectorial
 
@@ -1036,19 +1141,29 @@ IEE. (2024). *La fiscalidad de la vivienda en España: Una propuesta de mejora*.
 
 Beck, K., Beedle, M., van Bennekum, A., Cockburn, A., Cunningham, W., Fowler, M., Grenning, J., Highsmith, J., Hunt, A., Jeffries, R., Kern, J., Marick, B., Martin, R. C., Mellor, S., Schwaber, K., Sutherland, J., & Thomas, D. (2001). *Manifesto for Agile Software Development*. Agile Alliance. https://agilemanifesto.org/
 
+Brueggeman, W. B., & Fisher, J. D. (2022). *Real Estate Finance and Investments* (17.ª ed.). McGraw-Hill Education. ISBN: 978-1-260-73430-0.
+
+Damodaran, A. (2012). *Investment Valuation: Tools and Techniques for Determining the Value of Any Asset* (3.ª ed.). John Wiley & Sons. ISBN: 978-1-118-01152-2.
+
 Finnovating. (2024). *Mapa PropTech España 2024*. Finnovating. http://www.mapaproptech.com/wp-content/uploads/2024/02/20240201_MapaProptechTOTAL.pdf
 
-García-Teruel, R. M. (2023). *PropTech: Transformación digital del sector inmobiliario*. Thomson Reuters Aranzadi. pp. 112-130.
+Asensio-Soto, J. C. (2023). *Proptech: la digitalización de la intermediación inmobiliaria en España. Estudio comparativo entre el modelo online y el tradicional* [Tesis doctoral, Universitat Politècnica de València]. RiuNet. https://riunet.upv.es/handle/10251/192456
 
-Kok, N., Kopczuk, W., & Peng, S. (2024). Real estate valuations with large language models: An empirical study. *Journal of Real Estate Finance and Economics*, 68(2), 234-251.
+Gallinelli, F. (2015). *What Every Real Estate Investor Needs to Know About Cash Flow... And 36 Other Key Financial Measures* (3.ª ed.). McGraw-Hill Education. ISBN: 978-1-259-58618-7.
+
+Geerts, M., Reusens, M., Baesens, B., vanden Broucke, S., & De Weerdt, J. (2025). On the performance of LLMs for real estate appraisal. *arXiv preprint*, arXiv:2506.11812. Aceptado en ECML-PKDD 2025. https://arxiv.org/abs/2506.11812
+
+Krotov, V., Johnson, L., & Silva, L. (2020). Tutorial: Legality and Ethics of Web Scraping. *Communications of the Association for Information Systems*, 47, Article 22. https://aisel.aisnet.org/cais/vol47/iss1/22/
 
 Libertad Inmobiliaria. (2024). *Calculadora de rentabilidad inmobiliaria v3* [Hoja de cálculo]. Libertad Inmobiliaria. https://libertadinmobiliaria.es/calculadora-rentabilidad-inmuebles-alquiler/
 
-Mur, R., & García, J. (2023). Digitalización del sector inmobiliario español: Estado actual y perspectivas. *Revista de Economía Aplicada*, 31(92), 45-67.
+Mitchell, R. (2018). *Web Scraping with Python: Collecting More Data from the Modern Web* (2.ª ed.). O'Reilly Media. ISBN: 978-1-491-98557-1.
 
-OCU. (2024). *Guía de compra de vivienda: costes ocultos y gastos asociados*. Organización de Consumidores y Usuarios.
+OCU. (2023). Los gastos de la compraventa de vivienda. *OCU Fincas y Casas*. Organización de Consumidores y Usuarios. https://www.ocu.org/fincas-y-casas/compraventa/compraventa/analisis-gratis/2023/10/gastos-de-compraventa-de-vivienda
 
 ### Documentación Técnica
+
+Fielding, R. T. (2000). *Architectural Styles and the Design of Network-based Software Architectures* [Tesis doctoral, University of California, Irvine]. https://ics.uci.edu/~fielding/pubs/dissertation/top.htm
 
 Meta. (2025). *React documentation*. https://react.dev/
 
@@ -1068,11 +1183,11 @@ Vercel. (2025). *Next.js documentation*. https://nextjs.org/docs
 
 ### Metodología y Buenas Prácticas
 
-Fowler, M. (2018). *Refactoring: Improving the design of existing code* (2.ª ed.). Addison-Wesley Professional.
+Fowler, M. (2018). *Refactoring: Improving the design of existing code* (2.ª ed.). Addison-Wesley Professional. ISBN: 978-0-13-475759-9.
 
-Martin, R. C. (2008). *Clean code: A handbook of agile software craftsmanship*. Prentice Hall.
+Martin, R. C. (2008). *Clean code: A handbook of agile software craftsmanship* (1.ª ed.). Prentice Hall. ISBN: 978-0-13-235088-4.
 
-Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's approach* (9.ª ed.). McGraw-Hill Education.
+Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's approach* (9.ª ed.). McGraw-Hill Education. ISBN: 978-1-259-87264-3.
 
 ---
 
@@ -1088,8 +1203,8 @@ Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's 
 
 ---
 
-**Última actualización:** 5 de Febrero de 2026
-**Estado del proyecto:** En desarrollo activo - ~90% completado (funcionalidad core completa, pendiente validación con usuarios y persistencia)
+**Última actualización:** 7 de Febrero de 2026
+**Estado del proyecto:** En desarrollo activo - ~92% completado (funcionalidad core completa, validación con usuarios en curso con 100+ testers, pendiente corrección de bugs reportados y documentación final)
 
 ---
 

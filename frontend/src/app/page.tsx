@@ -26,6 +26,7 @@ export default function Home() {
   const [currentSection, setCurrentSection] = useState<'gastos' | 'hipoteca' | 'gastosVivienda'>('gastos');
   const [capitalPropio, setCapitalPropio] = useState<number>(0);
   const [showCapitalWarning, setShowCapitalWarning] = useState(false);
+  const [showCapitalMaxWarning, setShowCapitalMaxWarning] = useState(false);
   const [plazoHipoteca, setPlazoHipoteca] = useState<number>(0);
   const [tipoInteres, setTipoInteres] = useState<number>(0);
   const [cuotaMensual, setCuotaMensual] = useState<number>(0);
@@ -36,15 +37,18 @@ export default function Home() {
   const [consultingRent, setConsultingRent] = useState(false);
 
   // Porcentajes para campos calculados
-  const [porcentajeMantenimiento, setPorcentajeMantenimiento] = useState<number>(10);
+  const [porcentajeMantenimiento, setPorcentajeMantenimiento] = useState<number>(0.10);
+  const [porcentajeSeguroHogar, setPorcentajeSeguroHogar] = useState<number>(0.01);
   const [porcentajeSeguroImpago, setPorcentajeSeguroImpago] = useState<number>(5);
-  const [porcentajePeriodosVacantes, setPorcentajePeriodosVacantes] = useState<number>(5);
-  const [porcentajeSeguroHogar, setPorcentajeSeguroHogar] = useState<number>(1);
-  const [porcentajeSeguroVida, setPorcentajeSeguroVida] = useState<number>(1.5);
+  const [porcentajePeriodosVacantes, setPorcentajePeriodosVacantes] = useState<number>(0.03);
+  const [porcentajeSeguroVida, setPorcentajeSeguroVida] = useState<number>(0.20);
+  const [edadAsegurado, setEdadAsegurado] = useState<number>(30);
+  const [showSeguroVidaInfo, setShowSeguroVidaInfo] = useState(false);
+  const [tipoMunicipioIBI, setTipoMunicipioIBI] = useState<'pueblo' | 'ciudad_media' | 'gran_ciudad' | 'capital'>('ciudad_media');
+  const [porcentajeIBI, setPorcentajeIBI] = useState<number>(0.30);
 
   // Warnings para porcentajes bajos
-  const [showMantenimientoWarning, setShowMantenimientoWarning] = useState(false);
-  const [showPeriodosVacantesWarning, setShowPeriodosVacantesWarning] = useState(false);
+  const [showTipoInteresTip, setShowTipoInteresTip] = useState(false);
 
   // Formulario
   const [formData, setFormData] = useState<PropertyData>({
@@ -111,14 +115,12 @@ export default function Home() {
     };
   }, [isAuthenticated]);
 
-  // Recalcular valores basados en porcentaje cuando cambia el alquiler mensual
+  // Recalcular valores basados en porcentaje cuando cambian los datos relevantes
   useEffect(() => {
-    if (selectedProperty && selectedProperty.alquilerMensual) {
-      const rentaAnual = selectedProperty.alquilerMensual * 12;
-      
-      // Solo recalcular si hay un porcentaje configurado (diferente de 0)
-      if (porcentajeMantenimiento > 0) {
-        const mantenimientoCalculado = Math.round(rentaAnual * (porcentajeMantenimiento / 100));
+    if (selectedProperty) {
+      // Mantenimiento: % del precio de la vivienda
+      if (porcentajeMantenimiento > 0 && selectedProperty.precio > 0) {
+        const mantenimientoCalculado = Math.round(selectedProperty.precio * (porcentajeMantenimiento / 100));
         if (selectedProperty.mantenimiento !== mantenimientoCalculado) {
           setSelectedProperty(prev => prev ? ({
             ...prev,
@@ -126,19 +128,21 @@ export default function Home() {
           }) : null);
         }
       }
-      
-      if (porcentajeSeguroImpago > 0) {
-        const seguroImpagoCalculado = Math.round(rentaAnual * (porcentajeSeguroImpago / 100));
-        if (selectedProperty.seguroImpago !== seguroImpagoCalculado) {
+
+      // Seguro hogar: % del precio de la vivienda
+      if (porcentajeSeguroHogar > 0 && selectedProperty.precio > 0) {
+        const seguroHogarCalculado = Math.round(selectedProperty.precio * (porcentajeSeguroHogar / 100));
+        if (selectedProperty.seguroHogar !== seguroHogarCalculado) {
           setSelectedProperty(prev => prev ? ({
             ...prev,
-            seguroImpago: seguroImpagoCalculado
+            seguroHogar: seguroHogarCalculado
           }) : null);
         }
       }
-      
-      if (porcentajePeriodosVacantes > 0) {
-        const periodosVacantesCalculado = Math.round(rentaAnual * (porcentajePeriodosVacantes / 100));
+
+      // Periodos vacantes: % del precio de la vivienda
+      if (porcentajePeriodosVacantes > 0 && selectedProperty.precio > 0) {
+        const periodosVacantesCalculado = Math.round(selectedProperty.precio * (porcentajePeriodosVacantes / 100));
         if (selectedProperty.periodosVacantes !== periodosVacantesCalculado) {
           setSelectedProperty(prev => prev ? ({
             ...prev,
@@ -146,8 +150,46 @@ export default function Home() {
           }) : null);
         }
       }
+
+      // Seguro vida hipoteca: % del importe financiado (hipoteca)
+      const importeHipoteca = Math.max(0, calcularCostoTotal() - capitalPropio);
+      if (porcentajeSeguroVida > 0 && importeHipoteca > 0) {
+        const seguroVidaCalculado = Math.round(importeHipoteca * (porcentajeSeguroVida / 100));
+        if (selectedProperty.seguroVidaHipoteca !== seguroVidaCalculado) {
+          setSelectedProperty(prev => prev ? ({
+            ...prev,
+            seguroVidaHipoteca: seguroVidaCalculado
+          }) : null);
+        }
+      }
+
+      // IBI: % del precio según tipo de municipio
+      if (porcentajeIBI > 0 && selectedProperty.precio > 0) {
+        const ibiCalculado = Math.round(selectedProperty.precio * (porcentajeIBI / 100));
+        if (selectedProperty.ibi !== ibiCalculado) {
+          setSelectedProperty(prev => prev ? ({
+            ...prev,
+            ibi: ibiCalculado
+          }) : null);
+        }
+      }
+
+      // Seguro impago: % de la renta anual
+      if (selectedProperty.alquilerMensual) {
+        const rentaAnual = selectedProperty.alquilerMensual * 12;
+
+        if (porcentajeSeguroImpago > 0) {
+          const seguroImpagoCalculado = Math.round(rentaAnual * (porcentajeSeguroImpago / 100));
+          if (selectedProperty.seguroImpago !== seguroImpagoCalculado) {
+            setSelectedProperty(prev => prev ? ({
+              ...prev,
+              seguroImpago: seguroImpagoCalculado
+            }) : null);
+          }
+        }
+      }
     }
-  }, [selectedProperty?.alquilerMensual, porcentajeMantenimiento, porcentajeSeguroImpago, porcentajePeriodosVacantes]);
+  }, [selectedProperty?.alquilerMensual, selectedProperty?.precio, capitalPropio, porcentajeMantenimiento, porcentajeSeguroHogar, porcentajeSeguroVida, porcentajeIBI, porcentajeSeguroImpago, porcentajePeriodosVacantes]);
 
   const loadProperties = async () => {
     const result = await getProperties();
@@ -202,10 +244,17 @@ export default function Home() {
                         property.alquilerMensual !== undefined && 
                         property.alquilerMensual > 0;
     
-    // Verificar que tenga gastosAnuales calculados (la suma de todos los gastos de vivienda)
-    const hasExpenseData = property.gastosAnuales !== null && 
-                           property.gastosAnuales !== undefined && 
-                           property.gastosAnuales > 0;
+    // Calcular gastos anuales directamente desde campos individuales (no usar gastosAnuales guardado que puede estar desactualizado)
+    const gastosAnualesReal =
+      (property.comunidadAnual || 0) +
+      (property.mantenimiento || 0) +
+      (property.seguroHogar || 0) +
+      (property.seguroVidaHipoteca || 0) +
+      (property.seguroImpago || 0) +
+      (property.ibi || 0) +
+      (property.periodosVacantes || 0);
+
+    const hasExpenseData = gastosAnualesReal > 0;
     
     // Verificar que tenga al menos algunos gastos de compra calculados
     // (ITP o IVA + al menos notaría o registro)
@@ -223,8 +272,8 @@ export default function Home() {
     // Calcular ingresos anuales
     const ingresosAnuales = (property.alquilerMensual || 0) * 12;
 
-    // Calcular gastos anuales
-    const gastosAnuales = property.gastosAnuales || 0;
+    // Usar gastos anuales calculados desde campos individuales
+    const gastosAnuales = gastosAnualesReal;
 
     // Calcular inversión total (precio + todos los gastos de compra)
     const inversionTotal = property.precio +
@@ -385,34 +434,55 @@ export default function Home() {
     if (property.tipoHipoteca) setTipoHipoteca(property.tipoHipoteca as 'fija' | 'variable');
 
     // Inicializar porcentajes basándose en los valores existentes
+    // Mantenimiento: % del precio de la vivienda
+    if (property.precio > 0 && property.mantenimiento) {
+      const porcentajeCalc = (property.mantenimiento / property.precio) * 100;
+      setPorcentajeMantenimiento(Math.round(porcentajeCalc * 100) / 100);
+    } else {
+      setPorcentajeMantenimiento(0.10);
+    }
+
+    // Seguro hogar: % del precio de la vivienda
+    if (property.precio > 0 && property.seguroHogar) {
+      const porcentajeCalc = (property.seguroHogar / property.precio) * 100;
+      setPorcentajeSeguroHogar(Math.round(porcentajeCalc * 100) / 100);
+    } else {
+      setPorcentajeSeguroHogar(0.01);
+    }
+
+    // Periodos vacantes: % del precio de la vivienda
+    if (property.precio > 0 && property.periodosVacantes) {
+      const porcentajeCalc = (property.periodosVacantes / property.precio) * 100;
+      setPorcentajePeriodosVacantes(Math.round(porcentajeCalc * 100) / 100);
+    } else {
+      setPorcentajePeriodosVacantes(0.03);
+    }
+
     const rentaAnual = (property.alquilerMensual || 0) * 12;
     if (rentaAnual > 0) {
-      // Calcular porcentajes a partir de los valores existentes
-      if (property.mantenimiento) {
-        const porcentajeCalc = (property.mantenimiento / rentaAnual) * 100;
-        setPorcentajeMantenimiento(Math.round(porcentajeCalc * 10) / 10);
-      } else {
-        setPorcentajeMantenimiento(10);
-      }
-
       if (property.seguroImpago !== null && property.seguroImpago !== undefined) {
         const porcentajeCalc = (property.seguroImpago / rentaAnual) * 100;
         setPorcentajeSeguroImpago(Math.round(porcentajeCalc * 10) / 10);
       } else {
         setPorcentajeSeguroImpago(5);
       }
-
-      if (property.periodosVacantes) {
-        const porcentajeCalc = (property.periodosVacantes / rentaAnual) * 100;
-        setPorcentajePeriodosVacantes(Math.round(porcentajeCalc * 10) / 10);
-      } else {
-        setPorcentajePeriodosVacantes(5);
-      }
     } else {
-      // Si no hay renta anual, usar valores por defecto
-      setPorcentajeMantenimiento(10);
       setPorcentajeSeguroImpago(5);
-      setPorcentajePeriodosVacantes(5);
+    }
+
+    // Seguro vida hipoteca: inicializar porcentaje según edad
+    // (el valor en € se recalcula automáticamente en el useEffect sobre el importe de la hipoteca)
+    const porcentajeVidaInit = calcularPorcentajeSeguroVida(edadAsegurado);
+    setPorcentajeSeguroVida(Math.round(porcentajeVidaInit * 100) / 100);
+
+    // IBI: detectar tipo de municipio automáticamente desde la dirección
+    if (property.direccion) {
+      const { tipo, porcentaje } = detectarTipoMunicipio(property.direccion);
+      setTipoMunicipioIBI(tipo);
+      setPorcentajeIBI(porcentaje);
+    } else {
+      setPorcentajeIBI(0.30);
+      setTipoMunicipioIBI('ciudad_media');
     }
 
     // Obtener Euribor actualizado desde GPT
@@ -457,34 +527,37 @@ export default function Home() {
         return;
       }
 
-      // Calcular mantenimiento, seguro impago y periodos vacantes (fijos según especificación)
+      // Calcular mantenimiento, seguro hogar y periodos vacantes (% del precio de la vivienda)
       const rentaAnual = (selectedProperty.alquilerMensual || 0) * 12;
-      const mantenimiento = Math.round(rentaAnual * 0.10); // 10% renta anual (recomendado)
+      const mantenimiento = Math.round(selectedProperty.precio * 0.001); // 0.10% del precio
+      const seguroHogar = Math.round(selectedProperty.precio * 0.0001); // 0.01% del precio
       const seguroImpago = Math.round(rentaAnual * 0.05); // 5% renta anual
-      const periodosVacantes = Math.round(rentaAnual * 0.05); // 5% renta anual
+      const periodosVacantes = Math.round(selectedProperty.precio * 0.0003); // 0.03% del precio
+      // IBI: detectar automáticamente desde la dirección
+      const ibiDetectado = detectarTipoMunicipio(selectedProperty.direccion || '');
+      setTipoMunicipioIBI(ibiDetectado.tipo);
+      setPorcentajeIBI(ibiDetectado.porcentaje);
+      const ibiCalculado = Math.round(selectedProperty.precio * (ibiDetectado.porcentaje / 100));
 
       // Actualizar los porcentajes a los valores recomendados
-      setPorcentajeMantenimiento(10);
+      setPorcentajeMantenimiento(0.10);
+      setPorcentajeSeguroHogar(0.01);
       setPorcentajeSeguroImpago(5);
-      setPorcentajePeriodosVacantes(5);
+      setPorcentajePeriodosVacantes(0.03);
 
       // Ocultar warnings ya que se están usando los porcentajes recomendados
-      setShowMantenimientoWarning(false);
       setShowSeguroImpagoWarning(false);
-      setShowPeriodosVacantesWarning(false);
 
       // Calcular valores estimados para gastos de compra
       const notariaEstimada = Math.round(selectedProperty.precio * 0.003); // 0.3%
       const registroEstimado = Math.round(selectedProperty.precio * 0.00175); // 0.175%
       const comisionAgenciaEstimada = Math.round(selectedProperty.precio * 0.04 * 1.21); // 4% + 21% IVA
 
-      // Calcular valores estimados para seguros (basados en precio de la vivienda)
-      const seguroHogarEstimado = Math.round(selectedProperty.precio * 0.01); // 1%
-      const seguroVidaEstimado = Math.round(selectedProperty.precio * 0.015); // 1.5%
-
-      // Actualizar los porcentajes de seguros
-      setPorcentajeSeguroHogar(1);
-      setPorcentajeSeguroVida(1.5);
+      // Seguro vida hipoteca: calculado según edad, sobre importe financiado
+      const porcentajeVida = calcularPorcentajeSeguroVida(edadAsegurado);
+      const importeHipotecaAutoFill = Math.max(0, calcularCostoTotal() - capitalPropio);
+      const seguroVida = Math.round(importeHipotecaAutoFill * (porcentajeVida / 100));
+      setPorcentajeSeguroVida(Math.round(porcentajeVida * 100) / 100);
 
       // 3. Actualizar TODOS los campos (gastos de compra + gastos de vivienda)
       setSelectedProperty({
@@ -500,9 +573,9 @@ export default function Home() {
         comisionAgencia: comisionAgenciaEstimada,
         // Gastos de vivienda (calculados inteligentemente por GPT o estimados)
         comunidadAnual: housingResult.expenses.comunidadAnual,
-        seguroHogar: seguroHogarEstimado,
-        seguroVidaHipoteca: seguroVidaEstimado,
-        ibi: housingResult.expenses.ibi,
+        seguroHogar: seguroHogar,
+        seguroVidaHipoteca: seguroVida,
+        ibi: ibiCalculado,
         // Gastos de vivienda (calculados con fórmulas fijas)
         mantenimiento,
         seguroImpago,
@@ -560,6 +633,54 @@ export default function Home() {
 
     setShowDetailsModal(false);
     setLoading(false);
+  };
+
+  // Calcular coste total de la vivienda (precio + todos los gastos)
+  // Calcular porcentaje de seguro de vida según edad (modelo exponencial)
+  // Basado en datos reales: 60 años, 180.000€ hipoteca → 2.400€/año = 1.33%
+  const calcularPorcentajeSeguroVida = (edad: number): number => {
+    const edadClamped = Math.max(20, Math.min(70, edad));
+    return Math.round(0.03 * Math.exp(0.0632 * edadClamped) * 100) / 100;
+  };
+
+  // Detectar tipo de municipio a partir de la dirección para calcular IBI
+  const detectarTipoMunicipio = (direccion: string): { tipo: 'pueblo' | 'ciudad_media' | 'gran_ciudad' | 'capital', porcentaje: number } => {
+    const dir = direccion.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Capitales "caras" (> 500k hab o alto coste de vida)
+    const capitalesCaras = ['madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'san sebastian', 'donostia', 'palma de mallorca', 'palma'];
+    for (const c of capitalesCaras) {
+      if (dir.includes(c)) return { tipo: 'capital', porcentaje: 0.40 };
+    }
+
+    // Grandes ciudades (> 200k hab)
+    const grandesCiudades = ['malaga', 'zaragoza', 'murcia', 'las palmas', 'alicante', 'cordoba', 'valladolid', 'vigo', 'gijon', 'hospitalet', 'vitoria', 'granada', 'elche', 'oviedo', 'santa cruz de tenerife', 'pamplona', 'santander', 'castellon', 'almeria', 'burgos', 'salamanca', 'albacete', 'logrono', 'badajoz', 'huelva', 'tarragona', 'leon', 'cadiz', 'lleida', 'jaen'];
+    for (const c of grandesCiudades) {
+      if (dir.includes(c)) return { tipo: 'gran_ciudad', porcentaje: 0.35 };
+    }
+
+    // Si tiene "calle", "avenida", "plaza" y parece urbano pero no se reconoce, asumir ciudad media
+    const indicadoresUrbanos = ['calle', 'avenida', 'avda', 'paseo', 'plaza', 'ronda', 'gran via', 'boulevard'];
+    for (const ind of indicadoresUrbanos) {
+      if (dir.includes(ind)) return { tipo: 'ciudad_media', porcentaje: 0.30 };
+    }
+
+    // Por defecto: ciudad media
+    return { tipo: 'ciudad_media', porcentaje: 0.30 };
+  };
+
+  const calcularCostoTotal = () => {
+    if (!selectedProperty) return 0;
+    return selectedProperty.precio +
+      (selectedProperty.itp || 0) +
+      (selectedProperty.iva || 0) +
+      (selectedProperty.notariaCompra || 0) +
+      (selectedProperty.registroCompra || 0) +
+      (selectedProperty.comisionAgencia || 0) +
+      (selectedProperty.gestoriaHipoteca || 0) +
+      (selectedProperty.tasacion || 0) +
+      (selectedProperty.comisionApertura || 0) +
+      (selectedProperty.reforma || 0);
   };
 
   // Calcular capital mínimo requerido (20% del coste total sin reforma)
@@ -686,7 +807,16 @@ export default function Home() {
 
   // Validar capital propio cuando cambia
   const handleCapitalPropioChange = (valor: number) => {
+    const costoTotal = calcularCostoTotal();
+    if (valor > costoTotal && costoTotal > 0) {
+      setCapitalPropio(costoTotal);
+      setShowCapitalMaxWarning(true);
+      setShowCapitalWarning(false);
+      setTimeout(() => setShowCapitalMaxWarning(false), 4000);
+      return;
+    }
     setCapitalPropio(valor);
+    setShowCapitalMaxWarning(false);
     const capitalMinimo = calcularCapitalMinimo();
     setShowCapitalWarning(valor < capitalMinimo && valor > 0);
   };
@@ -1145,18 +1275,7 @@ export default function Home() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Gastos anuales (€)</label>
-                  <input
-                    type="number"
-                    value={formData.gastosAnuales || ""}
-                    onChange={(e) => setFormData({ ...formData, gastosAnuales: parseInt(e.target.value) || null })}
-                    placeholder="1500"
-                    className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-
-                <div className="bg-gradient-to-r from-teal-900/30 to-blue-900/30 p-4 rounded-lg border border-teal-500/30">
+                <div className="md:col-span-2 bg-gradient-to-r from-teal-900/30 to-blue-900/30 p-4 rounded-lg border border-teal-500/30">
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-white">Alquiler mensual (€)</label>
                     <button
@@ -1420,7 +1539,7 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Precio de la Vivienda Base */}
                 <div className="bg-gradient-to-r from-teal-900/30 to-blue-900/30 border border-teal-500/50 rounded-xl p-6">
-                  <h3 className="text-xl font-bold text-white mb-2">Precio de la vivienda base</h3>
+                  <h3 className="text-xl font-bold text-white mb-2">Precio de la vivienda + gastos</h3>
                   <p className="text-4xl font-bold text-teal-400">
                     {(
                       selectedProperty.precio +
@@ -1440,7 +1559,12 @@ export default function Home() {
                 {/* Alquiler Mensual - Siempre visible */}
                 <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold text-white">Alquiler Mensual</h3>
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="text-xl font-bold text-white">Alquiler Mensual</h3>
+                      {selectedProperty.alquilerMensual && selectedProperty.alquilerMensual > 0 && (
+                        <span className="text-sm text-gray-400">({(selectedProperty.alquilerMensual * 12).toLocaleString()}€/año)</span>
+                      )}
+                    </div>
                     <button
                       onClick={estimarAlquiler}
                       disabled={consultingRent}
@@ -1476,18 +1600,12 @@ export default function Home() {
 
               {/* Contenedor con animación de deslizamiento */}
               <div className="relative overflow-hidden">
-                <div
-                  className="flex transition-transform duration-500 ease-in-out"
-                  style={{
-                    transform: currentSection === 'gastos'
-                      ? 'translateX(0%)'
-                      : currentSection === 'hipoteca'
-                      ? 'translateX(-100%)'
-                      : 'translateX(-200%)'
-                  }}
-                >
                   {/* Panel 1: Sección COSTES DE ADQUISICIÓN */}
-                  <div className="min-w-full flex-shrink-0">
+                  <div className={`transition-all duration-500 ease-in-out ${
+                    currentSection === 'gastos'
+                      ? 'relative translate-x-0 opacity-100'
+                      : 'absolute top-0 left-0 w-full -translate-x-full opacity-0 pointer-events-none'
+                  }`}>
                     <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700">
                       <h3 className="text-2xl font-bold text-white mb-6">Costes de Adquisición</h3>
 
@@ -1709,7 +1827,13 @@ export default function Home() {
                   </div>
 
                   {/* Panel 2: Sección HIPOTECA */}
-                  <div className="min-w-full flex-shrink-0">
+                  <div className={`transition-all duration-500 ease-in-out ${
+                    currentSection === 'hipoteca'
+                      ? 'relative translate-x-0 opacity-100'
+                      : currentSection === 'gastos'
+                      ? 'absolute top-0 left-0 w-full translate-x-full opacity-0 pointer-events-none'
+                      : 'absolute top-0 left-0 w-full -translate-x-full opacity-0 pointer-events-none'
+                  }`}>
                     <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-white">Datos de la Hipoteca</h3>
@@ -1748,6 +1872,21 @@ export default function Home() {
                                 </svg>
                                 <p className="text-[10px] text-red-300 leading-tight">
                                   Mínimo: <span className="font-bold">{calcularCapitalMinimo().toLocaleString()}€</span> (20%)
+                                </p>
+                              </div>
+                            </div>
+                            {/* Advertencia de capital mayor que precio + gastos */}
+                            <div
+                              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                                showCapitalMaxWarning ? 'max-h-16 opacity-100 mt-1.5' : 'max-h-0 opacity-0'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1 px-2 py-1.5 bg-amber-900/20 border border-amber-500/30 rounded">
+                                <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <p className="text-[10px] text-amber-300 leading-tight">
+                                  El capital no puede superar el precio + gastos: <span className="font-bold">{calcularCostoTotal().toLocaleString()}€</span>. Se ha ajustado al máximo.
                                 </p>
                               </div>
                             </div>
@@ -1817,12 +1956,12 @@ export default function Home() {
                           <div className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white flex items-center">
                             <span className="text-lg font-semibold text-teal-400">
                               {selectedProperty?.precio && capitalPropio
-                                ? (selectedProperty.precio - capitalPropio).toLocaleString() + '€'
+                                ? Math.max(0, calcularCostoTotal() - capitalPropio).toLocaleString() + '€'
                                 : '0€'
                               }
                             </span>
                           </div>
-                          <p className="mt-2 text-xs text-gray-400">Precio de vivienda - Capital propio</p>
+                          <p className="mt-2 text-xs text-gray-400">Precio + gastos - Capital propio</p>
                         </div>
 
                         {/* Selector Tipo de Hipoteca */}
@@ -1872,7 +2011,19 @@ export default function Home() {
                         </div>
 
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Tipo de Interés (%)</label>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-gray-300">Tipo de Interés (%)</label>
+                            <button
+                              type="button"
+                              onClick={() => setShowTipoInteresTip(!showTipoInteresTip)}
+                              className="px-3 py-1.5 bg-gradient-to-r from-amber-600/80 to-orange-600/80 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium shadow-lg"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                              </svg>
+                              <span>{showTipoInteresTip ? 'Ocultar consejo' : 'Mejor tipo de interés'}</span>
+                            </button>
+                          </div>
                           <input
                             type="number"
                             value={tipoInteres || ''}
@@ -1882,10 +2033,70 @@ export default function Home() {
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
                           <p className="mt-2 text-xs text-gray-400">Puedes modificar este valor manualmente</p>
-                          <div className="mt-2 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg overflow-hidden">
-                            <p className="text-xs text-blue-300 leading-relaxed">
-                              💡 <strong>Consejo:</strong> Consulta con tu banco o brokers para mejores condiciones. Estos cálculos son conservadores.
-                            </p>
+
+                          {/* Panel desplegable: Cómo conseguir mejor tipo de interés */}
+                          <div
+                            className={`overflow-hidden ${
+                              showTipoInteresTip
+                                ? 'max-h-[600px] opacity-100 mt-3 scale-100'
+                                : 'max-h-0 opacity-0 mt-0 scale-[0.97]'
+                            }`}
+                            style={{
+                              transformOrigin: 'top center',
+                              transition: showTipoInteresTip
+                                ? 'max-height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease-out, margin 0.5s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                : 'max-height 0.9s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s ease-in, margin 0.6s ease, transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
+                            }}
+                          >
+                            <div className="p-4 bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-yellow-900/30 border border-amber-500/40 rounded-xl">
+                              <h4 className="text-sm font-bold text-amber-300 mb-3 flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                                Cómo conseguir un mejor tipo de interés
+                              </h4>
+                              <div className="space-y-2.5 text-xs text-gray-300 leading-relaxed">
+                                <div className="flex gap-2">
+                                  <span className="text-amber-400 font-bold mt-0.5">1.</span>
+                                  <p><strong className="text-white">Compara entre varios bancos.</strong> No aceptes la primera oferta. Pide ofertas vinculantes en al menos 3-4 bancos y utiliza cada una como palanca de negociación con los demás.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="text-amber-400 font-bold mt-0.5">2.</span>
+                                  <p><strong className="text-white">Contrata un bróker hipotecario.</strong> Son gratuitos para ti (cobra el banco) y tienen acceso a ofertas mayoristas que no se publican. Pueden conseguir diferenciales 0.2-0.5% más bajos.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="text-amber-400 font-bold mt-0.5">3.</span>
+                                  <p><strong className="text-white">Mejora tu perfil financiero.</strong> Un contrato indefinido con antigüedad, ingresos estables, poco endeudamiento y un buen historial crediticio te dan poder de negociación.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="text-amber-400 font-bold mt-0.5">4.</span>
+                                  <p><strong className="text-white">Aporta más capital propio.</strong> Financiar el 70% o menos en vez del 80% mejora significativamente las condiciones, ya que el banco asume menos riesgo.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="text-amber-400 font-bold mt-0.5">5.</span>
+                                  <p><strong className="text-white">Vinculación inteligente.</strong> Domiciliar nómina, seguros y recibos puede rebajar el diferencial entre 0.3% y 1%. Valora si el ahorro compensa el coste de los productos vinculados.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="text-amber-400 font-bold mt-0.5">6.</span>
+                                  <p><strong className="text-white">Elige bien el momento.</strong> El Euribor fluctúa. Si está bajando, una hipoteca variable puede ser ventajosa a corto plazo; si está bajo y estable, fijar el tipo te protege de futuras subidas.</p>
+                                </div>
+                              </div>
+                              <div className="mt-3 pt-2.5 border-t border-amber-500/20 flex items-center justify-between gap-3">
+                                <p className="text-[11px] text-amber-400/80 italic">
+                                  Recuerda: una diferencia de solo 0.5% en el tipo de interés puede suponer miles de euros de ahorro a lo largo de la vida de la hipoteca.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowTipoInteresTip(false)}
+                                  className="flex-shrink-0 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 text-amber-300 rounded-lg transition-all duration-300 flex items-center gap-1.5 text-xs font-medium hover:scale-105 active:scale-95"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  </svg>
+                                  <span>Cerrar</span>
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1912,22 +2123,44 @@ export default function Home() {
                       )}
 
                       {/* Botón para avanzar a Gastos de la Vivienda */}
-                      <div className="flex justify-end mt-6">
-                        <button
-                          onClick={() => setCurrentSection('gastosVivienda')}
-                          className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition-all shadow-lg"
-                        >
-                          <span>Continuar a Gastos de la Vivienda</span>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        </button>
-                      </div>
+                      {(() => {
+                        const faltanDatos = !selectedProperty.alquilerMensual || selectedProperty.alquilerMensual <= 0 ||
+                          capitalPropio <= 0 || plazoHipoteca <= 0 || tipoInteres <= 0;
+                        return (
+                          <div className="mt-6">
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => !faltanDatos && setCurrentSection('gastosVivienda')}
+                                disabled={faltanDatos}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all shadow-lg ${
+                                  faltanDatos
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-60'
+                                    : 'bg-green-500 hover:bg-green-600 text-white'
+                                }`}
+                              >
+                                <span>Continuar a Gastos de la Vivienda</span>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                              </button>
+                            </div>
+                            {faltanDatos && (
+                              <p className="text-xs text-yellow-400 text-right mt-2">
+                                Completa todos los campos (alquiler, capital propio, plazo e interés) para continuar
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
                   {/* Panel 3: Sección GASTOS DE LA VIVIENDA */}
-                  <div className="min-w-full flex-shrink-0">
+                  <div className={`transition-all duration-500 ease-in-out ${
+                    currentSection === 'gastosVivienda'
+                      ? 'relative translate-x-0 opacity-100'
+                      : 'absolute top-0 left-0 w-full translate-x-full opacity-0 pointer-events-none'
+                  }`}>
                     <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-white">Gastos de la Vivienda</h3>
@@ -1957,10 +2190,10 @@ export default function Home() {
 
                         {/* Mantenimiento */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Mantenimiento (%)</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Mantenimiento (% del precio)</label>
                           <input
                             type="number"
-                            step="0.1"
+                            step="0.01"
                             min="0"
                             max="100"
                             value={porcentajeMantenimiento === 0 ? '' : porcentajeMantenimiento}
@@ -1969,55 +2202,21 @@ export default function Home() {
                               if (inputValue === '') {
                                 setPorcentajeMantenimiento(0);
                                 setSelectedProperty({ ...selectedProperty, mantenimiento: 0 });
-                                setShowMantenimientoWarning(false);
                               } else {
                                 const porcentaje = parseFloat(inputValue);
                                 setPorcentajeMantenimiento(porcentaje);
 
-                                // Calcular el valor en euros
-                                const rentaAnual = (selectedProperty.alquilerMensual || 0) * 12;
-                                const valorCalculado = Math.round(rentaAnual * (porcentaje / 100));
+                                // Calcular el valor en euros basado en el precio de la vivienda
+                                const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100));
                                 setSelectedProperty({ ...selectedProperty, mantenimiento: valorCalculado });
-
-                                // Mostrar warning si es menor al 10% recomendado
-                                setShowMantenimientoWarning(porcentaje < 10 && porcentaje > 0);
                               }
                             }}
-                            placeholder="10%"
+                            placeholder="0.10%"
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
-                          {selectedProperty.alquilerMensual ? (
-                            <>
-                              <p className="mt-2 text-xs text-gray-400">
-                                💡 Valor calculado: {selectedProperty.mantenimiento?.toLocaleString() || '0'}€ ({porcentajeMantenimiento}% de la renta anual)
-                              </p>
-                              <p className="mt-1 text-xs text-gray-500">
-                                Recomendado: 10% = {Math.round(selectedProperty.alquilerMensual * 12 * 0.10).toLocaleString()}€
-                              </p>
-                            </>
-                          ) : (
-                            <p className="mt-2 text-xs text-yellow-400">
-                              ⚠️ Primero debes establecer el Alquiler Mensual para calcular este valor
-                            </p>
-                          )}
-
-                          {/* Advertencia de mantenimiento bajo */}
-                          <div
-                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                              showMantenimientoWarning
-                                ? 'max-h-12 opacity-100 mt-1.5'
-                                : 'max-h-0 opacity-0'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-900/20 border border-yellow-500/30 rounded">
-                              <svg className="w-3 h-3 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
-                              <p className="text-[10px] text-yellow-300 leading-tight">
-                                💡 Se recomienda al menos 10% para cubrir reparaciones
-                              </p>
-                            </div>
-                          </div>
+                          <p className="mt-2 text-xs text-gray-400">
+                            💡 Valor calculado: {selectedProperty.mantenimiento?.toLocaleString() || '0'}€ ({porcentajeMantenimiento}% del precio)
+                          </p>
                         </div>
 
                         {/* Seguro Hogar */}
@@ -2025,7 +2224,7 @@ export default function Home() {
                           <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Hogar (% del precio)</label>
                           <input
                             type="number"
-                            step="0.1"
+                            step="0.01"
                             min="0"
                             max="100"
                             value={porcentajeSeguroHogar === 0 ? '' : porcentajeSeguroHogar}
@@ -2037,55 +2236,122 @@ export default function Home() {
                               } else {
                                 const porcentaje = parseFloat(inputValue);
                                 setPorcentajeSeguroHogar(porcentaje);
-
-                                // Calcular el valor en euros basado en el precio de la vivienda
                                 const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100));
                                 setSelectedProperty({ ...selectedProperty, seguroHogar: valorCalculado });
                               }
                             }}
-                            placeholder="1%"
+                            placeholder="0.01%"
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
                           <p className="mt-2 text-xs text-gray-400">
                             💡 Valor calculado: {selectedProperty.seguroHogar?.toLocaleString() || '0'}€ ({porcentajeSeguroHogar}% del precio)
                           </p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Recomendado: 0.5-1.5% = {Math.round(selectedProperty.precio * 0.01).toLocaleString()}€
-                          </p>
                         </div>
 
-                        {/* Seguro Vida Hipoteca */}
+                        {/* Seguro Vida Hipoteca - Con selector de edad */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Vida Hipoteca (% del precio)</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="100"
-                            value={porcentajeSeguroVida === 0 ? '' : porcentajeSeguroVida}
-                            onChange={(e) => {
-                              const inputValue = e.target.value;
-                              if (inputValue === '') {
-                                setPorcentajeSeguroVida(0);
-                                setSelectedProperty({ ...selectedProperty, seguroVidaHipoteca: 0 });
-                              } else {
-                                const porcentaje = parseFloat(inputValue);
-                                setPorcentajeSeguroVida(porcentaje);
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-gray-300">Seguro Vida Hipoteca</label>
+                            <button
+                              type="button"
+                              onClick={() => setShowSeguroVidaInfo(!showSeguroVidaInfo)}
+                              className="p-1.5 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 text-blue-300 rounded-lg transition-all flex items-center gap-1 text-xs font-medium"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </button>
+                          </div>
 
-                                // Calcular el valor en euros basado en el precio de la vivienda
-                                const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100));
-                                setSelectedProperty({ ...selectedProperty, seguroVidaHipoteca: valorCalculado });
-                              }
+                          {/* Selector de edad */}
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs text-gray-400">Edad del asegurado</span>
+                              <span className="text-sm font-bold text-white bg-slate-600/50 px-2.5 py-0.5 rounded-full">{edadAsegurado} años</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="20"
+                              max="70"
+                              value={edadAsegurado}
+                              onChange={(e) => {
+                                const edad = parseInt(e.target.value);
+                                setEdadAsegurado(edad);
+                                const nuevoPorcentaje = calcularPorcentajeSeguroVida(edad);
+                                const porcentajeRedondeado = Math.round(nuevoPorcentaje * 100) / 100;
+                                setPorcentajeSeguroVida(porcentajeRedondeado);
+                                if (selectedProperty) {
+                                  const importeHip = Math.max(0, calcularCostoTotal() - capitalPropio);
+                                  const valorCalculado = Math.round(importeHip * (porcentajeRedondeado / 100));
+                                  setSelectedProperty({ ...selectedProperty, seguroVidaHipoteca: valorCalculado });
+                                }
+                              }}
+                              className="w-full h-2 bg-slate-700 rounded-lg cursor-pointer accent-teal-500"
+                            />
+                            <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                              <span>20</span>
+                              <span>30</span>
+                              <span>40</span>
+                              <span>50</span>
+                              <span>60</span>
+                              <span>70</span>
+                            </div>
+                          </div>
+
+                          {/* Porcentaje y valor calculado */}
+                          <div className="flex items-center gap-3 bg-slate-700/30 rounded-lg p-2.5">
+                            <div className="flex-1">
+                              <span className="text-xs text-gray-400">Tarifa</span>
+                              <p className="text-lg font-bold text-blue-400">{porcentajeSeguroVida}%</p>
+                            </div>
+                            <div className="w-px h-8 bg-slate-600"></div>
+                            <div className="flex-1">
+                              <span className="text-xs text-gray-400">Coste anual</span>
+                              <p className="text-lg font-bold text-white">{selectedProperty.seguroVidaHipoteca?.toLocaleString() || '0'}€</p>
+                            </div>
+                          </div>
+                          <p className="mt-1.5 text-[10px] text-gray-500">
+                            Calculado sobre el importe financiado: {Math.max(0, calcularCostoTotal() - capitalPropio).toLocaleString()}€
+                          </p>
+
+                          {/* Panel informativo desplegable */}
+                          <div
+                            className={`overflow-hidden ${
+                              showSeguroVidaInfo
+                                ? 'max-h-[300px] opacity-100 mt-3 scale-100'
+                                : 'max-h-0 opacity-0 mt-0 scale-[0.97]'
+                            }`}
+                            style={{
+                              transformOrigin: 'top center',
+                              transition: showSeguroVidaInfo
+                                ? 'max-height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease-out, margin 0.5s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                : 'max-height 0.9s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s ease-in, margin 0.6s ease, transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
                             }}
-                            placeholder="1.5%"
-                            className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                          />
-                          <p className="mt-2 text-xs text-gray-400">
-                            💡 Valor calculado: {selectedProperty.seguroVidaHipoteca?.toLocaleString() || '0'}€ ({porcentajeSeguroVida}% del precio)
-                          </p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Recomendado: 1-2% = {Math.round(selectedProperty.precio * 0.015).toLocaleString()}€
-                          </p>
+                          >
+                            <div className="p-3 bg-gradient-to-br from-blue-900/30 via-indigo-900/20 to-blue-900/30 border border-blue-500/30 rounded-xl">
+                              <h4 className="text-xs font-bold text-blue-300 mb-2 flex items-center gap-1.5">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Modelo de estimación
+                              </h4>
+                              <p className="text-[11px] text-gray-300 leading-relaxed">
+                                El modelo empleado constituye una aproximación basada en tarifas medias de mercado, no sustituyendo el cálculo actuarial completo utilizado por las entidades aseguradoras, pero resultando adecuado para simulaciones de rentabilidad inmobiliaria y análisis comparativo de inversiones.
+                              </p>
+                              <div className="mt-2.5 pt-2 border-t border-blue-500/20 flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowSeguroVidaInfo(false)}
+                                  className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 text-blue-300 rounded-lg transition-all duration-300 flex items-center gap-1.5 text-xs font-medium hover:scale-105 active:scale-95"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  </svg>
+                                  <span>Cerrar</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Seguro Impago */}
@@ -2155,25 +2421,54 @@ export default function Home() {
 
                         {/* IBI */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">IBI</label>
-                          <input
-                            type="number"
-                            value={selectedProperty.ibi || ''}
-                            onChange={(e) => setSelectedProperty({ ...selectedProperty, ibi: parseInt(e.target.value) || null })}
-                            placeholder="160€"
-                            className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                          />
-                          <p className="mt-2 text-xs text-gray-400">
-                            📋 Consulta con el propietario o agente inmobiliario
-                          </p>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">IBI (% del precio)</label>
+                          <p className="text-[10px] text-gray-500 mb-2">Detectado automáticamente desde la dirección. Puedes cambiarlo.</p>
+                          {/* Selector de tipo de municipio */}
+                          <div className="grid grid-cols-2 gap-1.5 mb-3">
+                            {([
+                              { key: 'pueblo' as const, label: 'Pueblo', pct: 0.20 },
+                              { key: 'ciudad_media' as const, label: 'Ciudad media', pct: 0.30 },
+                              { key: 'gran_ciudad' as const, label: 'Gran ciudad', pct: 0.35 },
+                              { key: 'capital' as const, label: 'Capital cara', pct: 0.40 },
+                            ]).map(({ key, label, pct }) => (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  setTipoMunicipioIBI(key);
+                                  setPorcentajeIBI(pct);
+                                  const valorCalculado = Math.round(selectedProperty.precio * (pct / 100));
+                                  setSelectedProperty({ ...selectedProperty, ibi: valorCalculado });
+                                }}
+                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+                                  tipoMunicipioIBI === key
+                                    ? 'bg-teal-500/30 border border-teal-500/60 text-teal-300'
+                                    : 'bg-slate-700/50 border border-slate-600 text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                                }`}
+                              >
+                                {label} ({pct}%)
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-3 bg-slate-700/30 rounded-lg p-2.5">
+                            <div className="flex-1">
+                              <span className="text-xs text-gray-400">Tarifa</span>
+                              <p className="text-lg font-bold text-teal-400">{porcentajeIBI}%</p>
+                            </div>
+                            <div className="w-px h-8 bg-slate-600"></div>
+                            <div className="flex-1">
+                              <span className="text-xs text-gray-400">IBI anual</span>
+                              <p className="text-lg font-bold text-white">{selectedProperty.ibi?.toLocaleString() || '0'}€</p>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Periodos Vacantes */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Periodos Vacantes (%)</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Periodos Vacantes (% del precio)</label>
                           <input
                             type="number"
-                            step="0.1"
+                            step="0.01"
                             min="0"
                             max="100"
                             value={porcentajePeriodosVacantes === 0 ? '' : porcentajePeriodosVacantes}
@@ -2182,55 +2477,21 @@ export default function Home() {
                               if (inputValue === '') {
                                 setPorcentajePeriodosVacantes(0);
                                 setSelectedProperty({ ...selectedProperty, periodosVacantes: 0 });
-                                setShowPeriodosVacantesWarning(false);
                               } else {
                                 const porcentaje = parseFloat(inputValue);
                                 setPorcentajePeriodosVacantes(porcentaje);
 
-                                // Calcular el valor en euros
-                                const rentaAnual = (selectedProperty.alquilerMensual || 0) * 12;
-                                const valorCalculado = Math.round(rentaAnual * (porcentaje / 100));
+                                // Calcular el valor en euros basado en el precio
+                                const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100));
                                 setSelectedProperty({ ...selectedProperty, periodosVacantes: valorCalculado });
-
-                                // Mostrar warning si es menor al 5% recomendado
-                                setShowPeriodosVacantesWarning(porcentaje < 5 && porcentaje > 0);
                               }
                             }}
-                            placeholder="5%"
+                            placeholder="0.03%"
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
-                          {selectedProperty.alquilerMensual ? (
-                            <>
-                              <p className="mt-2 text-xs text-gray-400">
-                                💡 Valor calculado: {selectedProperty.periodosVacantes?.toLocaleString() || '0'}€ ({porcentajePeriodosVacantes}% de la renta anual)
-                              </p>
-                              <p className="mt-1 text-xs text-gray-500">
-                                Recomendado: 5% = {Math.round(selectedProperty.alquilerMensual * 12 * 0.05).toLocaleString()}€
-                              </p>
-                            </>
-                          ) : (
-                            <p className="mt-2 text-xs text-yellow-400">
-                              ⚠️ Primero debes establecer el Alquiler Mensual para calcular este valor
-                            </p>
-                          )}
-
-                          {/* Advertencia de periodos vacantes bajo */}
-                          <div
-                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                              showPeriodosVacantesWarning
-                                ? 'max-h-12 opacity-100 mt-1.5'
-                                : 'max-h-0 opacity-0'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-900/20 border border-yellow-500/30 rounded">
-                              <svg className="w-3 h-3 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
-                              <p className="text-[10px] text-yellow-300 leading-tight">
-                                💡 Se recomienda al menos 5% para periodos sin inquilino
-                              </p>
-                            </div>
-                          </div>
+                          <p className="mt-2 text-xs text-gray-400">
+                            💡 Valor calculado: {selectedProperty.periodosVacantes?.toLocaleString() || '0'}€ ({porcentajePeriodosVacantes}% del precio)
+                          </p>
                         </div>
                       </div>
 
@@ -2262,7 +2523,6 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
 
               {/* Botones de acción */}
