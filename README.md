@@ -964,34 +964,9 @@ El proyecto ha sido analizado con **SonarQube** para garantizar la calidad del c
 
 ## 🤝 Contribución
 
-Este proyecto es **código abierto** y las contribuciones son bienvenidas.
+Este proyecto es un **Trabajo Fin de Grado (TFG)** de la Universidad U-tad, por lo que **no se aceptan contribuciones externas** (pull requests, commits, etc.). El código debe ser íntegramente desarrollado por el autor como parte de la evaluación académica.
 
-### Cómo Contribuir
-
-1. **Fork** el repositorio
-2. Crea una **rama** para tu feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit** tus cambios (`git commit -m 'Add: amazing feature'`)
-4. **Push** a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un **Pull Request**
-
-### Guías de Contribución
-
-- **Código limpio:** Sigue las convenciones de estilo del proyecto
-- **TypeScript:** Usa tipos estáticos siempre que sea posible
-- **Comentarios:** Documenta funciones complejas
-- **Testing:** Añade tests para nuevas funcionalidades
-- **Commits:** Mensajes descriptivos en español o inglés
-
-### Áreas de Mejora
-
-¿Te gustaría contribuir? Estas son algunas áreas donde se necesita ayuda:
-
-- 🔍 **Testing:** Aumentar cobertura de tests
-- 🎨 **UI/UX:** Mejorar diseño y accesibilidad
-- 🌐 **i18n:** Internacionalización (multi-idioma)
-- 📊 **Gráficos:** Más visualizaciones y métricas
-- 🔒 **Seguridad:** Auditoría de seguridad
-- 📱 **Móvil:** Optimización para dispositivos móviles
+Si encuentras algún bug o tienes sugerencias, puedes usar el **sistema de feedback integrado** en la propia aplicación o abrir un Issue en GitHub.
 
 ---
 
