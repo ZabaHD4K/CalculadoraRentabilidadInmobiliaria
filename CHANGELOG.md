@@ -1,5 +1,74 @@
 # 📝 Notas de Cambios - RealEstate AI
 
+## Versión 2.5.0 - 8 de Febrero de 2026
+
+### 🔧 Mejora de Gastos de Vivienda con IA + Web Search y Sistema de Feedback
+
+#### 1. Endpoint `/api/calculate-housing-expenses` migrado a GPT-5-mini + Web Search
+
+**Cambio principal**: El cálculo de gastos de vivienda (comunidad, seguros, IBI) ahora utiliza GPT-5-mini con web search en lugar de GPT-4o-mini, permitiendo al modelo investigar datos reales de la zona para estimaciones más precisas.
+
+##### ❌ Antes (GPT-4o-mini sin web search)
+- Modelo: `gpt-4o-mini` con `openai.chat.completions.create()`
+- Estimaciones basadas únicamente en conocimiento de entrenamiento
+- Rangos genéricos predefinidos en el prompt
+- Sin acceso a datos de mercado actuales
+
+##### ✅ Ahora (GPT-5-mini con web search)
+- Modelo: `gpt-5-mini` con `openai.responses.create()` y herramienta `web_search`
+- El modelo busca en internet cuotas de comunidad reales en la zona
+- Investiga tipos impositivos del IBI del municipio concreto
+- Compara precios reales de seguros de hogar (Mapfre, Zurich, AXA, etc.)
+- Analiza las características del anuncio (piscina, ascensor, portero) para ajustar la comunidad
+- Parámetros: `reasoning: { effort: 'medium' }`
+- Parsing robusto de respuesta con soporte para `output_text` y array `output[]`
+
+#### 2. Sistema de Feedback integrado (Bug Reports y Sugerencias)
+
+**Nueva funcionalidad completa**: Los usuarios pueden enviar feedback directamente desde la aplicación, que se convierte automáticamente en GitHub Issues.
+
+##### Backend (`POST /api/feedback`)
+- Nuevo endpoint que crea GitHub Issues automáticamente
+- Requiere `GITHUB_TOKEN` en variables de entorno
+- Soporta dos tipos: `bug` (label: bug) y `sugerencia` (label: enhancement)
+- Ambos tipos reciben label adicional `feedback`
+- Incluye email de contacto opcional y fecha de envío
+- Logs de confirmación con número de issue creado
+
+##### Frontend (`FeedbackButton.tsx`)
+- Nuevo componente de botón flotante (arriba a la derecha, `fixed top-4 right-4`)
+- Modal con selector de tipo (Bug / Sugerencia) con estilos diferenciados
+- Campo de texto para descripción (textarea)
+- Campo opcional de email de contacto
+- Estados de envío: normal → enviando → enviado (con confirmación visual)
+- Integrado en `page.tsx` (página principal) y `dashboard/[id]/page.tsx` (análisis financiero)
+- Diseño coherente con el sistema dark mode de la app
+
+##### API Client (`api.ts`)
+- Nueva función `sendFeedback()` para comunicación con el endpoint
+
+#### 3. Aviso de comunidad estimada por IA
+
+- Nuevo estado `comunidadEstimadaIA` en el frontend
+- Cuando la comunidad de propietarios es estimada por IA, se muestra un aviso:
+  > "Valor estimado por IA. Se recomienda consultar a la inmobiliaria para obtener el dato real."
+- El aviso desaparece si el usuario edita manualmente el valor
+
+#### 4. Sincronización de propiedad seleccionada al recargar
+
+- Al recargar la lista de propiedades (`loadProperties`), si hay un modal de detalles abierto, se sincroniza automáticamente la propiedad seleccionada con los datos actualizados del backend
+- Se recalculan los porcentajes de gastos al sincronizar
+- Mejora la consistencia de datos entre la lista y el modal de edición
+
+#### Archivos modificados:
+- `backend/server.js`: Endpoint housing-expenses migrado a GPT-5-mini + web search, nuevo endpoint `/api/feedback`
+- `frontend/src/components/FeedbackButton.tsx`: Nuevo componente
+- `frontend/src/app/page.tsx`: Integración FeedbackButton, estado comunidadEstimadaIA, sincronización de propiedad
+- `frontend/src/app/dashboard/[id]/page.tsx`: Integración FeedbackButton
+- `frontend/src/services/api.ts`: Nueva función sendFeedback()
+
+---
+
 ## Versión 2.4.0 - 7 de Febrero de 2026
 
 ### 🔒 Mejoras de Seguridad y Limpieza del Proyecto

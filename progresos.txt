@@ -452,3 +452,102 @@ ESTADO TÉCNICO ACTUAL
 ✅ Aplicación estable y funcionando
 
 ================================================================================
+
+
+DIA 4 - 8 de Febrero de 2026
+================================================================================
+
+SESIÓN 4 - GASTOS VIVIENDA CON WEB SEARCH, SISTEMA DE FEEDBACK Y MEJORAS UX
+================================================================================
+
+1. MIGRACIÓN DE GASTOS DE VIVIENDA A GPT-5-MINI + WEB SEARCH
+   ✅ Endpoint /api/calculate-housing-expenses migrado de GPT-4o-mini a GPT-5-mini
+   ✅ Antes: openai.chat.completions.create() con gpt-4o-mini (sin acceso a internet)
+   ✅ Ahora: openai.responses.create() con gpt-5-mini + herramienta web_search
+   ✅ El modelo ahora investiga en internet:
+      - Cuotas de comunidad reales en la zona concreta
+      - Tipos impositivos del IBI del municipio
+      - Precios reales de seguros de hogar (Mapfre, Zurich, AXA, Línea Directa)
+      - Coste de seguros de vida vinculados a hipoteca
+   ✅ El prompt analiza características del anuncio (piscina, ascensor, portero, etc.)
+      para ajustar la estimación de comunidad
+   ✅ Parámetros configurados: reasoning.effort = 'medium'
+   ✅ Parsing robusto: soporta response.output_text y array response.output[]
+
+2. SISTEMA DE FEEDBACK INTEGRADO (BUG REPORTS Y SUGERENCIAS)
+   ✅ Nuevo endpoint backend: POST /api/feedback
+      - Crea GitHub Issues automáticamente vía GitHub API
+      - Requiere GITHUB_TOKEN en variables de entorno
+      - Dos tipos soportados: 'bug' (label: bug) y 'sugerencia' (label: enhancement)
+      - Label adicional 'feedback' en ambos tipos
+      - Incluye email opcional y fecha de envío
+      - Logs de confirmación: "✅ Feedback enviado → Issue #N: [titulo]"
+
+   ✅ Nuevo componente: FeedbackButton.tsx
+      - Botón flotante arriba a la derecha (fixed top-4 right-4 z-50)
+      - Icono de chat + texto "Feedback"
+      - Modal con overlay backdrop-blur
+      - Selector de tipo: Bug (rojo) / Sugerencia (teal)
+      - Textarea para descripción
+      - Input email de contacto (opcional)
+      - Estados: normal → enviando (spinner) → enviado (checkmark verde, 2s)
+      - Botón cerrar deshabilitado durante envío
+
+   ✅ Nueva función API: sendFeedback() en api.ts
+      - POST a /api/feedback con { tipo, mensaje, email }
+      - Manejo de errores con try-catch
+
+   ✅ Integrado en ambas vistas:
+      - page.tsx (página principal)
+      - dashboard/[id]/page.tsx (análisis financiero)
+
+3. AVISO DE COMUNIDAD ESTIMADA POR IA
+   ✅ Nuevo estado: comunidadEstimadaIA (boolean)
+   ✅ Se activa cuando los gastos de vivienda son calculados por IA
+   ✅ Muestra texto de aviso bajo el campo de comunidad:
+      "Valor estimado por IA. Se recomienda consultar a la inmobiliaria
+       para obtener el dato real."
+   ✅ El aviso desaparece cuando el usuario edita manualmente el campo
+
+4. SINCRONIZACIÓN DE PROPIEDAD SELECCIONADA AL RECARGAR
+   ✅ Problema: al recargar propiedades (loadProperties), si el modal de detalles
+      estaba abierto, los datos no se actualizaban
+   ✅ Solución: al recargar, si selectedProperty tiene ID, se busca la propiedad
+      actualizada y se sincroniza:
+      - Actualiza selectedProperty con datos frescos del backend
+      - Recalcula porcentajes de mantenimiento, seguro hogar, periodos vacantes, IBI
+      - Recalcula porcentaje de seguro de impago
+      - Sincroniza capital propio, plazo hipoteca y tipo de interés
+
+ARCHIVOS MODIFICADOS
+================================================================================
+📝 backend/server.js
+   - Endpoint /api/calculate-housing-expenses: migrado a GPT-5-mini + web search
+   - Nuevo endpoint POST /api/feedback: crea GitHub Issues
+
+📝 frontend/src/components/FeedbackButton.tsx (NUEVO)
+   - Componente completo de feedback con modal
+
+📝 frontend/src/app/page.tsx
+   - Import y uso de FeedbackButton
+   - Nuevo estado comunidadEstimadaIA
+   - Sincronización de selectedProperty en loadProperties
+   - Aviso bajo campo de comunidad cuando es estimada por IA
+
+📝 frontend/src/app/dashboard/[id]/page.tsx
+   - Import y uso de FeedbackButton
+
+📝 frontend/src/services/api.ts
+   - Nueva función sendFeedback()
+
+ESTADO TÉCNICO ACTUAL
+================================================================================
+✅ React 19.2.4 con TypeScript
+✅ Next.js 16.1.6 con Turbopack
+✅ Backend: Express + OpenAI SDK v6.17.0 (GPT-5-mini / GPT-4o / GPT-4o-mini)
+✅ Todos los endpoints de IA usando GPT-5-mini + web search excepto gastos de compra
+✅ Sistema de feedback funcional creando GitHub Issues
+✅ Sin errores de compilación (build OK)
+✅ Aplicación estable y funcionando
+
+================================================================================

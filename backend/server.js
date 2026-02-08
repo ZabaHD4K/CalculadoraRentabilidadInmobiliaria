@@ -621,88 +621,110 @@ IMPORTANTE:
   }
 });
 
-// Endpoint para calcular gastos de la vivienda con GPT (análisis inteligente)
+// Endpoint para calcular gastos de la vivienda con GPT-5-mini + Web Search
 app.post('/api/calculate-housing-expenses', async (req, res) => {
   try {
     const propertyData = req.body;
 
-    console.log('\n=== Calculando gastos de vivienda con análisis inteligente ===');
+    console.log('\n=== Calculando gastos de vivienda con GPT-5-mini + Web Search ===');
     console.log('Propiedad:', propertyData.nombre);
     console.log('Ubicación:', propertyData.direccion);
 
-    const prompt = `Eres un experto inmobiliario en España. Analiza en PROFUNDIDAD esta propiedad específica y calcula gastos realistas para la tercera pestaña (Gastos de la Vivienda).
+    const prompt = `Eres un analista inmobiliario experto en España. Necesito que INVESTIGUES EN INTERNET los gastos reales de esta propiedad concreta.
 
 DATOS DE LA PROPIEDAD:
 - Nombre: ${propertyData.nombre}
-- Ubicación: ${propertyData.direccion}
+- Ubicación exacta: ${propertyData.direccion}
 - Tipo: ${propertyData.tipoPropiedad}
 - Superficie: ${propertyData.superficie}m²
 - Precio: ${propertyData.precio}€
 - Habitaciones: ${propertyData.habitaciones}
 - Baños: ${propertyData.banos}
-- Descripción: ${propertyData.descripcion || 'No disponible'}
+- Descripción del anuncio: ${propertyData.descripcion || 'No disponible'}
 - Características: ${propertyData.caracteristicas && propertyData.caracteristicas.length > 0 ? propertyData.caracteristicas.join(', ') : 'No disponible'}
 
-IMPORTANTE - ANALIZA CUIDADOSAMENTE:
-1. **Comunidad Anual (comunidadAnual)**:
-   - Busca propiedades SIMILARES en la MISMA ZONA específica
-   - Considera si tiene PISCINA, ASCENSOR, PORTERO, GIMNASIO, ZONAS COMUNES
-   - Una piscina comunitaria puede añadir 200-500€ anuales
-   - Ascensor y portero pueden añadir 300-600€ anuales
-   - En edificios antiguos sin servicios: 400-800€/año
-   - En edificios modernos con servicios: 800-1500€/año
-   - Propiedades de lujo: 1500-3000€/año
+INSTRUCCIONES - INVESTIGA CADA CAMPO:
 
-2. **Seguro del Hogar (seguroHogar)**:
-   - Depende del VALOR de la propiedad y CONTENIDOS
-   - Propiedades hasta 150.000€: 80-120€/año
-   - Propiedades 150.000-300.000€: 120-180€/año
-   - Propiedades 300.000-500.000€: 180-250€/año
-   - Propiedades >500.000€: 250-400€/año
+1. **comunidadAnual** (cuota de comunidad de propietarios al año):
+   - BUSCA en internet cuotas de comunidad reales en la zona "${propertyData.direccion}"
+   - Analiza las características del anuncio: ¿menciona ascensor, piscina, portero, conserje, zonas comunes, garaje comunitario, jardines, gimnasio, paddle?
+   - Cada servicio comunitario incrementa la cuota significativamente
+   - Busca en foros, portales inmobiliarios o artículos sobre gastos de comunidad en esa ciudad/barrio
+   - Un piso sin ascensor ni extras en pueblo: 30-50€/mes (360-600€/año)
+   - Un piso con ascensor en ciudad: 60-100€/mes (720-1200€/año)
+   - Urbanización con piscina + jardines: 80-150€/mes (960-1800€/año)
+   - Urbanización de lujo con muchos servicios: 150-300€/mes (1800-3600€/año)
 
-3. **Seguro de Vida Hipoteca (seguroVidaHipoteca)**:
-   - Depende del PRECIO de la propiedad y AÑOS de hipoteca
-   - Propiedades hasta 200.000€: 100-150€/año
-   - Propiedades 200.000-400.000€: 150-250€/año
-   - Propiedades >400.000€: 250-400€/año
+2. **seguroHogar** (seguro del hogar anual):
+   - Busca precios reales de seguros de hogar para una vivienda de ${propertyData.superficie}m² valorada en ${propertyData.precio}€ en ${propertyData.direccion}
+   - Compara precios de aseguradoras (Mapfre, Zurich, AXA, Línea Directa, etc.)
 
-4. **IBI (ibi)**:
-   - Investiga el IBI típico de la ZONA ESPECÍFICA
-   - Depende del VALOR CATASTRAL (aproximadamente 40-60% del precio de mercado)
-   - Madrid centro: 0.4-0.5% del valor catastral
-   - Otras ciudades: 0.5-1.1% del valor catastral
-   - Ejemplo: piso 250.000€ → valor catastral ~125.000€ → IBI ~500-1000€/año
+3. **seguroVidaHipoteca** (seguro de vida vinculado a hipoteca anual):
+   - Busca el coste típico de un seguro de vida para una hipoteca de ~${Math.round(propertyData.precio * 0.7)}€ (70% del precio)
+   - Depende de la edad del asegurado (asume 30-35 años)
 
-Devuelve SOLO un objeto JSON con estos campos (números sin símbolos):
+4. **ibi** (Impuesto de Bienes Inmuebles anual):
+   - BUSCA el tipo impositivo del IBI del municipio donde está la propiedad
+   - Calcula el valor catastral estimado (normalmente 40-60% del precio de mercado)
+   - Aplica el tipo impositivo del municipio al valor catastral
+   - Busca ejemplos reales de IBI en esa zona
+
+IMPORTANTE: No uses valores genéricos. Investiga datos reales de la zona. Si la descripción menciona piscina, ascensor u otros servicios, eso DEBE reflejarse en la comunidad.
+
+Devuelve SOLO un JSON con estos campos (números enteros, sin símbolos):
 {
-  "comunidadAnual": número entero,
-  "seguroHogar": número entero,
-  "seguroVidaHipoteca": número entero,
-  "ibi": número entero
+  "comunidadAnual": número,
+  "seguroHogar": número,
+  "seguroVidaHipoteca": número,
+  "ibi": número
 }
 
 RESPONDE SOLO CON EL JSON, sin texto adicional ni markdown.`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Eres un experto en análisis inmobiliario en España. Analiza cada propiedad de forma específica y proporciona estimaciones realistas basadas en sus características únicas.'
-        },
+    const response = await openai.responses.create({
+      model: 'gpt-5-mini',
+      input: [
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.3,
-      max_completion_tokens: 300
+      text: {
+        format: {
+          type: 'text'
+        }
+      },
+      reasoning: {
+        effort: 'medium'
+      },
+      tools: [
+        {
+          type: 'web_search'
+        }
+      ],
+      store: true
     });
 
-    let gptResponse = completion.choices[0].message.content.trim();
-    console.log('Respuesta GPT (gastos vivienda):', gptResponse);
+    let gptResponse;
+    if (response.output_text) {
+      gptResponse = response.output_text;
+    } else if (response.output && response.output.length > 0) {
+      const messageOutput = response.output.find(item => item.type === 'message');
+      if (messageOutput && messageOutput.content && messageOutput.content.length > 0) {
+        gptResponse = messageOutput.content[0].text;
+      } else {
+        gptResponse = null;
+      }
+    }
+
+    console.log('Respuesta GPT-5-mini (gastos vivienda):', gptResponse);
+
+    if (!gptResponse) {
+      throw new Error('No se obtuvo respuesta del modelo');
+    }
 
     // Limpiar respuesta
+    gptResponse = gptResponse.trim();
     if (gptResponse.startsWith('```json')) {
       gptResponse = gptResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
     } else if (gptResponse.startsWith('```')) {
@@ -788,6 +810,56 @@ app.get('/api/euribor', async (req, res) => {
       // Valor de fallback
       euribor: 2.5
     });
+  }
+});
+
+// Endpoint para enviar feedback como GitHub Issue
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { tipo, mensaje, email } = req.body;
+
+    if (!tipo || !mensaje) {
+      return res.status(400).json({ success: false, error: 'Tipo y mensaje son requeridos' });
+    }
+
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    if (!GITHUB_TOKEN) {
+      console.error('⚠️ GITHUB_TOKEN no configurado');
+      return res.status(500).json({ success: false, error: 'Sistema de feedback no configurado' });
+    }
+
+    const label = tipo === 'bug' ? 'bug' : 'enhancement';
+    const titulo = tipo === 'bug' ? `[Bug] ${mensaje.substring(0, 80)}` : `[Sugerencia] ${mensaje.substring(0, 80)}`;
+    const cuerpo = `## ${tipo === 'bug' ? 'Reporte de error' : 'Sugerencia'}\n\n${mensaje}\n\n---\n**Contacto:** ${email || 'No proporcionado'}\n**Fecha:** ${new Date().toLocaleString('es-ES')}\n**Origen:** Formulario de feedback de la app`;
+
+    const response = await fetch('https://api.github.com/repos/ZabaHD4K/CalculadoraRentabilidadInmobiliaria/issues', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: titulo,
+        body: cuerpo,
+        labels: [label, 'feedback'],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error GitHub API:', errorData);
+      throw new Error(errorData.message || 'Error al crear issue en GitHub');
+    }
+
+    const issue = await response.json();
+    console.log(`✅ Feedback enviado → Issue #${issue.number}: ${titulo}`);
+
+    res.json({ success: true, message: 'Feedback enviado correctamente' });
+
+  } catch (error) {
+    console.error('Error en /api/feedback:', error.message);
+    res.status(500).json({ success: false, error: 'Error al enviar feedback' });
   }
 });
 

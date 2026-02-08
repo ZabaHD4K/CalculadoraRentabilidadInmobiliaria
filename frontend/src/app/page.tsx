@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor } from "@/services/api";
 import AuthModal from "@/components/AuthModal";
+import FeedbackButton from "@/components/FeedbackButton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -46,6 +47,9 @@ export default function Home() {
   const [showSeguroVidaInfo, setShowSeguroVidaInfo] = useState(false);
   const [tipoMunicipioIBI, setTipoMunicipioIBI] = useState<'pueblo' | 'ciudad_media' | 'gran_ciudad' | 'capital'>('ciudad_media');
   const [porcentajeIBI, setPorcentajeIBI] = useState<number>(0.30);
+
+  // Flag para saber si la comunidad fue estimada por IA
+  const [comunidadEstimadaIA, setComunidadEstimadaIA] = useState(false);
 
   // Warnings para porcentajes bajos
   const [showTipoInteresTip, setShowTipoInteresTip] = useState(false);
@@ -202,6 +206,26 @@ export default function Home() {
         gastosAnuales: p.gastosAnuales,
         capitalPropio: p.capitalPropio
       })));
+
+      // Sincronizar selectedProperty si está abierto el modal de detalles
+      if (selectedProperty?.id) {
+        const updated = result.properties.find((p: PropertyData) => p.id === selectedProperty.id);
+        if (updated) {
+          setSelectedProperty({ ...updated });
+          // Actualizar también los porcentajes de gastos
+          if (updated.precio > 0) {
+            if (updated.mantenimiento) setPorcentajeMantenimiento(Math.round((updated.mantenimiento / updated.precio) * 10000) / 100);
+            if (updated.seguroHogar) setPorcentajeSeguroHogar(Math.round((updated.seguroHogar / updated.precio) * 10000) / 100);
+            if (updated.periodosVacantes) setPorcentajePeriodosVacantes(Math.round((updated.periodosVacantes / updated.precio) * 10000) / 100);
+            if (updated.ibi) setPorcentajeIBI(Math.round((updated.ibi / updated.precio) * 10000) / 100);
+          }
+          const rentaAnual = (updated.alquilerMensual || 0) * 12;
+          if (updated.seguroImpago && rentaAnual > 0) setPorcentajeSeguroImpago(Math.round((updated.seguroImpago / rentaAnual) * 10000) / 100);
+          if (updated.capitalPropio) setCapitalPropio(updated.capitalPropio);
+          if (updated.plazoHipoteca) setPlazoHipoteca(updated.plazoHipoteca);
+          if (updated.tipoInteres) setTipoInteres(updated.tipoInteres);
+        }
+      }
     }
   };
 
@@ -493,6 +517,11 @@ export default function Home() {
   const handleCalculateAllExpenses = async () => {
     if (!selectedProperty) return;
 
+    if (!selectedProperty.alquilerMensual || selectedProperty.alquilerMensual <= 0) {
+      alert('⚠️ Debes rellenar el precio de alquiler mensual antes de usar el cálculo automático con GPT.');
+      return;
+    }
+
     setCalculatingExpenses(true);
 
     try {
@@ -560,6 +589,7 @@ export default function Home() {
       setPorcentajeSeguroVida(Math.round(porcentajeVida * 100) / 100);
 
       // 3. Actualizar TODOS los campos (gastos de compra + gastos de vivienda)
+      setComunidadEstimadaIA(true); // Marcar que la comunidad fue estimada por IA
       setSelectedProperty({
         ...selectedProperty,
         ...purchaseResult.expenses,
@@ -888,6 +918,9 @@ export default function Home() {
 
   return (
     <>
+      {/* Botón de feedback (siempre visible) */}
+      <FeedbackButton />
+
       {/* Modal de autenticación */}
       {!isAuthenticated && !checkingAuth && (
         <AuthModal onAuthenticated={() => setIsAuthenticated(true)} />
@@ -1532,6 +1565,14 @@ export default function Home() {
                   </>
                 )}
               </button>
+              {selectedProperty && (!selectedProperty.alquilerMensual || selectedProperty.alquilerMensual <= 0) && (
+                <p className="mt-2 text-sm text-amber-400/80 flex items-center gap-1">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Rellena el precio de alquiler mensual para poder usar esta función
+                </p>
+              )}
             </div>
 
             <div className="p-6 space-y-6">
@@ -2182,10 +2223,18 @@ export default function Home() {
                           <input
                             type="number"
                             value={selectedProperty.comunidadAnual || ''}
-                            onChange={(e) => setSelectedProperty({ ...selectedProperty, comunidadAnual: parseInt(e.target.value) || null })}
+                            onChange={(e) => {
+                              setComunidadEstimadaIA(false);
+                              setSelectedProperty({ ...selectedProperty, comunidadAnual: parseInt(e.target.value) || null });
+                            }}
                             placeholder="600€"
                             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
+                          {comunidadEstimadaIA && selectedProperty.comunidadAnual && selectedProperty.comunidadAnual > 0 && (
+                            <p className="mt-2 text-xs text-amber-400/80">
+                              Valor estimado por IA. Se recomienda consultar a la inmobiliaria para obtener el dato real.
+                            </p>
+                          )}
                         </div>
 
                         {/* Mantenimiento */}

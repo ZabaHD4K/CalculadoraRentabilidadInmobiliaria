@@ -462,3 +462,18 @@ export async function getEuribor(): Promise<{ success: boolean; euribor: number;
     };
   }
 }
+
+// Enviar feedback como GitHub Issue
+export async function sendFeedback(data: { tipo: string; mensaje: string; email?: string }): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error al enviar feedback:', error);
+    return { success: false, error: 'Error de conexión' };
+  }
+}

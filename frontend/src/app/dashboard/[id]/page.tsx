@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { PropertyData, getProperties, updateProperty } from "@/services/api";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import FeedbackButton from "@/components/FeedbackButton";
 
 export default function FinancialDashboard() {
   const router = useRouter();
@@ -540,6 +541,7 @@ export default function FinancialDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <FeedbackButton />
       <div className="max-w-[1800px] mx-auto">
         {/* Header */}
         <div className="mb-8">

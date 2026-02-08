@@ -3,7 +3,7 @@
 
 **Autor:** Alejandro Zabaleta
 **Fecha de Inicio:** Curso 2025-2026
-**Última Actualización:** 7 de Febrero de 2026
+**Última Actualización:** 8 de Febrero de 2026
 **Repositorio GitHub:** https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria
 **Universidad:** U-tad
 
@@ -491,6 +491,7 @@ Semana 4: Presentación TFG
 │  │  ├── POST /api/estimate-rent    - Estimación alquiler     │  │
 │  │  ├── POST /api/calculate-expenses - Gastos de compra      │  │
 │  │  ├── POST /api/calculate-housing-expenses - Gastos viv.   │  │
+│  │  ├── POST /api/feedback         - Feedback → GitHub Issues │  │
 │  │  ├── GET  /api/euribor          - Euribor (API BdE)       │  │
 │  │  ├── POST /api/properties       - Guardar propiedad       │  │
 │  │  ├── GET  /api/properties       - Listar propiedades      │  │
@@ -510,9 +511,11 @@ Semana 4: Presentación TFG
 │  GPT-5-mini:         │       └────────────────────────┘
 │  - Estimación alq.   │
 │  (fallback: GPT-4o)  │
+│  GPT-5-mini:         │
+│  - Gastos vivienda   │
+│  (web search)        │
 │  GPT-4o-mini:        │
 │  - Gastos compra     │
-│  - Gastos vivienda   │
 └──────────────────────┘
 ```
 
@@ -653,15 +656,16 @@ RealEstateAI/
 │   │   │       └── [id]/
 │   │   │           └── page.tsx      # Dashboard financiero (1,239 líneas)
 │   │   ├── components/
-│   │   │   └── AuthModal.tsx         # Modal de autenticación (225 líneas)
+│   │   │   ├── AuthModal.tsx         # Modal de autenticación (225 líneas)
+│   │   │   └── FeedbackButton.tsx    # Botón de feedback → GitHub Issues (151 líneas)
 │   │   └── services/
-│   │       └── api.ts                # Cliente API tipado (450 líneas)
+│   │       └── api.ts                # Cliente API tipado (479 líneas)
 │   ├── tailwind.config.ts
 │   ├── next.config.ts
 │   ├── tsconfig.json
 │   └── package.json
 ├── backend/
-│   ├── server.js                     # Servidor Express (941 líneas)
+│   ├── server.js                     # Servidor Express (~990 líneas)
 │   ├── .env                          # Variables de entorno
 │   └── package.json
 ├── DIARIO_TFG.md                     # Este documento
@@ -669,7 +673,7 @@ RealEstateAI/
 └── README.md                         # Documentación general
 ```
 
-**Total de líneas de código fuente:** ~5,584 líneas en archivos principales.
+**Total de líneas de código fuente:** ~5,800 líneas en archivos principales.
 
 ### Módulos Implementados
 
@@ -757,7 +761,7 @@ const ITP_BY_COMUNIDAD = {
 El backend utiliza GPT-4o-mini para estimar gastos contextualizados:
 
 - **Gastos de compra** (`/api/calculate-expenses`): notaría, registro, comisión de agencia, gestoría, tasación y comisión de apertura, estimados según precio, ubicación y tipo de propiedad.
-- **Gastos de vivienda** (`/api/calculate-housing-expenses`): IBI, comunidad anual, seguro del hogar y seguro de vida hipoteca, estimados según las características específicas de la propiedad (superficie, precio, servicios del edificio, zona).
+- **Gastos de vivienda** (`/api/calculate-housing-expenses`): IBI, comunidad anual, seguro del hogar y seguro de vida hipoteca. Migrado a GPT-5-mini con web search (v2.5.0), permitiendo al modelo investigar en internet cuotas de comunidad reales en la zona, tipos impositivos del IBI del municipio concreto y precios de aseguradoras. Analiza las características del anuncio (piscina, ascensor, portero, etc.) para ajustar la estimación de comunidad.
 
 Los valores estimados por IA se presentan como valores iniciales editables por el usuario.
 
@@ -808,13 +812,23 @@ n = Número de cuotas (años × 12)
 - Desglose de gastos anuales (PieChart).
 - Tabla de amortización de hipoteca (primeros 5 años) con BarChart.
 
-#### 6. Consulta de Euribor en Tiempo Real
+#### 6. Sistema de Feedback Integrado (v2.5.0)
+
+**Implementación:** sistema completo que permite a los usuarios reportar bugs y enviar sugerencias directamente desde la aplicación, creando GitHub Issues automáticamente.
+
+- **Backend** (`POST /api/feedback`): recibe tipo (bug/sugerencia), mensaje y email opcional. Utiliza la API de GitHub (`api.github.com/repos/.../issues`) con autenticación Bearer Token para crear Issues con labels automáticos (`bug`/`enhancement` + `feedback`). Requiere `GITHUB_TOKEN` en variables de entorno.
+- **Frontend** (`FeedbackButton.tsx`): componente flotante con modal que incluye selector de tipo, textarea para descripción, campo de email opcional y estados de envío con feedback visual.
+- **Integración:** el componente se incluye en la página principal (`page.tsx`) y en el dashboard financiero (`dashboard/[id]/page.tsx`).
+
+**Objetivo:** facilitar la recopilación de feedback durante la fase de validación con usuarios (100+ testers), centralizando los reportes en el sistema de issues del repositorio.
+
+#### 7. Consulta de Euribor en Tiempo Real
 
 **Fuente:** API REST del Banco de España (`app.bde.es/bierest/resources/srdatosapp/favoritas`).
 **Serie:** `D_1NBAF472` (Euribor a 12 meses).
 **Fallback:** Si la API no responde, se utiliza un valor por defecto de 2.5%.
 
-#### 7. Sistema de Autenticación
+#### 8. Sistema de Autenticación
 
 Sistema básico de acceso mediante contraseña:
 - Contraseña hasheada con SHA-256 en el backend.
@@ -824,7 +838,7 @@ Sistema básico de acceso mediante contraseña:
 
 **Justificación del uso de SHA-256 frente a bcrypt/scrypt/argon2:** el sistema de autenticación implementado no gestiona credenciales de múltiples usuarios ni almacena datos personales sensibles. Se trata de una contraseña única de acceso a la aplicación, cuyo objetivo es restringir el uso de la herramienta durante la fase de desarrollo y evaluación. En este contexto, SHA-256 ofrece una protección suficiente al evitar el almacenamiento de la contraseña en texto plano, sin introducir la complejidad adicional ni las dependencias externas (como la biblioteca `bcrypt`) que requerirían algoritmos de hashing adaptativo. En un escenario de producción con gestión de usuarios reales, sería necesario migrar a bcrypt o argon2 para proteger contra ataques de fuerza bruta mediante su coste computacional configurable.
 
-#### 8. Patrones Técnicos del Frontend
+#### 9. Patrones Técnicos del Frontend
 
 **Cancelación de peticiones con AbortController:**
 Las llamadas a la API de análisis de propiedades pueden tardar hasta 2 minutos (GPT-5 con web search). Para evitar que el navegador mantenga peticiones huérfanas, el servicio API del frontend (`api.ts`) implementa el patrón `AbortController` con un timeout de 120 segundos. Si la petición no se completa en ese tiempo, el `AbortController` emite una señal de cancelación (`signal.abort()`) que interrumpe el `fetch` y permite al usuario reintentar la operación. Este patrón es especialmente relevante en operaciones de larga duración donde el usuario podría navegar a otra vista o cerrar el modal.
@@ -838,7 +852,7 @@ El proyecto frontend utiliza TypeScript con la opción `strict: true` habilitada
 **Animaciones CSS sin librerías externas:**
 El sistema de animaciones del frontend (partículas flotantes en el `AuthModal`, efecto glassmorfismo, shake en error de contraseña, fade-out en autenticación exitosa, animaciones de badges de ROI) se implementa íntegramente con CSS puro mediante `@keyframes` definidos en `globals.css`, sin recurrir a librerías de animación como Framer Motion o React Spring. Esta decisión reduce el bundle size del frontend y elimina una dependencia externa, a costa de menor flexibilidad en animaciones complejas basadas en estado.
 
-#### 9. Despliegue en Producción
+#### 10. Despliegue en Producción
 
 - **Frontend:** desplegado en Vercel con CI/CD automático desde GitHub.
 - **Backend:** desplegado en Railway.
@@ -952,7 +966,7 @@ Se ha enviado el enlace de la aplicación en producción junto con las credencia
 **Metodología de validación:**
 - **Distribución:** enlace y credenciales compartidos a través de redes de contactos personales y grupos universitarios.
 - **Perfiles de testers:** inversores particulares con experiencia, estudiantes de ingeniería y finanzas, y usuarios sin conocimientos previos de inversión inmobiliaria.
-- **Canal de feedback:** los testers reportan errores y sugerencias de forma directa (mensajería), que se priorizan y resuelven de forma iterativa.
+- **Canal de feedback:** los testers reportan errores y sugerencias tanto de forma directa (mensajería) como a través del **botón de feedback integrado** en la propia aplicación (v2.5.0), que crea GitHub Issues automáticamente. Los issues se priorizan y resuelven de forma iterativa.
 - **Métricas de seguimiento previstas:** número de bugs reportados y resueltos, funcionalidades más utilizadas, y valoración de utilidad percibida mediante encuesta breve al finalizar la fase de pruebas.
 
 **Resultados preliminares:**
@@ -1036,7 +1050,8 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 | Backend | Servidor Express con CORS para producción | Completado |
 | Backend | Integración OpenAI API (GPT-5-mini, GPT-4o, GPT-4o-mini) | Completado |
 | Backend | Extracción de datos via IA + web search | Completado |
-| Backend | API REST completa (10 endpoints) | Completado |
+| Backend | API REST completa (11 endpoints) | Completado |
+| Backend | Sistema de feedback → GitHub Issues | Completado |
 | Backend | Consulta Euribor (API Banco de España) | Completado |
 | Backend | Autenticación con contraseña (SHA-256) | Completado |
 | Frontend | Setup Next.js 16 + TypeScript + Tailwind | Completado |
@@ -1066,9 +1081,9 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 
 | Métrica | Valor |
 |---|---|
-| Líneas de código (archivos principales) | ~5,584 |
-| Archivos de código fuente | 7 principales + configuración |
-| Endpoints API REST | 10 |
+| Líneas de código (archivos principales) | ~5,800 |
+| Archivos de código fuente | 8 principales + configuración |
+| Endpoints API REST | 11 |
 | Commits en Git | 34+ |
 | Dependencias frontend | 4 de producción + 8 de desarrollo |
 | Dependencias backend | 4 de producción |
@@ -1203,8 +1218,8 @@ Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's 
 
 ---
 
-**Última actualización:** 7 de Febrero de 2026
-**Estado del proyecto:** En desarrollo activo - ~92% completado (funcionalidad core completa, validación con usuarios en curso con 100+ testers, pendiente corrección de bugs reportados y documentación final)
+**Última actualización:** 8 de Febrero de 2026
+**Estado del proyecto:** En desarrollo activo - ~93% completado (funcionalidad core completa, sistema de feedback integrado, validación con usuarios en curso con 100+ testers, pendiente corrección de bugs reportados y documentación final)
 
 ---
 

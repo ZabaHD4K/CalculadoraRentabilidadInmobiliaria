@@ -59,6 +59,7 @@
 - 🎯 **Gestiona múltiples propiedades** en un dashboard intuitivo con badges de ROI y alquiler animados
 - ✨ **Badges inteligentes** que muestran ROI y alquiler mensual con animaciones según el rendimiento
 - 💾 **Guarda simulaciones** desde el dashboard con actualización automática del ROI en tarjetas
+- 💬 **Sistema de feedback** integrado que crea GitHub Issues automáticamente desde la app
 
 ---
 
@@ -93,6 +94,7 @@ Ya no es necesario "despertar" el backend manualmente: la app responde siempre a
 - 💾 **Sistema de guardado** en dashboard que actualiza el ROI automáticamente
 - 📊 **Cálculo ROI preciso** sobre capital propio (tu entrada real) descontando cuota hipotecaria
 - 🗑️ **Gestión completa** (crear, editar, eliminar propiedades)
+- 💬 **Feedback integrado** para reportar bugs y sugerencias directamente desde la app
 
 ---
 
@@ -250,10 +252,19 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
   - 💬 Mensaje informativo: "Puede tardar hasta 50 segundos"
   - ⚡ Mejora la experiencia del usuario con feedback visual claro
 
+### 💬 Sistema de Feedback Integrado (NUEVO v2.5.0)
+
+- **Botón flotante** siempre visible en la esquina superior derecha
+- **Dos tipos de feedback:** Bug Report y Sugerencia de mejora
+- **Creación automática de GitHub Issues** con labels (`bug`/`enhancement` + `feedback`)
+- **Email de contacto opcional** para seguimiento
+- **Feedback visual:** estados de envío, confirmación y errores
+- **Integrado** en página principal y dashboard financiero
+
 ### 🔐 Características Técnicas
 
 - **TypeScript:** Tipado estático para mayor seguridad
-- **API RESTful:** Endpoints bien documentados y estructurados
+- **API RESTful:** Endpoints bien documentados y estructurados (11 endpoints)
 - **Manejo de Errores:** Sistema robusto de try-catch y validaciones
 - **Código Limpio:** Análisis con SonarQube (77 issues resueltos)
 
@@ -323,6 +334,7 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 │  │  POST /api/estimate-rent  - Estimar alquiler       │     │
 │  │  POST /api/calculate-expenses - Calcular gastos    │     │
 │  │  POST /api/calculate-housing-expenses - Gastos viv.│     │
+│  │  POST /api/feedback       - Enviar feedback        │     │
 │  │  GET  /api/euribor        - Obtener Euribor        │     │
 │  └───────────────────────────────────────────────────┘     │
 │                          ↕                                   │
@@ -395,6 +407,8 @@ RealEstateAI/
 │   │   │   ├── layout.tsx      # Layout global
 │   │   │   └── globals.css     # Estilos globales
 │   │   ├── components/         # Componentes reutilizables
+│   │   │   ├── AuthModal.tsx   # Modal de autenticación
+│   │   │   └── FeedbackButton.tsx # Botón de feedback (crea GitHub Issues)
 │   │   └── services/
 │   │       └── api.ts          # Cliente API
 │   ├── package.json
@@ -457,6 +471,9 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Access Password (SHA-256 hash of your chosen password)
 ACCESS_PASSWORD_HASH=<sha256_hash_of_your_password>
+
+# GitHub Token (para sistema de feedback → crea Issues)
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Server Config
 PORT=3000
@@ -739,7 +756,30 @@ Content-Type: application/json
 }
 ```
 
-#### 10. Obtener Euribor Actual
+#### 10. Enviar Feedback (crea GitHub Issue)
+
+```http
+POST /api/feedback
+Content-Type: application/json
+
+{
+  "tipo": "bug",
+  "mensaje": "El botón de guardar no funciona en móvil",
+  "email": "usuario@ejemplo.com"
+}
+```
+
+**Respuesta (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Feedback enviado correctamente"
+}
+```
+
+> **Nota:** Requiere `GITHUB_TOKEN` configurado en las variables de entorno del backend. El feedback se crea como Issue en el repositorio de GitHub con labels automáticos (`bug`/`enhancement` + `feedback`).
+
+#### 11. Obtener Euribor Actual
 
 ```http
 GET /api/euribor
@@ -882,10 +922,10 @@ El proyecto ha sido analizado con **SonarQube** para garantizar la calidad del c
 ### Métricas del Proyecto
 
 **Código:**
-- 📝 Líneas de código: **~5,200** (backend: ~800 / frontend: ~4,400)
-- 📦 Archivos principales: **7 + configuración**
+- 📝 Líneas de código: **~5,800** (backend: ~870 / frontend: ~4,930)
+- 📦 Archivos principales: **8 + configuración**
 - 🔧 Dependencias: **4 producción + 8 desarrollo (frontend) + 4 producción (backend)**
-- ⚙️ Commits: **34+**
+- ⚙️ Commits: **36+**
 
 **Funcionalidades:**
 - ✅ **15/17 Requisitos funcionales** completados
