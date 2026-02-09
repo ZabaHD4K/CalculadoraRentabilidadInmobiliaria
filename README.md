@@ -406,9 +406,24 @@ RealEstateAI/
 │   │   │   │       └── page.tsx
 │   │   │   ├── layout.tsx      # Layout global
 │   │   │   └── globals.css     # Estilos globales
-│   │   ├── components/         # Componentes reutilizables
-│   │   │   ├── AuthModal.tsx   # Modal de autenticación
-│   │   │   └── FeedbackButton.tsx # Botón de feedback (crea GitHub Issues)
+│   │   ├── components/         # Componentes reutilizables (17)
+│   │   │   ├── PageHeader.tsx         # Cabecera de la app
+│   │   │   ├── AddPropertyButton.tsx  # Botón añadir propiedad
+│   │   │   ├── PropertyCard.tsx       # Tarjeta de propiedad (badges ROI/alquiler)
+│   │   │   ├── PropertyList.tsx       # Grid de tarjetas
+│   │   │   ├── AddPropertyModal.tsx   # Modal añadir propiedad
+│   │   │   ├── DetailsModal.tsx       # Modal detalles (gastos/hipoteca/vivienda)
+│   │   │   ├── DashboardHeader.tsx    # Cabecera del dashboard financiero
+│   │   │   ├── BenefitsCards.tsx      # Tarjetas de métricas financieras
+│   │   │   ├── ROIReturnBox.tsx       # Caja ROI total con desglose
+│   │   │   ├── SimulationSliders.tsx  # Sliders de simulación
+│   │   │   ├── ProfitabilityChart.tsx # Gráfico de rentabilidad
+│   │   │   ├── ExpenseEditor.tsx      # Editor de gastos anuales
+│   │   │   ├── AmortizationTable.tsx  # Tabla de amortización
+│   │   │   ├── FinancingComparison.tsx# Comparativa financiación
+│   │   │   ├── FloatingSaveButton.tsx # Botón flotante de guardado
+│   │   │   ├── AuthModal.tsx          # Modal de autenticación
+│   │   │   └── FeedbackButton.tsx     # Botón de feedback (crea GitHub Issues)
 │   │   └── services/
 │   │       └── api.ts          # Cliente API
 │   ├── package.json
@@ -900,6 +915,27 @@ El proyecto ha sido analizado con **SonarQube** para garantizar la calidad del c
    - Validaciones de datos antes de procesarlos
    - Manejo de errores centralizado
 
+### Tests Unitarios con Jest
+
+Se han implementado **49 tests unitarios** que validan todas las funciones de cálculo financiero críticas:
+
+```bash
+npm test   # desde backend/
+
+ PASS  tests/calculations.test.js
+  calculateITP         → 8 tests (19 CCAA, defaults, edge cases)
+  calculateIVA         → 4 tests (IVA 10%, redondeo)
+  calculateAJD         → 6 tests (AJD por comunidad, comparativa)
+  calcularCuotaHipoteca → 7 tests (sistema francés, proporcionalidad)
+  calcularTipoInteres  → 4 tests (fija vs variable, euribor negativo)
+  calcularROI          → 7 tests (apalancamiento, cash flow)
+  calcularTIR          → 5 tests (convergencia, rango razonable)
+  calcularVAN          → 5 tests (coherencia con TIR, tasa descuento)
+  Integración          → 3 tests (flujo completo Madrid + Barcelona)
+
+Tests: 49 passed, 49 total
+```
+
 ---
 
 ## 📊 Resultados y Métricas
@@ -922,19 +958,20 @@ El proyecto ha sido analizado con **SonarQube** para garantizar la calidad del c
 ### Métricas del Proyecto
 
 **Código:**
-- 📝 Líneas de código: **~5,800** (backend: ~870 / frontend: ~4,930)
-- 📦 Archivos principales: **8 + configuración**
-- 🔧 Dependencias: **4 producción + 8 desarrollo (frontend) + 4 producción (backend)**
+- 📝 Líneas de código: **~6,260** (backend: ~1,215 / frontend: ~4,623 + tests: ~420)
+- 📦 Archivos principales: **25 + configuración** (17 componentes frontend + páginas + servicios + backend)
+- 🔧 Dependencias: **4 producción + 8 desarrollo (frontend) + 4 producción + 1 desarrollo (backend)**
 - ⚙️ Commits: **36+**
 
 **Funcionalidades:**
-- ✅ **15/17 Requisitos funcionales** completados
+- ✅ **16/17 Requisitos funcionales** completados
 - ✅ **10/10 Requisitos no funcionales** cumplidos
-- 📈 **Progreso:** ~90% completado
+- 📈 **Progreso:** ~95% completado
 
 **Testing:**
+- 🧪 Tests unitarios: **49/49 passing** (Jest)
 - 🧪 Scraping: 93.3% éxito (28/30 propiedades)
-- 🎯 Cálculo ITP: 100% precisión
+- 🎯 Cálculo ITP: 100% precisión (validado con tests automatizados)
 - 🤖 Estimación IA: 90% dentro del rango (±10%)
 
 ### Feedback de Usuarios

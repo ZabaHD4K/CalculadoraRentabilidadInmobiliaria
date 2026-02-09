@@ -49,3 +49,6 @@ nul
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# Screenshots folder (local images)
+screenshots/

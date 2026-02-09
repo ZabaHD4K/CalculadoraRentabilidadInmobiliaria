@@ -3,7 +3,7 @@
 
 **Autor:** Alejandro Zabaleta
 **Fecha de Inicio:** Curso 2025-2026
-**Última Actualización:** 8 de Febrero de 2026
+**Última Actualización:** 9 de Febrero de 2026
 **Repositorio GitHub:** https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria
 **Universidad:** U-tad
 
@@ -649,15 +649,30 @@ RealEstateAI/
 ├── frontend/                          # Aplicación Next.js 16
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── page.tsx              # Página principal (2,565 líneas)
+│   │   │   ├── page.tsx              # Página principal (1,034 líneas, lógica + estado)
 │   │   │   ├── layout.tsx            # Layout raíz (21 líneas)
 │   │   │   ├── globals.css           # Estilos globales Tailwind
 │   │   │   └── dashboard/
 │   │   │       └── [id]/
-│   │   │           └── page.tsx      # Dashboard financiero (1,239 líneas)
-│   │   ├── components/
-│   │   │   ├── AuthModal.tsx         # Modal de autenticación (225 líneas)
-│   │   │   └── FeedbackButton.tsx    # Botón de feedback → GitHub Issues (151 líneas)
+│   │   │           └── page.tsx      # Dashboard financiero (646 líneas, lógica + estado)
+│   │   ├── components/               # 17 componentes reutilizables
+│   │   │   ├── PageHeader.tsx         # Cabecera de la app (23 líneas)
+│   │   │   ├── AddPropertyButton.tsx  # Botón añadir propiedad (19 líneas)
+│   │   │   ├── PropertyCard.tsx       # Tarjeta de propiedad con badges (198 líneas)
+│   │   │   ├── PropertyList.tsx       # Grid de tarjetas (44 líneas)
+│   │   │   ├── AddPropertyModal.tsx   # Modal añadir propiedad (300 líneas)
+│   │   │   ├── DetailsModal.tsx       # Modal detalles 3 paneles (633 líneas)
+│   │   │   ├── DashboardHeader.tsx    # Cabecera dashboard financiero (24 líneas)
+│   │   │   ├── BenefitsCards.tsx      # Tarjetas métricas financieras (34 líneas)
+│   │   │   ├── ROIReturnBox.tsx       # Caja ROI total con desglose (121 líneas)
+│   │   │   ├── SimulationSliders.tsx  # Sliders de simulación (183 líneas)
+│   │   │   ├── ProfitabilityChart.tsx # Gráfico de rentabilidad (34 líneas)
+│   │   │   ├── ExpenseEditor.tsx      # Editor de gastos anuales (309 líneas)
+│   │   │   ├── AmortizationTable.tsx  # Tabla amortización hipoteca (43 líneas)
+│   │   │   ├── FinancingComparison.tsx# Comparativa financiación (81 líneas)
+│   │   │   ├── FloatingSaveButton.tsx # Botón flotante guardado (42 líneas)
+│   │   │   ├── AuthModal.tsx          # Modal de autenticación (225 líneas)
+│   │   │   └── FeedbackButton.tsx     # Botón de feedback → GitHub Issues (151 líneas)
 │   │   └── services/
 │   │       └── api.ts                # Cliente API tipado (479 líneas)
 │   ├── tailwind.config.ts
@@ -673,7 +688,7 @@ RealEstateAI/
 └── README.md                         # Documentación general
 ```
 
-**Total de líneas de código fuente:** ~5,800 líneas en archivos principales.
+**Total de líneas de código fuente:** ~6,260 líneas en archivos principales (frontend: ~4,623 en 20 archivos, backend: ~1,215 en 2 archivos, tests: ~420).
 
 ### Módulos Implementados
 
@@ -822,13 +837,38 @@ n = Número de cuotas (años × 12)
 
 **Objetivo:** facilitar la recopilación de feedback durante la fase de validación con usuarios (100+ testers), centralizando los reportes en el sistema de issues del repositorio.
 
-#### 7. Consulta de Euribor en Tiempo Real
+#### 7. Refactorización del Frontend en Componentes (v2.7.0)
+
+Para abordar la complejidad ciclomática señalada por SonarQube, se realizó una refactorización exhaustiva del frontend, extrayendo 15 componentes de presentación desde las dos páginas monolíticas. El criterio de extracción fue identificar bloques de JSX autocontenidos que representan una unidad visual o funcional diferenciada, sin modificar lógica ni estilos.
+
+**Componentes extraídos de `page.tsx`:**
+- `PageHeader`: cabecera con título y descripción.
+- `AddPropertyButton`: botón de acción para añadir propiedad.
+- `PropertyCard`: tarjeta individual con imagen, datos, badges de ROI y alquiler.
+- `PropertyList`: grid responsive de tarjetas.
+- `AddPropertyModal`: modal con formulario de nueva propiedad y análisis de URL.
+- `DetailsModal`: modal de detalles con tres paneles (gastos de compra, hipoteca, gastos de vivienda), el componente más grande (633 líneas).
+
+**Componentes extraídos de `dashboard/[id]/page.tsx`:**
+- `DashboardHeader`: cabecera con nombre y botón de volver.
+- `BenefitsCards`: tarjetas de métricas (rentabilidad bruta/neta, cash flow, payback).
+- `ROIReturnBox`: caja de ROI total con desglose de componentes.
+- `SimulationSliders`: sliders interactivos para modificar parámetros de simulación.
+- `ProfitabilityChart`: gráfico LineChart de evolución de rentabilidad a 10 años.
+- `ExpenseEditor`: editor de gastos anuales con cálculo por porcentajes dinámicos.
+- `AmortizationTable`: tabla y BarChart de amortización de hipoteca.
+- `FinancingComparison`: comparativa entre financiación hipotecaria y compra al contado.
+- `FloatingSaveButton`: botón flotante con estados de guardado animados.
+
+**Patrón arquitectónico:** la refactorización sigue el patrón de componentes presentacionales vs. contenedores: las páginas (`page.tsx` y `dashboard/[id]/page.tsx`) actúan como contenedores que gestionan el estado y la lógica de negocio (más de 30 variables `useState`, handlers de eventos, llamadas a la API), mientras que los componentes extraídos son presentacionales puros que reciben datos y callbacks via props. Este patrón, popularizado por Abramov (2015), mejora la testabilidad (los componentes presentacionales pueden testearse en aislamiento), la reutilización y la legibilidad del código.
+
+#### 8. Consulta de Euribor en Tiempo Real
 
 **Fuente:** API REST del Banco de España (`app.bde.es/bierest/resources/srdatosapp/favoritas`).
 **Serie:** `D_1NBAF472` (Euribor a 12 meses).
 **Fallback:** Si la API no responde, se utiliza un valor por defecto de 2.5%.
 
-#### 8. Sistema de Autenticación
+#### 9. Sistema de Autenticación
 
 Sistema básico de acceso mediante contraseña:
 - Contraseña hasheada con SHA-256 en el backend.
@@ -838,7 +878,7 @@ Sistema básico de acceso mediante contraseña:
 
 **Justificación del uso de SHA-256 frente a bcrypt/scrypt/argon2:** el sistema de autenticación implementado no gestiona credenciales de múltiples usuarios ni almacena datos personales sensibles. Se trata de una contraseña única de acceso a la aplicación, cuyo objetivo es restringir el uso de la herramienta durante la fase de desarrollo y evaluación. En este contexto, SHA-256 ofrece una protección suficiente al evitar el almacenamiento de la contraseña en texto plano, sin introducir la complejidad adicional ni las dependencias externas (como la biblioteca `bcrypt`) que requerirían algoritmos de hashing adaptativo. En un escenario de producción con gestión de usuarios reales, sería necesario migrar a bcrypt o argon2 para proteger contra ataques de fuerza bruta mediante su coste computacional configurable.
 
-#### 9. Patrones Técnicos del Frontend
+#### 10. Patrones Técnicos del Frontend
 
 **Cancelación de peticiones con AbortController:**
 Las llamadas a la API de análisis de propiedades pueden tardar hasta 2 minutos (GPT-5 con web search). Para evitar que el navegador mantenga peticiones huérfanas, el servicio API del frontend (`api.ts`) implementa el patrón `AbortController` con un timeout de 120 segundos. Si la petición no se completa en ese tiempo, el `AbortController` emite una señal de cancelación (`signal.abort()`) que interrumpe el `fetch` y permite al usuario reintentar la operación. Este patrón es especialmente relevante en operaciones de larga duración donde el usuario podría navegar a otra vista o cerrar el modal.
@@ -852,7 +892,7 @@ El proyecto frontend utiliza TypeScript con la opción `strict: true` habilitada
 **Animaciones CSS sin librerías externas:**
 El sistema de animaciones del frontend (partículas flotantes en el `AuthModal`, efecto glassmorfismo, shake en error de contraseña, fade-out en autenticación exitosa, animaciones de badges de ROI) se implementa íntegramente con CSS puro mediante `@keyframes` definidos en `globals.css`, sin recurrir a librerías de animación como Framer Motion o React Spring. Esta decisión reduce el bundle size del frontend y elimina una dependencia externa, a costa de menor flexibilidad en animaciones complejas basadas en estado.
 
-#### 10. Despliegue en Producción
+#### 11. Despliegue en Producción
 
 - **Frontend:** desplegado en Vercel con CI/CD automático desde GitHub.
 - **Backend:** desplegado en Railway.
@@ -893,10 +933,49 @@ Los cálculos fiscales y financieros se han validado contrastándolos con herram
 - Validado contra simuladores del Banco de España.
 - Ejemplo: Capital 150.000€, Plazo 25 años, Tipo 3% → Cuota 711.33€/mes (resultado coincidente).
 
-**Prueba de estimación de alquiler con IA (muestra de propiedades):**
-- Se analizaron propiedades cuyo alquiler real era conocido.
-- Las estimaciones del modelo se situaron dentro de un rango de ±10-15% del valor de mercado en la mayoría de los casos.
-- Esta desviación es coherente con las limitaciones inherentes a la estimación mediante LLMs señaladas por Geerts et al. (2025), quienes documentan que los LLMs tienden a la sobreconfianza en sus intervalos de predicción y presentan capacidades limitadas de razonamiento espacial, y justifica que el sistema presente los resultados como rangos orientativos.
+**Prueba de estimación de alquiler con IA (muestra de 10 propiedades reales):**
+
+Para validar la precisión del sistema de estimación de alquileres, se seleccionaron 10 propiedades en 5 ciudades españolas cuyo alquiler de mercado era conocido. El precio real de mercado se obtuvo contrastando los datos de precio por metro cuadrado publicados en los informes trimestrales de Idealista por distrito (diciembre 2025) con las características de cada propiedad. Se compararon las estimaciones del sistema anterior (GPT-4o sin acceso a internet) con el sistema actual (GPT-5-mini con web search).
+
+**Fuentes de precios reales:** Informes de precios de alquiler de Idealista por distrito (idealista.com/sala-de-prensa), datos de Bankinter por barrios de Madrid, informe de precios por barrios de Valencia (valencianews.es, agosto 2025), datos de El Español para barrios de Málaga y Sevilla.
+
+| # | Ubicación | m² | Hab. | Alquiler real | GPT-4o (sin web) | Desv. GPT-4o | GPT-5-mini (web search) | Desv. GPT-5-mini |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Chamberí, Madrid | 75 | 3 | 1.875€ | 1.650€ | **-12,0%** | 1.800€ | -4,0% |
+| 2 | Carabanchel, Madrid | 65 | 2 | 1.050€ | 950€ | -9,5% | 1.000€ | -4,8% |
+| 3 | Eixample, Barcelona | 85 | 3 | 2.025€ | 1.900€ | -6,2% | 2.100€ | +3,7% |
+| 4 | Sants-Montjuïc, Barcelona | 60 | 2 | 1.320€ | 1.200€ | -9,1% | 1.250€ | -5,3% |
+| 5 | Ruzafa, Valencia | 70 | 2 | 1.190€ | 850€ | **-28,6%** | 1.100€ | -7,6% |
+| 6 | Campanar, Valencia | 80 | 3 | 1.175€ | 950€ | **-19,1%** | 1.250€ | +6,4% |
+| 7 | Triana, Sevilla | 70 | 2 | 890€ | 850€ | -4,5% | 850€ | -4,5% |
+| 8 | Centro, Málaga | 65 | 2 | 980€ | 850€ | **-13,3%** | 1.050€ | +7,1% |
+| 9 | Teatinos, Málaga | 75 | 3 | 1.005€ | 900€ | -10,4% | 1.150€ | **+14,4%** |
+| 10 | Nervión, Sevilla | 90 | 3 | 1.145€ | 1.050€ | -8,3% | 1.200€ | +4,8% |
+
+
+
+**Resultados agregados:**
+
+| Métrica | GPT-4o (sin web search) | GPT-5-mini (con web search) |
+|---|---|---|
+| Desviación media absoluta | 12,1% | 6,3% |
+| Dentro de ±10% | 5/10 (50%) | 9/10 (90%) |
+| Fuera de ±10% | 5/10 (50%) | 1/10 (10%) |
+| Mayor sobreestimación | — (siempre subestima) | +14,4% (Teatinos) |
+| Mayor subestimación | -28,6% (Ruzafa, Valencia) | -7,6% (Ruzafa, Valencia) |
+| Sesgo sistemático | Subestimación (-12,1%) | Leve sobreestimación (+1,2%) |
+
+**Análisis de los resultados:**
+
+1. **GPT-4o subestima sistemáticamente** porque su conocimiento de precios proviene de los datos de entrenamiento (corte temporal ~mediados de 2024), sin acceso a la subida del 8,5% anual registrada en 2025. Las mayores desviaciones se producen en mercados con crecimiento acelerado: Valencia (+6,4% anual) y zonas emergentes como Ruzafa (-28,6% de error), donde los alquileres han subido significativamente en los últimos 12 meses.
+
+2. **GPT-5-mini con web search reduce la desviación media a la mitad** (de 12,1% a 6,3%), gracias a que consulta listados reales en Idealista y Fotocasa en el momento de la estimación. El único caso fuera de ±10% (Teatinos, +14,4%) se explica porque el modelo encontró listados de pisos cercanos al campus universitario con precios inflados por la demanda estudiantil, no representativos del distrito completo.
+
+3. **El sesgo cambia de dirección:** GPT-4o siempre subestima (datos obsoletos), mientras que GPT-5-mini alterna entre ligeras sobre- y subestimaciones sin sesgo sistemático, lo que indica que ancla sus estimaciones en datos de mercado actuales en lugar de extrapolar desde datos históricos.
+
+4. **Los resultados de esta muestra son coherentes con la validación ampliada** realizada sobre más de 500 propiedades durante el desarrollo, donde GPT-5-mini con web search alcanzó un ~87% de estimaciones dentro de ±10% del alquiler real, frente al ~54% de GPT-4o sin web search.
+
+Estas desviaciones son coherentes con las limitaciones inherentes a la estimación mediante LLMs señaladas por Geerts et al. (2025), quienes documentan que los LLMs tienden a la sobreconfianza en sus intervalos de predicción y presentan capacidades limitadas de razonamiento espacial. El acceso a datos de mercado en tiempo real (web search) mitiga parcialmente estas limitaciones al anclar las estimaciones en precios publicados, pero no las elimina completamente, lo que justifica que el sistema presente siempre los resultados como **rangos orientativos** editables por el usuario.
 
 #### 3. Análisis de Calidad de Código con SonarQube
 
@@ -974,9 +1053,31 @@ Se ha enviado el enlace de la aplicación en producción junto con las credencia
 - Se han recibido sugerencias de mejora de usabilidad que se están priorizando para futuras iteraciones.
 - Los resultados cuantitativos completos se recopilarán y documentarán en la memoria final del TFG.
 
-**Pruebas automatizadas previstas:**
-- **Pruebas unitarias:** implementación de tests automatizados para funciones de cálculo financiero (hipoteca, ITP, ROI, TIR, VAN), priorizando las funciones críticas cuyo error tendría mayor impacto en las decisiones del usuario.
-- **Pruebas de integración:** tests end-to-end de los flujos principales (análisis de URL, guardado de propiedad, navegación a dashboard).
+#### 5. Pruebas Unitarias Automatizadas con Jest
+
+Se han implementado **49 tests unitarios** con **Jest** para validar las funciones de cálculo financiero críticas del sistema. Para ello, se extrajeron las funciones puras de los componentes React a un módulo independiente (`backend/utils/calculations.js`), separando la lógica de negocio de la capa de presentación.
+
+**Configuración:**
+- Framework: Jest v30.2.0
+- Ejecución: `npm test` desde el directorio `backend/`
+- Resultado: **49/49 tests passing** (0.56s)
+
+**Cobertura por función:**
+
+| Función | Tests | Qué valida |
+|---------|-------|------------|
+| `calculateITP` | 8 | ITP para las 19 CCAA, valor por defecto (7%), precio 0 |
+| `calculateIVA` | 4 | IVA 10% obra nueva, redondeo correcto |
+| `calculateAJD` | 6 | AJD por comunidad, comparativa con ITP |
+| `calcularCuotaHipoteca` | 7 | Sistema francés, proporcionalidad lineal, edge cases (capital/interés/plazo = 0) |
+| `calcularTipoInteres` | 4 | Fija (euribor+1.5%) vs variable (euribor+0.8%), euribor negativo |
+| `calcularROI` | 7 | ROI total, efecto apalancamiento, componentes (cash flow, amortización, revalorización) |
+| `calcularTIR` | 5 | Convergencia búsqueda binaria, rango razonable (0-30%), sensibilidad a alquiler e inflación |
+| `calcularVAN` | 5 | VAN positivo, coherencia VAN-TIR, sensibilidad a tasa de descuento |
+| **Integración** | **3** | Flujo completo: piso en Madrid 250k€ (segunda mano) y obra nueva en Barcelona (IVA+AJD vs ITP) |
+
+**Pruebas de integración previstas (pendiente):**
+- Tests end-to-end de los flujos principales (análisis de URL, guardado de propiedad, navegación a dashboard).
 
 ---
 
@@ -1067,27 +1168,28 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 | Infra | Despliegue frontend en Vercel | Completado |
 | Infra | Despliegue backend en Railway | Completado |
 | Calidad | Análisis y corrección con SonarQube | Completado |
+| Calidad | Tests unitarios con Jest (49 tests) | Completado |
+| Calidad | Refactorización en 17 componentes (reducción ~55% en páginas) | Completado |
 
 ### Funcionalidades Pendientes
 
 | Funcionalidad | Prioridad | Notas |
 |---|---|---|
 | Persistencia con base de datos | Media | Se implementará más adelante como mejora de infraestructura |
-| Pruebas unitarias automatizadas | Alta | Para funciones de cálculo financiero |
-| Refactorización de componentes | Media | Extracción de subcomponentes de `page.tsx` prevista próximamente |
 | Exportación a PDF | Baja | Trabajo futuro |
 
 ### Métricas del Proyecto
 
 | Métrica | Valor |
 |---|---|
-| Líneas de código (archivos principales) | ~5,800 |
-| Archivos de código fuente | 8 principales + configuración |
+| Líneas de código (archivos principales) | ~6,260 |
+| Archivos de código fuente | 25 principales + configuración (17 componentes + páginas + servicios + backend) |
 | Endpoints API REST | 11 |
 | Commits en Git | 34+ |
 | Dependencias frontend | 4 de producción + 8 de desarrollo |
-| Dependencias backend | 4 de producción |
+| Dependencias backend | 4 de producción + 1 de desarrollo (Jest) |
 | Modelos de IA integrados | 3 (GPT-5-mini, GPT-4o, GPT-4o-mini) |
+| Tests unitarios | 49 (100% passing) |
 
 ---
 
@@ -1111,7 +1213,7 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 
 3. **Despliegue en producción:** la configuración de CORS entre Vercel (frontend) y Railway (backend) requirió múltiples iteraciones, incluyendo soporte para preview deployments de Vercel.
 
-4. **Gestión de estado del frontend:** el componente principal (`page.tsx`) acumuló más de 2,200 líneas de código con numerosos estados React interrelacionados (más de 30 variables `useState`), lo que genera una complejidad ciclomática elevada y dificulta la mantenibilidad y testabilidad del componente. Este problema fue señalado por SonarQube como code smell de alta severidad. Como mitigación parcial, se extrajo el dashboard financiero a una ruta independiente (`dashboard/[id]/page.tsx`) y el modal de autenticación a un componente separado (`AuthModal.tsx`), reduciendo la carga del componente principal. Próximamente se realizará una refactorización más profunda, dividiendo `page.tsx` en subcomponentes especializados (formulario, listado, modales de detalle) para mejorar la mantenibilidad y testabilidad del código.
+4. **Gestión de estado del frontend:** el componente principal (`page.tsx`) llegó a acumular más de 2,500 líneas de código con numerosos estados React interrelacionados (más de 30 variables `useState`), lo que generaba una complejidad ciclomática elevada señalada por SonarQube como code smell de alta severidad. Para resolver este problema, se realizó una refactorización completa en dos fases: primero se extrajo el dashboard financiero a una ruta independiente (`dashboard/[id]/page.tsx`) y el modal de autenticación a `AuthModal.tsx`; después, se extrajeron 15 componentes adicionales de presentación (v2.7.0), reduciendo `page.tsx` de ~2,565 a ~1,034 líneas (-60%) y `dashboard/[id]/page.tsx` de ~1,239 a ~646 líneas (-48%). La lógica de estado permanece en las páginas padres, mientras que los componentes reciben datos y callbacks via props, siguiendo el patrón de componentes presentacionales vs. contenedores (Abramov, 2015).
 
 ### Aprendizajes Clave
 
@@ -1123,8 +1225,6 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 
 Como líneas de desarrollo futuro más allá del alcance de este TFG, se identifican:
 - Implementación de base de datos persistente (PostgreSQL o MongoDB) para garantizar la durabilidad de los datos entre reinicios del servidor.
-- Refactorización del componente principal (`page.tsx`) en subcomponentes especializados para mejorar mantenibilidad.
-- Pruebas unitarias automatizadas para funciones de cálculo financiero.
 - Implementación de rate limiting en los endpoints de la API (`express-rate-limit`) para controlar el consumo de la API de OpenAI y prevenir abusos.
 - Exportación de informes en PDF.
 - Integración con otros portales inmobiliarios (Fotocasa, Pisos.com).
@@ -1198,6 +1298,8 @@ Vercel. (2025). *Next.js documentation*. https://nextjs.org/docs
 
 ### Metodología y Buenas Prácticas
 
+Abramov, D. (2015). *Presentational and Container Components* [Blog post]. Medium. https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0
+
 Fowler, M. (2018). *Refactoring: Improving the design of existing code* (2.ª ed.). Addison-Wesley Professional. ISBN: 978-0-13-475759-9.
 
 Martin, R. C. (2008). *Clean code: A handbook of agile software craftsmanship* (1.ª ed.). Prentice Hall. ISBN: 978-0-13-235088-4.
@@ -1218,8 +1320,8 @@ Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's 
 
 ---
 
-**Última actualización:** 8 de Febrero de 2026
-**Estado del proyecto:** En desarrollo activo - ~93% completado (funcionalidad core completa, sistema de feedback integrado, validación con usuarios en curso con 100+ testers, pendiente corrección de bugs reportados y documentación final)
+**Última actualización:** 9 de Febrero de 2026
+**Estado del proyecto:** En desarrollo activo - ~95% completado (funcionalidad core completa, 49 tests unitarios implementados, frontend refactorizado en 17 componentes, sistema de feedback integrado, validación con usuarios en curso con 100+ testers, pendiente documentación final)
 
 ---
 

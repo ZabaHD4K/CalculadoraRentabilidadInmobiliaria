@@ -1,5 +1,128 @@
 # 📝 Notas de Cambios - RealEstate AI
 
+## Versión 2.7.0 - 9 de Febrero de 2026
+
+### 🏗️ Refactorización del Frontend: Extracción de Componentes
+
+**Cambio principal**: Se ha refactorizado el frontend extrayendo 15 componentes nuevos desde las dos páginas monolíticas (`page.tsx` y `dashboard/[id]/page.tsx`), mejorando significativamente la mantenibilidad, legibilidad y modularidad del código.
+
+#### 🎯 Motivación
+
+SonarQube había señalado la complejidad ciclomática elevada de `page.tsx` (~2,565 líneas) y `dashboard/[id]/page.tsx` (~1,239 líneas) como code smell de alta severidad. La refactorización reduce ambos archivos a ~1,034 y ~646 líneas respectivamente, distribuyendo la presentación en componentes especializados.
+
+#### 📦 Componentes Extraídos
+
+**Desde `page.tsx` (página principal):**
+
+| Componente | Líneas | Responsabilidad |
+|---|---|---|
+| `PageHeader.tsx` | 23 | Cabecera con título y descripción de la app |
+| `AddPropertyButton.tsx` | 19 | Botón para añadir nueva propiedad |
+| `PropertyCard.tsx` | 198 | Tarjeta individual de propiedad con badges de ROI y alquiler |
+| `PropertyList.tsx` | 44 | Listado/grid de tarjetas de propiedades |
+| `AddPropertyModal.tsx` | 300 | Modal de añadir propiedad (formulario + análisis URL) |
+| `DetailsModal.tsx` | 633 | Modal de detalles con 3 paneles (gastos/hipoteca/vivienda) |
+
+**Desde `dashboard/[id]/page.tsx` (dashboard financiero):**
+
+| Componente | Líneas | Responsabilidad |
+|---|---|---|
+| `DashboardHeader.tsx` | 24 | Cabecera del dashboard con nombre de propiedad |
+| `BenefitsCards.tsx` | 34 | Tarjetas de métricas (rentabilidad bruta/neta, cash flow, payback) |
+| `ROIReturnBox.tsx` | 121 | Caja de ROI total con desglose (cash flow + amortización + revalorización) |
+| `SimulationSliders.tsx` | 183 | Sliders interactivos para simulación de escenarios |
+| `ProfitabilityChart.tsx` | 34 | Gráfico de evolución de rentabilidad a 10 años |
+| `ExpenseEditor.tsx` | 309 | Editor de gastos anuales con porcentajes dinámicos |
+| `AmortizationTable.tsx` | 43 | Tabla y gráfico de amortización de hipoteca |
+| `FinancingComparison.tsx` | 81 | Comparativa financiación vs compra al contado |
+| `FloatingSaveButton.tsx` | 42 | Botón flotante de guardado con estados animados |
+
+#### 🔧 Principios de la Refactorización
+
+- **Sin cambios de lógica ni estilos**: solo se extrajo JSX a componentes, sin modificar funcionalidad ni apariencia.
+- **Estado en los padres**: toda la lógica de estado permanece en `page.tsx` y `dashboard/[id]/page.tsx`; los componentes reciben datos y callbacks via props.
+- **Imports actualizados**: `PropertyData` se importa desde `@/services/api` en cada componente. Los imports de Recharts se movieron a los componentes que los usan.
+
+#### 📊 Impacto en Métricas
+
+| Métrica | Antes | Después |
+|---|---|---|
+| `page.tsx` | ~2,565 líneas | ~1,034 líneas (-60%) |
+| `dashboard/[id]/page.tsx` | ~1,239 líneas | ~646 líneas (-48%) |
+| Archivos en `components/` | 2 | 17 (+15 nuevos) |
+| Total líneas frontend | ~4,930 | ~4,623 (código mejor distribuido) |
+
+#### Archivos creados (15):
+- `frontend/src/components/PageHeader.tsx`
+- `frontend/src/components/AddPropertyButton.tsx`
+- `frontend/src/components/PropertyCard.tsx`
+- `frontend/src/components/PropertyList.tsx`
+- `frontend/src/components/AddPropertyModal.tsx`
+- `frontend/src/components/DetailsModal.tsx`
+- `frontend/src/components/DashboardHeader.tsx`
+- `frontend/src/components/BenefitsCards.tsx`
+- `frontend/src/components/ROIReturnBox.tsx`
+- `frontend/src/components/SimulationSliders.tsx`
+- `frontend/src/components/ProfitabilityChart.tsx`
+- `frontend/src/components/ExpenseEditor.tsx`
+- `frontend/src/components/AmortizationTable.tsx`
+- `frontend/src/components/FinancingComparison.tsx`
+- `frontend/src/components/FloatingSaveButton.tsx`
+
+#### Archivos modificados:
+- `frontend/src/app/page.tsx`: Reducido de ~2,565 a ~1,034 líneas (JSX extraído a componentes)
+- `frontend/src/app/dashboard/[id]/page.tsx`: Reducido de ~1,239 a ~646 líneas (JSX extraído a componentes)
+
+---
+
+## Versión 2.6.0 - 9 de Febrero de 2026
+
+### 🧪 Tests Unitarios con Jest y Módulo de Cálculos Financieros
+
+#### 1. Nuevo módulo `backend/utils/calculations.js`
+
+Se han extraído todas las funciones de cálculo financiero que estaban dispersas en componentes React del frontend a un módulo puro de JavaScript en el backend, facilitando su testing y reutilización.
+
+**Funciones incluidas:**
+- `calculateITP(precio, comunidadAutonoma)` — Impuesto de Transmisiones Patrimoniales (19 CCAA)
+- `calculateIVA(precio)` — IVA 10% para obra nueva
+- `calculateAJD(precio, comunidadAutonoma)` — Actos Jurídicos Documentados (19 CCAA)
+- `calcularCuotaHipoteca(capital, interes, plazo)` — Cuota mensual con sistema francés
+- `calcularTipoInteres(tipo, euribor)` — Tipo de interés según hipoteca fija/variable
+- `calcularROI({...})` — ROI total (cash flow + amortización + revalorización)
+- `calcularTIR({...})` — Tasa Interna de Retorno a 30 años (búsqueda binaria)
+- `calcularVAN({...})` — Valor Actual Neto a 30 años
+
+#### 2. Tests unitarios con Jest (`backend/tests/calculations.test.js`)
+
+**49 tests en 8 suites**, todos pasando:
+
+| Suite | Tests | Cobertura |
+|-------|-------|-----------|
+| `calculateITP` | 8 | Todas las CCAA, defaults, precio 0, edge cases |
+| `calculateIVA` | 4 | IVA 10%, redondeo, precio 0 |
+| `calculateAJD` | 6 | Todas las CCAA, comparativa IVA+AJD vs ITP |
+| `calcularCuotaHipoteca` | 7 | Sistema francés, proporcionalidad, plazo, edge cases |
+| `calcularTipoInteres` | 4 | Fija vs variable, euribor negativo |
+| `calcularROI` | 7 | ROI total, apalancamiento, cash flow, revalorización |
+| `calcularTIR` | 5 | Convergencia, rango razonable, sensibilidad |
+| `calcularVAN` | 5 | VAN positivo, coherencia con TIR, tasa descuento |
+| **Integración** | **3** | **Flujo completo Madrid (2ª mano) + Barcelona (obra nueva)** |
+
+#### 3. Sección de contribución actualizada en README
+
+Se ha actualizado la sección de contribución para indicar que no se aceptan contribuciones externas al ser un Trabajo Fin de Grado.
+
+#### Archivos creados:
+- `backend/utils/calculations.js`: Módulo de cálculos financieros puros
+- `backend/tests/calculations.test.js`: 49 tests unitarios
+
+#### Archivos modificados:
+- `backend/package.json`: Añadido Jest como devDependency, script `npm test`
+- `README.md`: Sección de contribución y testing actualizadas
+
+---
+
 ## Versión 2.5.0 - 8 de Febrero de 2026
 
 ### 🔧 Mejora de Gastos de Vivienda con IA + Web Search y Sistema de Feedback
