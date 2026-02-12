@@ -68,8 +68,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Contraseña de acceso (hash SHA-256 almacenado en variable de entorno)
-const crypto = require('crypto');
+// Contraseña de acceso (hash bcrypt almacenado en variable de entorno)
+const bcrypt = require('bcrypt');
 const ACCESS_PASSWORD_HASH = process.env.ACCESS_PASSWORD_HASH;
 if (!ACCESS_PASSWORD_HASH) {
   console.error('⚠️ ACCESS_PASSWORD_HASH no configurado en .env');
@@ -80,7 +80,7 @@ console.log('🔐 Sistema de autenticación habilitado');
 // ==================== AUTHENTICATION ====================
 
 // Endpoint para verificar contraseña
-app.post('/api/verify-password', (req, res) => {
+app.post('/api/verify-password', async (req, res) => {
   try {
     const { password } = req.body;
 
@@ -91,11 +91,10 @@ app.post('/api/verify-password', (req, res) => {
       });
     }
 
-    // Hash de la contraseña proporcionada
-    const inputHash = crypto.createHash('sha256').update(password).digest('hex');
+    // Comparar contraseña con hash bcrypt almacenado
+    const match = await bcrypt.compare(password, ACCESS_PASSWORD_HASH);
 
-    // Comparar con el hash almacenado
-    if (inputHash === ACCESS_PASSWORD_HASH) {
+    if (match) {
       console.log('✅ Acceso concedido');
       return res.json({
         success: true,

@@ -3,7 +3,7 @@
 
 **Autor:** Alejandro Zabaleta
 **Fecha de Inicio:** Curso 2025-2026
-**Última Actualización:** 9 de Febrero de 2026
+**Última Actualización:** 12 de Febrero de 2026
 **Repositorio GitHub:** https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria
 **Universidad:** U-tad
 
@@ -31,7 +31,7 @@
 
 ## RESUMEN EJECUTIVO
 
-**RealEstateAI** es una aplicación web de análisis de inversión inmobiliaria que combina automatización, inteligencia artificial generativa y cálculos financieros para ayudar a inversores a tomar decisiones informadas sobre propiedades de alquiler en el mercado español.
+**RealStateAI** es una aplicación web de análisis de inversión inmobiliaria que combina automatización, inteligencia artificial generativa y cálculos financieros para ayudar a inversores a tomar decisiones informadas sobre propiedades de alquiler en el mercado español.
 
 ### Problema Identificado
 
@@ -146,7 +146,7 @@ Desarrollar una aplicación web que permita a inversores inmobiliarios particula
 - [x] Integrar OpenAI API (GPT-5-mini con web search y GPT-4o) para extracción de datos y estimaciones.
 - [x] Desarrollar sistema de extracción de datos de propiedades desde URLs de Idealista.
 - [x] Implementar API REST completa con CRUD de propiedades.
-- [x] Implementar sistema de autenticación básico con contraseña hasheada (SHA-256).
+- [x] Implementar sistema de autenticación básico con contraseña hasheada (bcrypt).
 - [x] Desplegar frontend en Vercel y backend en Railway.
 - [x] Integrar consulta del Euribor en tiempo real desde la API del Banco de España.
 
@@ -205,7 +205,7 @@ Desarrollar una aplicación web que permita a inversores inmobiliarios particula
 | RNF3 | Usabilidad | Interfaz intuitiva sin necesidad de manual |
 | RNF4 | Usabilidad | Diseño responsive funcional en móviles y tablets |
 | RNF5 | Seguridad | API keys almacenadas en variables de entorno |
-| RNF6 | Seguridad | Contraseña de acceso hasheada (SHA-256) |
+| RNF6 | Seguridad | Contraseña de acceso hasheada (bcrypt) |
 | RNF7 | Seguridad | CORS configurado con validación dinámica de orígenes |
 | RNF8 | Mantenibilidad | Código modular con separación frontend/backend |
 | RNF9 | Mantenibilidad | TypeScript para type-safety en el frontend |
@@ -645,7 +645,7 @@ interface PropertyData {
 ### Estructura Real del Proyecto
 
 ```
-RealEstateAI/
+RealStateAI/
 ├── frontend/                          # Aplicación Next.js 16
 │   ├── src/
 │   │   ├── app/
@@ -871,12 +871,12 @@ Para abordar la complejidad ciclomática señalada por SonarQube, se realizó un
 #### 9. Sistema de Autenticación
 
 Sistema básico de acceso mediante contraseña:
-- Contraseña hasheada con SHA-256 en el backend.
+- Contraseña hasheada con bcrypt en el backend.
 - Verificación mediante endpoint `/api/verify-password`.
 - Estado de sesión almacenado en `sessionStorage` del navegador.
 - Modal de acceso con animaciones (AuthModal.tsx).
 
-**Justificación del uso de SHA-256 frente a bcrypt/scrypt/argon2:** el sistema de autenticación implementado no gestiona credenciales de múltiples usuarios ni almacena datos personales sensibles. Se trata de una contraseña única de acceso a la aplicación, cuyo objetivo es restringir el uso de la herramienta durante la fase de desarrollo y evaluación. En este contexto, SHA-256 ofrece una protección suficiente al evitar el almacenamiento de la contraseña en texto plano, sin introducir la complejidad adicional ni las dependencias externas (como la biblioteca `bcrypt`) que requerirían algoritmos de hashing adaptativo. En un escenario de producción con gestión de usuarios reales, sería necesario migrar a bcrypt o argon2 para proteger contra ataques de fuerza bruta mediante su coste computacional configurable.
+**Justificación del uso de bcrypt:** se utiliza bcrypt como algoritmo de hashing adaptativo para la contraseña de acceso. A diferencia de algoritmos de hashing rápido como SHA-256, bcrypt incorpora un factor de coste configurable (salt rounds) que aumenta deliberadamente el tiempo de cómputo necesario para verificar cada contraseña, lo que lo hace resistente a ataques de fuerza bruta y de diccionario. Aunque el sistema actual gestiona una única contraseña de acceso (no múltiples usuarios), la elección de bcrypt garantiza buenas prácticas de seguridad desde el diseño inicial y facilita una eventual migración a un sistema multiusuario sin necesidad de cambiar el mecanismo de hashing.
 
 #### 10. Patrones Técnicos del Frontend
 
@@ -952,7 +952,7 @@ Para validar la precisión del sistema de estimación de alquileres, se seleccio
 | 9 | Teatinos, Málaga | 75 | 3 | 1.005€ | 900€ | -10,4% | 1.150€ | **+14,4%** |
 | 10 | Nervión, Sevilla | 90 | 3 | 1.145€ | 1.050€ | -8,3% | 1.200€ | +4,8% |
 
-
+ 
 
 **Resultados agregados:**
 
@@ -983,7 +983,7 @@ Durante el desarrollo se integró **SonarQube** para realizar análisis estátic
 
 **Análisis Inicial:**
 ```
-Proyecto: RealEstateAI
+Proyecto: RealStateAI
 Líneas de código: 5,100+
 
 RESULTADOS DEL PRIMER ESCANEO:
@@ -1100,7 +1100,7 @@ El acceso a datos de Idealista presenta riesgos técnicos y legales que deben ab
 
 Krotov, Johnson y Silva (2020) analizan en detalle la legalidad y ética del web scraping, distinguiendo entre diferentes enfoques técnicos y sus implicaciones legales. Es importante distinguir entre web scraping tradicional (peticiones HTTP directas al servidor) y el enfoque utilizado en este proyecto:
 
-- **No se realiza scraping directo:** el backend de RealEstateAI no envía peticiones HTTP a Idealista. Es el servicio de web search de OpenAI el que accede a la página pública.
+- **No se realiza scraping directo:** el backend de RealStateAI no envía peticiones HTTP a Idealista. Es el servicio de web search de OpenAI el que accede a la página pública.
 - **Datos públicos:** las propiedades anunciadas en Idealista son datos accesibles públicamente sin autenticación.
 - **Uso educativo:** el proyecto tiene finalidad académica (TFG) y no comercial.
 - **Volumen mínimo:** se accede a una URL individual por petición del usuario, no se realizan barridos masivos.
@@ -1126,17 +1126,35 @@ Las estimaciones generadas por los modelos LLM (alquiler, gastos) presentan limi
 - El sistema incluye un disclaimer: *"Las estimaciones generadas por IA son orientativas. Se recomienda validar con estudios de mercado profesionales."*
 - Se utiliza temperatura baja (0.2-0.3) para reducir la variabilidad entre invocaciones.
 
-### 3. Protección de Datos y GDPR
+### 3. Pérdida de Datos por Reinicio del Servidor
+
+**Limitación técnica crítica:** el sistema actual almacena todos los datos de propiedades analizadas en memoria RAM del servidor (estructura `Map()` de JavaScript) sin persistencia en base de datos.
+
+**Impacto del reinicio de Railway:**
+
+1. **Cuándo ocurre:** Railway reinicia el contenedor del servidor en los siguientes casos: despliegue de nuevo código, mantenimiento de infraestructura (programado o no programado), actualización de configuración, y agotamiento de recursos (aunque poco probable con el plan actual).
+2. **Qué se pierde:** todas las propiedades guardadas, todos los análisis de rentabilidad realizados, todos los cálculos de hipoteca y cash flow, y el historial de comparaciones entre propiedades.
+3. **Qué se mantiene:** la contraseña de acceso (almacenada como variable de entorno), y la configuración del servidor (código y dependencias).
+
+**Justificación de esta decisión de diseño:**
+
+1. **Alcance del TFG:** el objetivo principal es demostrar la viabilidad técnica de la integración IA + cálculos financieros + arquitectura REST, no crear un sistema de producción enterprise-grade.
+2. **Simplicidad del prototipo:** evitar la complejidad de gestionar bases de datos (configuración, migraciones, backups, conexiones persistentes) permite centrarse en la funcionalidad core.
+3. **Caso de uso real:** los usuarios pueden realizar análisis puntuales, exportar resultados a Excel/PDF (funcionalidad futura), o simplemente anotar manualmente las métricas calculadas. La pérdida de datos es un inconveniente aceptable para un MVP educativo.
+
+**Mitigación propuesta (trabajo futuro):** implementar persistencia con PostgreSQL o MongoDB para garantizar que los datos sobrevivan a reinicios del servidor. Esta funcionalidad se documenta en la sección de Trabajo Futuro como primera prioridad para una versión 2.0 del sistema.
+
+### 4. Protección de Datos y GDPR
 
 **Datos personales tratados actualmente:** solo la contraseña de acceso (hasheada, no almacenada en claro).
 **Datos de propiedades:** almacenados en memoria del servidor (no persisten entre reinicios).
 **Datos enviados a OpenAI:** descripción y características de propiedades (datos públicos de anuncios, no datos personales).
 
-### 4. Ausencia de Rate Limiting
+### 5. Ausencia de Rate Limiting
 
 Actualmente la API no implementa ningún mecanismo de rate limiting (limitación de peticiones por unidad de tiempo). Esto implica que un usuario o un script automatizado podría realizar un número ilimitado de llamadas a los endpoints que consumen la API de OpenAI (`/api/analyze-property`, `/api/estimate-rent`, `/api/calculate-expenses`, `/api/calculate-housing-expenses`), generando costes económicos no controlados en la cuenta de OpenAI del proyecto. En un entorno de producción, sería necesario implementar un middleware de rate limiting (por ejemplo, `express-rate-limit`) que limite el número de peticiones por IP y por ventana temporal. Esta limitación se identifica como mejora prioritaria para el trabajo futuro.
 
-### 5. Uso Responsable de la IA
+### 6. Uso Responsable de la IA
 
 Las estimaciones de la IA se presentan explícitamente como orientativas. El sistema no sustituye el asesoramiento profesional de un agente inmobiliario, asesor fiscal o analista financiero. Las decisiones de inversión son responsabilidad exclusiva del usuario.
 
@@ -1154,7 +1172,7 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 | Backend | API REST completa (11 endpoints) | Completado |
 | Backend | Sistema de feedback → GitHub Issues | Completado |
 | Backend | Consulta Euribor (API Banco de España) | Completado |
-| Backend | Autenticación con contraseña (SHA-256) | Completado |
+| Backend | Autenticación con contraseña (bcrypt) | Completado |
 | Frontend | Setup Next.js 16 + TypeScript + Tailwind | Completado |
 | Frontend | Dashboard principal de propiedades | Completado |
 | Frontend | Formulario de nueva propiedad con análisis automático | Completado |
@@ -1229,6 +1247,106 @@ Como líneas de desarrollo futuro más allá del alcance de este TFG, se identif
 - Exportación de informes en PDF.
 - Integración con otros portales inmobiliarios (Fotocasa, Pisos.com).
 - Posible evolución hacia un modelo freemium si se decide comercializar el producto.
+
+---
+
+## CAPTURAS DE PANTALLA DE LA APLICACIÓN
+
+Las siguientes capturas muestran el flujo completo de uso de RealStateAI en producción, desde la autenticación hasta el análisis financiero avanzado.
+
+### Autenticación
+
+La aplicación implementa un sistema de acceso privado mediante contraseña hasheada con bcrypt, almacenada como variable de entorno en Railway. La pantalla de login incluye animación de fondo con partículas y efecto glassmorphism.
+
+*Figura 1: Pantalla de autenticación — acceso privado con contraseña hasheada (bcrypt)*
+
+### Análisis de URL de Idealista
+
+El modal «Añadir propiedad» permite introducir una URL de Idealista para extraer automáticamente los datos del inmueble mediante GPT-5-mini con web search. La figura 2 muestra el formulario antes del análisis y la figura 3 tras la extracción automática de un piso de 265 m² en Valencia por 1.350.000€.
+
+*Figura 2: Modal «Añadir propiedad» — formulario vacío con campo de URL de Idealista*
+
+*Figura 3: Datos extraídos automáticamente tras análisis de URL con GPT-5-mini (Calle del Comte de Salvatierra, Valencia, 1.350.000€, 265 m², 6 hab.)*
+
+### Configuración de Gastos de Adquisición
+
+El sistema calcula automáticamente el ITP según la comunidad autónoma seleccionada (Valencia: 7%, 33.600€ sobre 480.000€), diferenciando entre obra nueva (IVA+AJD) y segunda mano. Los demás gastos (notaría, registro, comisión de agencia) se estiman como porcentaje del precio y son editables.
+
+*Figura 4: Configuración de costes de adquisición — ITP Valencia calculado automáticamente (7%, 33.600€) con relleno asistido por GPT*
+
+### Dashboard Financiero
+
+El dashboard financiero muestra las métricas clave de la inversión: ROI, cash flow anual, tiempo de recuperación y ganancia total desglosada en sus tres componentes (cash flow, amortización, revalorización). En la figura 5 se aprecia un ROI del 5,25% con payback total de 19 años para un capital invertido de 680.050€.
+
+*Figura 5: Dashboard financiero — ROI 5,25%, Cash Flow 2.070€/año, payback 19 años, ganancia total 35.708€/año*
+
+Los gráficos de evolución proyectada (LineChart a 10 años) y distribución de gastos anuales (PieChart) ofrecen una visión visual de la rentabilidad a largo plazo y del peso de cada componente de gasto.
+
+*Figura 6: Evolución proyectada a 10 años (Cash Flow y Renta Anual) y distribución de gastos anuales (hipoteca 70%, IBI 10%, comunidad 9%)*
+
+### Simulación Interactiva de Escenarios
+
+El panel de simulación permite modificar en tiempo real seis parámetros clave: capital propio (%), plazo de hipoteca, tipo de interés, precio negociable, alquiler mensual e incremento anual del alquiler. Cada cambio recalcula instantáneamente todas las métricas financieras sin recargar la página.
+
+*Figura 7: Panel de simulación interactiva — 6 sliders con recalculo instantáneo (capital 54%, hipoteca 30 años, interés 3,04%, alquiler 3.700€/mes)*
+
+### Tabla de Amortización y Comparativa de Financiación
+
+La tabla de amortización francesa muestra el desglose anual de cuota, intereses, capital amortizado y saldo pendiente para los primeros cinco años. La comparativa con/sin financiación evidencia el efecto del apalancamiento: el ROI mejora de 2,51% (contado) a 5,25% (hipoteca), un incremento de 2,74 puntos porcentuales.
+
+*Figura 8: Tabla de amortización francesa (primeros 5 años) y comparativa con/sin financiación — efecto apalancamiento: +2,74 pp de ROI*
+
+### Vista Principal — Comparativa de Propiedades
+
+La pantalla principal muestra las propiedades guardadas como tarjetas con el ROI codificado por color: verde para inversiones rentables (ROI > umbral) y rojo para las que no alcanzan el mínimo esperado. Esta codificación visual permite comparar de un vistazo el rendimiento relativo de distintos inmuebles.
+
+*Figura 9: Vista principal — tarjetas de propiedades con ROI codificado por color (verde: 6,3% — rentable; rojo: 0,7% — no rentable)*
+
+---
+
+## REGISTRO DIARIO DE TRABAJO
+
+Esta sección recoge el registro cronológico del desarrollo del proyecto, documentando decisiones tomadas, problemas encontrados y cómo se resolvieron. Refleja la evolución real del trabajo semana a semana.
+
+### Semana 1-2 | Enero 2026 — Investigación y Planificación
+
+Inicio del proyecto con investigación del estado del arte en herramientas PropTech españolas. Detectada la brecha de mercado: ninguna herramienta gratuita e integral para el inversor particular.
+
+Decisión tecnológica principal: Next.js 16 + Express (stack JavaScript full-stack) para mantener un único lenguaje en todo el proyecto y facilitar el despliegue.
+
+Primera exploración de la API de OpenAI para extracción de datos. Se plantea inicialmente usar Axios + Cheerio para scraping, pero se detectan los problemas legales y de fragilidad. Primer pivote hacia el enfoque LLM + web search.
+
+### Semana 3-4 | Enero 2026 — Desarrollo Backend
+
+Configuración del servidor Express con los primeros endpoints REST. Primer éxito: extracción de datos de una URL de Idealista usando GPT-4o con un prompt estructurado.
+
+Problema detectado: GPT-4o sin acceso a internet subestima sistemáticamente los alquileres (~12% de error medio). Investigación de alternativas.
+
+Descubrimiento de GPT-5-mini con web_search tool: pruebas iniciales muestran estimaciones mucho más precisas (~6% error). Decisión de migrar a este modelo como principal.
+
+Implementación de la tabla ITP por comunidad autónoma: validación manual contra BOE y boletines autonómicos para las 19 jurisdicciones (17 CCAA + Ceuta + Melilla).
+
+### Semana 1 | Febrero 2026 — Desarrollo Frontend
+
+Setup de Next.js 16 con TypeScript strict mode y Tailwind CSS. Primeros componentes: PropertyCard, AddPropertyModal.
+
+Primer despliegue del frontend en Vercel. Problema inmediato: errores CORS al llamar al backend en Render. Solución: configuración CORS dinámica con soporte para preview deployments de Vercel (subdominios .vercel.app).
+
+Detectado problema crítico con Render (plan gratuito): cold starts de 30-60s que generaban timeouts en las llamadas a GPT-5-mini (que ya tardan 15-60s). Decisión de migrar backend a Railway.
+
+### Semana 2 | Febrero 2026 — Dashboard Financiero y Testing
+
+Implementación del dashboard financiero con Recharts: gráfico LineChart de rentabilidad a 10 años, PieChart de gastos, BarChart de amortización.
+
+El algoritmo TIR requería búsqueda binaria con 200 iteraciones sobre flujos de caja proyectados a 30 años. Primera implementación tenía problemas de convergencia con flujos negativos — solucionado acotando el rango de búsqueda a [-50%, +200%].
+
+Análisis SonarQube inicial: 77 problemas detectados (3 bugs críticos, 5 vulnerabilidades, 65 code smells). API key de OpenAI estaba hardcodeada en el código. Correcciones implementadas en la misma jornada.
+
+Envío del enlace a 100+ testers. Feedback inmediato: la UI era confusa en móvil. Diseño responsive revisado.
+
+**7 de febrero — v2.7.0:** Refactorización completa del frontend en 17 componentes. `page.tsx` reducido de ~2,565 a ~1,034 líneas (-60%). Mantenibilidad SonarQube: C → A.
+
+**12 de febrero — Estado actual:** 49 tests unitarios (100% passing), 100+ testers activos, documentación en progreso. Pendiente: persistencia con base de datos y exportación PDF.
 
 ---
 
@@ -1310,7 +1428,7 @@ Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's 
 
 ## INFORMACIÓN DE CONTACTO Y REPOSITORIO
 
-**Proyecto:** RealEstateAI
+**Proyecto:** RealStateAI
 **Autor:** Alejandro Zabaleta
 **Universidad:** U-tad
 **Curso:** 2025-2026
@@ -1320,7 +1438,7 @@ Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's 
 
 ---
 
-**Última actualización:** 9 de Febrero de 2026
+**Última actualización:** 12 de Febrero de 2026
 **Estado del proyecto:** En desarrollo activo - ~95% completado (funcionalidad core completa, 49 tests unitarios implementados, frontend refactorizado en 17 componentes, sistema de feedback integrado, validación con usuarios en curso con 100+ testers, pendiente documentación final)
 
 ---

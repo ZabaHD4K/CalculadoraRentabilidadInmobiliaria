@@ -198,7 +198,7 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
   - Salida con rotación inversa + expansión (0.6s)
   - Partículas flotantes animadas en el fondo
   - Efecto "shake" al introducir contraseña incorrecta
-- **Seguridad Robusta:** Contraseña hasheada con SHA-256 (nunca en texto plano)
+- **Seguridad Robusta:** Contraseña hasheada con bcrypt (nunca en texto plano)
 - **Diseño Premium:** Gradientes teal/cyan, efectos de brillo, hover dinámico
 
 ### 🤖 Automatización Inteligente
@@ -484,8 +484,8 @@ npm start
 # OpenAI API
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Access Password (SHA-256 hash of your chosen password)
-ACCESS_PASSWORD_HASH=<sha256_hash_of_your_password>
+# Access Password (bcrypt hash of your chosen password)
+ACCESS_PASSWORD_HASH=<bcrypt_hash_of_your_password>
 
 # GitHub Token (para sistema de feedback → crea Issues)
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -658,7 +658,7 @@ POST /api/verify-password
 Content-Type: application/json
 
 {
-  "passwordHash": "<sha256_hash>"
+  "password": "tu_contraseña"
 }
 ```
 
