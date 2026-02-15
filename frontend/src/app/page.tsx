@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor } from "@/services/api";
+import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor, getAuthToken, signOut } from "@/services/api";
 import AuthModal from "@/components/AuthModal";
 import FeedbackButton from "@/components/FeedbackButton";
 import PageHeader from "@/components/PageHeader";
@@ -17,6 +17,7 @@ export default function Home() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -42,10 +43,7 @@ export default function Home() {
   const [consultingEuribor, setConsultingEuribor] = useState(false);
   const [consultingRent, setConsultingRent] = useState(false);
 
-  // Porcentajes para campos calculados
-  const [porcentajeMantenimiento, setPorcentajeMantenimiento] = useState<number>(0.10);
-  const [porcentajeSeguroHogar, setPorcentajeSeguroHogar] = useState<number>(0.01);
-  const [porcentajeSeguroImpago, setPorcentajeSeguroImpago] = useState<number>(5);
+  // mantenimiento, seguroHogar, seguroImpago se editan en € directo (via selectedProperty)
   const [porcentajePeriodosVacantes, setPorcentajePeriodosVacantes] = useState<number>(0.03);
   const [porcentajeSeguroVida, setPorcentajeSeguroVida] = useState<number>(0.20);
   const [edadAsegurado, setEdadAsegurado] = useState<number>(30);
@@ -82,12 +80,10 @@ export default function Home() {
 
   const [idealistaUrl, setIdealistaUrl] = useState("");
 
-  // Verificar autenticación al cargar
+  // Verificar autenticación al cargar (JWT en localStorage)
   useEffect(() => {
-    const authenticated = sessionStorage.getItem('authenticated');
-    if (authenticated === 'true') {
-      setIsAuthenticated(true);
-    }
+    const token = getAuthToken();
+    setIsAuthenticated(!!token);
     setCheckingAuth(false);
   }, []);
 
@@ -124,31 +120,9 @@ export default function Home() {
     };
   }, [isAuthenticated]);
 
-  // Recalcular valores basados en porcentaje cuando cambian los datos relevantes
+  // Recalcular valores basados en porcentaje (solo los que siguen siendo %)
   useEffect(() => {
     if (selectedProperty) {
-      // Mantenimiento: % del precio de la vivienda
-      if (porcentajeMantenimiento > 0 && selectedProperty.precio > 0) {
-        const mantenimientoCalculado = Math.round(selectedProperty.precio * (porcentajeMantenimiento / 100));
-        if (selectedProperty.mantenimiento !== mantenimientoCalculado) {
-          setSelectedProperty(prev => prev ? ({
-            ...prev,
-            mantenimiento: mantenimientoCalculado
-          }) : null);
-        }
-      }
-
-      // Seguro hogar: % del precio de la vivienda
-      if (porcentajeSeguroHogar > 0 && selectedProperty.precio > 0) {
-        const seguroHogarCalculado = Math.round(selectedProperty.precio * (porcentajeSeguroHogar / 100));
-        if (selectedProperty.seguroHogar !== seguroHogarCalculado) {
-          setSelectedProperty(prev => prev ? ({
-            ...prev,
-            seguroHogar: seguroHogarCalculado
-          }) : null);
-        }
-      }
-
       // Periodos vacantes: % del precio de la vivienda
       if (porcentajePeriodosVacantes > 0 && selectedProperty.precio > 0) {
         const periodosVacantesCalculado = Math.round(selectedProperty.precio * (porcentajePeriodosVacantes / 100));
@@ -182,23 +156,8 @@ export default function Home() {
           }) : null);
         }
       }
-
-      // Seguro impago: % de la renta anual
-      if (selectedProperty.alquilerMensual) {
-        const rentaAnual = selectedProperty.alquilerMensual * 12;
-
-        if (porcentajeSeguroImpago > 0) {
-          const seguroImpagoCalculado = Math.round(rentaAnual * (porcentajeSeguroImpago / 100));
-          if (selectedProperty.seguroImpago !== seguroImpagoCalculado) {
-            setSelectedProperty(prev => prev ? ({
-              ...prev,
-              seguroImpago: seguroImpagoCalculado
-            }) : null);
-          }
-        }
-      }
     }
-  }, [selectedProperty?.alquilerMensual, selectedProperty?.precio, capitalPropio, porcentajeMantenimiento, porcentajeSeguroHogar, porcentajeSeguroVida, porcentajeIBI, porcentajeSeguroImpago, porcentajePeriodosVacantes]);
+  }, [selectedProperty?.alquilerMensual, selectedProperty?.precio, capitalPropio, porcentajeSeguroVida, porcentajeIBI, porcentajePeriodosVacantes]);
 
   const loadProperties = async () => {
     const result = await getProperties();
@@ -217,15 +176,11 @@ export default function Home() {
         const updated = result.properties.find((p: PropertyData) => p.id === selectedProperty.id);
         if (updated) {
           setSelectedProperty({ ...updated });
-          // Actualizar también los porcentajes de gastos
+          // Actualizar porcentajes de gastos que siguen en %
           if (updated.precio > 0) {
-            if (updated.mantenimiento) setPorcentajeMantenimiento(Math.round((updated.mantenimiento / updated.precio) * 10000) / 100);
-            if (updated.seguroHogar) setPorcentajeSeguroHogar(Math.round((updated.seguroHogar / updated.precio) * 10000) / 100);
             if (updated.periodosVacantes) setPorcentajePeriodosVacantes(Math.round((updated.periodosVacantes / updated.precio) * 10000) / 100);
             if (updated.ibi) setPorcentajeIBI(Math.round((updated.ibi / updated.precio) * 10000) / 100);
           }
-          const rentaAnual = (updated.alquilerMensual || 0) * 12;
-          if (updated.seguroImpago && rentaAnual > 0) setPorcentajeSeguroImpago(Math.round((updated.seguroImpago / rentaAnual) * 10000) / 100);
           if (updated.capitalPropio) setCapitalPropio(updated.capitalPropio);
           if (updated.plazoHipoteca) setPlazoHipoteca(updated.plazoHipoteca);
           if (updated.tipoInteres) setTipoInteres(updated.tipoInteres);
@@ -425,6 +380,19 @@ export default function Home() {
     }
   };
 
+  const handleDuplicateProperty = async () => {
+    if (!selectedProperty) return;
+    const duplicate: PropertyData = {
+      ...selectedProperty,
+      id: undefined,
+      nombre: `${selectedProperty.nombre} (copia)`,
+    };
+    const result = await saveProperty(duplicate);
+    if (result.success) {
+      await loadProperties();
+    }
+  };
+
   const handleEstimateRent = async (property: PropertyData) => {
     if (!property.id) return;
 
@@ -462,41 +430,13 @@ export default function Home() {
     if (property.cuotaMensual) setCuotaMensual(property.cuotaMensual);
     if (property.tipoHipoteca) setTipoHipoteca(property.tipoHipoteca as 'fija' | 'variable');
 
-    // Inicializar porcentajes basándose en los valores existentes
-    // Mantenimiento: % del precio de la vivienda
-    if (property.precio > 0 && property.mantenimiento) {
-      const porcentajeCalc = (property.mantenimiento / property.precio) * 100;
-      setPorcentajeMantenimiento(Math.round(porcentajeCalc * 100) / 100);
-    } else {
-      setPorcentajeMantenimiento(0.10);
-    }
-
-    // Seguro hogar: % del precio de la vivienda
-    if (property.precio > 0 && property.seguroHogar) {
-      const porcentajeCalc = (property.seguroHogar / property.precio) * 100;
-      setPorcentajeSeguroHogar(Math.round(porcentajeCalc * 100) / 100);
-    } else {
-      setPorcentajeSeguroHogar(0.01);
-    }
-
+    // Inicializar porcentajes para campos que siguen en %
     // Periodos vacantes: % del precio de la vivienda
     if (property.precio > 0 && property.periodosVacantes) {
       const porcentajeCalc = (property.periodosVacantes / property.precio) * 100;
       setPorcentajePeriodosVacantes(Math.round(porcentajeCalc * 100) / 100);
     } else {
       setPorcentajePeriodosVacantes(0.03);
-    }
-
-    const rentaAnual = (property.alquilerMensual || 0) * 12;
-    if (rentaAnual > 0) {
-      if (property.seguroImpago !== null && property.seguroImpago !== undefined) {
-        const porcentajeCalc = (property.seguroImpago / rentaAnual) * 100;
-        setPorcentajeSeguroImpago(Math.round(porcentajeCalc * 10) / 10);
-      } else {
-        setPorcentajeSeguroImpago(5);
-      }
-    } else {
-      setPorcentajeSeguroImpago(5);
     }
 
     // Seguro vida hipoteca: inicializar porcentaje según edad
@@ -573,10 +513,7 @@ export default function Home() {
       setPorcentajeIBI(ibiDetectado.porcentaje);
       const ibiCalculado = Math.round(selectedProperty.precio * (ibiDetectado.porcentaje / 100));
 
-      // Actualizar los porcentajes a los valores recomendados
-      setPorcentajeMantenimiento(0.10);
-      setPorcentajeSeguroHogar(0.01);
-      setPorcentajeSeguroImpago(5);
+      // Actualizar porcentajes que siguen en %
       setPorcentajePeriodosVacantes(0.03);
 
       // Ocultar warnings ya que se están usando los porcentajes recomendados
@@ -925,6 +862,50 @@ export default function Home() {
     <>
       <FeedbackButton />
 
+      {isLoggingOut && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm"
+          style={{ animation: 'bgPulse 0.35s ease-out both' }}
+        >
+          <div
+            className="flex flex-col items-center gap-5"
+            style={{ animation: 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.05s both' }}
+          >
+            <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-500/40">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </div>
+            <p className="text-white text-xl font-semibold" style={{ animation: 'slideUp 0.35s ease-out 0.15s both' }}>
+              Hasta pronto
+            </p>
+            <p className="text-slate-400 text-sm" style={{ animation: 'slideUp 0.35s ease-out 0.25s both' }}>
+              Cerrando sesión...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isAuthenticated && (
+        <button
+          onClick={async () => {
+            setIsLoggingOut(true);
+            await new Promise(r => setTimeout(r, 1000));
+            signOut();
+            setIsAuthenticated(false);
+            setProperties([]);
+            setIsLoggingOut(false);
+          }}
+          className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-3 py-2 bg-slate-800/90 hover:bg-red-900/60 border border-slate-600/60 hover:border-red-500/50 text-slate-400 hover:text-red-400 rounded-xl backdrop-blur-sm transition-all text-xs font-medium shadow-lg group"
+          title="Cerrar sesión"
+        >
+          <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Cerrar sesión
+        </button>
+      )}
+
       {!isAuthenticated && !checkingAuth && (
         <AuthModal onAuthenticated={() => setIsAuthenticated(true)} />
       )}
@@ -987,12 +968,6 @@ export default function Home() {
               setComunidadFilter={setComunidadFilter}
               showComunidadDropdown={showComunidadDropdown}
               setShowComunidadDropdown={setShowComunidadDropdown}
-              porcentajeMantenimiento={porcentajeMantenimiento}
-              setPorcentajeMantenimiento={setPorcentajeMantenimiento}
-              porcentajeSeguroHogar={porcentajeSeguroHogar}
-              setPorcentajeSeguroHogar={setPorcentajeSeguroHogar}
-              porcentajeSeguroImpago={porcentajeSeguroImpago}
-              setPorcentajeSeguroImpago={setPorcentajeSeguroImpago}
               porcentajePeriodosVacantes={porcentajePeriodosVacantes}
               setPorcentajePeriodosVacantes={setPorcentajePeriodosVacantes}
               porcentajeSeguroVida={porcentajeSeguroVida}
@@ -1024,6 +999,7 @@ export default function Home() {
               onCalcularCuota={calcularCuotaHipoteca}
               onSaveDetails={handleSaveDetails}
               onDeleteProperty={handleDeleteProperty}
+              onDuplicateProperty={handleDuplicateProperty}
             />
           )}
         </div>

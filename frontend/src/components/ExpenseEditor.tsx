@@ -7,12 +7,12 @@ interface ExpenseEditorProps {
   setMostrarEditarGastos: (show: boolean) => void;
   comunidadAnual: number;
   setComunidadAnual: (val: number) => void;
-  mantenimientoPct: number;
-  setMantenimientoPct: (val: number) => void;
-  seguroHogarPct: number;
-  setSeguroHogarPct: (val: number) => void;
-  seguroImpagoPct: number;
-  setSeguroImpagoPct: (val: number) => void;
+  mantenimiento: number;
+  setMantenimiento: (val: number) => void;
+  seguroHogar: number;
+  setSeguroHogar: (val: number) => void;
+  seguroImpago: number;
+  setSeguroImpago: (val: number) => void;
   porcentajeIBI: number;
   setPorcentajeIBI: (val: number) => void;
   periodosVacantesPct: number;
@@ -23,9 +23,8 @@ interface ExpenseEditorProps {
   setEdadAsegurado: (edad: number) => void;
   tipoMunicipioIBI: 'pueblo' | 'ciudad_media' | 'gran_ciudad' | 'capital';
   setTipoMunicipioIBI: (val: 'pueblo' | 'ciudad_media' | 'gran_ciudad' | 'capital') => void;
-  mantenimiento: number;
-  seguroHogar: number;
-  seguroImpago: number;
+  precioInmueble: number;
+  rentaAnual: number;
   periodosVacantes: number;
   ibi: number;
   seguroVidaHipoteca: number;
@@ -40,12 +39,12 @@ export default function ExpenseEditor({
   setMostrarEditarGastos,
   comunidadAnual,
   setComunidadAnual,
-  mantenimientoPct,
-  setMantenimientoPct,
-  seguroHogarPct,
-  setSeguroHogarPct,
-  seguroImpagoPct,
-  setSeguroImpagoPct,
+  mantenimiento,
+  setMantenimiento,
+  seguroHogar,
+  setSeguroHogar,
+  seguroImpago,
+  setSeguroImpago,
   porcentajeIBI,
   setPorcentajeIBI,
   periodosVacantesPct,
@@ -56,9 +55,8 @@ export default function ExpenseEditor({
   setEdadAsegurado,
   tipoMunicipioIBI,
   setTipoMunicipioIBI,
-  mantenimiento,
-  seguroHogar,
-  seguroImpago,
+  precioInmueble,
+  rentaAnual,
   periodosVacantes,
   ibi,
   seguroVidaHipoteca,
@@ -67,6 +65,16 @@ export default function ExpenseEditor({
   datosGastos,
   calcularPorcentajeSeguroVida,
 }: ExpenseEditorProps) {
+  // Calcular % equivalente para referencia visual
+  const mantenimientoPctRef = precioInmueble > 0 ? (mantenimiento / precioInmueble) * 100 : 0;
+  const seguroHogarPctRef = precioInmueble > 0 ? (seguroHogar / precioInmueble) * 100 : 0;
+  const seguroImpagoPctRef = rentaAnual > 0 ? (seguroImpago / rentaAnual) * 100 : 0;
+
+  // Rangos máximos en € (basados en los antiguos % máximos)
+  const maxMantenimiento = Math.max(Math.round(precioInmueble * 0.01), 2000); // ~1% del precio
+  const maxSeguroHogar = Math.max(Math.round(precioInmueble * 0.001), 500);   // ~0.1% del precio
+  const maxSeguroImpago = Math.max(Math.round(rentaAnual * 0.10), 1000);       // ~10% de renta
+
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
@@ -112,58 +120,58 @@ export default function ExpenseEditor({
               </div>
             </div>
 
-            {/* Mantenimiento (% del precio) */}
+            {/* Mantenimiento (€ directo) */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">
-                Mantenimiento: <span className="text-teal-400 font-bold">{mantenimientoPct.toFixed(2)}%</span>
-                <span className="text-gray-400 text-xs ml-2">({Math.round(mantenimiento).toLocaleString('es-ES')}€)</span>
+                Mantenimiento anual: <span className="text-teal-400 font-bold">{Math.round(mantenimiento).toLocaleString('es-ES')}€</span>
+                <span className="text-gray-400 text-xs ml-2">({mantenimientoPctRef.toFixed(2)}% del precio)</span>
               </label>
-              <span className="text-xs text-gray-400">% del precio del inmueble</span>
+              <span className="text-xs text-gray-400">Por defecto ~0.10% del precio del inmueble</span>
               <input
                 type="range"
                 min={0}
-                max={1}
-                step={0.01}
-                value={mantenimientoPct}
-                onChange={(e) => setMantenimientoPct(Number(e.target.value))}
+                max={maxMantenimiento}
+                step={10}
+                value={mantenimiento}
+                onChange={(e) => setMantenimiento(Number(e.target.value))}
                 className="w-full h-2 bg-slate-700 rounded-lg cursor-pointer accent-teal-500 mt-2"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>0% del precio</span>
-                <span>1% del precio</span>
+                <span>0€</span>
+                <span>{maxMantenimiento.toLocaleString('es-ES')}€</span>
               </div>
             </div>
 
-            {/* Seguro Hogar (% del precio) */}
+            {/* Seguro Hogar (€ directo) */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">
-                Seguro Hogar: <span className="text-teal-400 font-bold">{seguroHogarPct.toFixed(2)}%</span>
-                <span className="text-gray-400 text-xs ml-2">({Math.round(seguroHogar).toLocaleString('es-ES')}€)</span>
+                Seguro Hogar anual: <span className="text-teal-400 font-bold">{Math.round(seguroHogar).toLocaleString('es-ES')}€</span>
+                <span className="text-gray-400 text-xs ml-2">({seguroHogarPctRef.toFixed(2)}% del precio)</span>
               </label>
-              <span className="text-xs text-gray-400">% del precio del inmueble</span>
+              <span className="text-xs text-gray-400">Por defecto ~0.01% del precio del inmueble</span>
               <input
                 type="range"
                 min={0}
-                max={0.1}
-                step={0.005}
-                value={seguroHogarPct}
-                onChange={(e) => setSeguroHogarPct(Number(e.target.value))}
+                max={maxSeguroHogar}
+                step={5}
+                value={seguroHogar}
+                onChange={(e) => setSeguroHogar(Number(e.target.value))}
                 className="w-full h-2 bg-slate-700 rounded-lg cursor-pointer accent-teal-500 mt-2"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>0% del precio</span>
-                <span>0.1% del precio</span>
+                <span>0€</span>
+                <span>{maxSeguroHogar.toLocaleString('es-ES')}€</span>
               </div>
             </div>
 
-            {/* Seguro Impago (% de la renta anual) */}
+            {/* Seguro Impago (€ directo) */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">
-                Seguro Impago: <span className="text-teal-400 font-bold">{seguroImpagoPct.toFixed(1)}%</span>
-                <span className="text-gray-400 text-xs ml-2">({Math.round(seguroImpago).toLocaleString('es-ES')}€)</span>
+                Seguro Impago anual: <span className="text-teal-400 font-bold">{Math.round(seguroImpago).toLocaleString('es-ES')}€</span>
+                <span className="text-gray-400 text-xs ml-2">({seguroImpagoPctRef.toFixed(1)}% de renta)</span>
               </label>
-              <span className="text-xs text-gray-400">% de la renta anual</span>
-              {seguroImpagoPct === 0 && (
+              <span className="text-xs text-gray-400">Por defecto ~5% de la renta anual</span>
+              {seguroImpago === 0 && (
                 <div className="mb-2 p-2 bg-red-900/30 border border-red-500/50 rounded mt-1">
                   <p className="text-xs text-red-400 font-semibold">
                     Debido a la situacion actual, es MUY RECOMENDABLE tener seguro de impago
@@ -173,15 +181,15 @@ export default function ExpenseEditor({
               <input
                 type="range"
                 min={0}
-                max={10}
-                step={0.1}
-                value={seguroImpagoPct}
-                onChange={(e) => setSeguroImpagoPct(Number(e.target.value))}
+                max={maxSeguroImpago}
+                step={5}
+                value={seguroImpago}
+                onChange={(e) => setSeguroImpago(Number(e.target.value))}
                 className="w-full h-2 bg-slate-700 rounded-lg cursor-pointer accent-teal-500 mt-2"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>0% de renta</span>
-                <span>10% de renta</span>
+                <span>0€</span>
+                <span>{maxSeguroImpago.toLocaleString('es-ES')}€</span>
               </div>
             </div>
 

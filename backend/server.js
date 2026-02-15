@@ -68,51 +68,88 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Contraseña de acceso (hash bcrypt almacenado en variable de entorno)
-const bcrypt = require('bcrypt');
-const ACCESS_PASSWORD_HASH = process.env.ACCESS_PASSWORD_HASH;
-if (!ACCESS_PASSWORD_HASH) {
-  console.error('⚠️ ACCESS_PASSWORD_HASH no configurado en .env');
-}
-console.log('🔐 Sistema de autenticación habilitado');
+const { createClient } = require('@supabase/supabase-js');
 
+// Cliente con service_role: operaciones de base de datos y verificación de tokens
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// Cliente con anon key: operaciones de autenticación (signUp, signIn)
+const supabaseAuth = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+console.log('🔐 Auth con Supabase Auth habilitado');
+console.log('🗄️  Supabase service_role conectado');
+
+// ── Middleware JWT ────────────────────────────────────────────────────────────
+const verifyToken = async (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'No autorizado' });
+  }
+  const { data: { user }, error } = await supabase.auth.getUser(auth.split(' ')[1]);
+  if (error || !user) {
+    return res.status(401).json({ success: false, error: 'Token inválido o expirado' });
+  }
+  req.user = { userId: user.id, email: user.email };
+  next();
+};
 
 // ==================== AUTHENTICATION ====================
 
-// Endpoint para verificar contraseña
-app.post('/api/verify-password', async (req, res) => {
+// Registro de usuario
+app.post('/api/auth/register', async (req, res) => {
   try {
-    const { password } = req.body;
-
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Contraseña requerida'
-      });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 6 caracteres' });
     }
 
-    // Comparar contraseña con hash bcrypt almacenado
-    const match = await bcrypt.compare(password, ACCESS_PASSWORD_HASH);
-
-    if (match) {
-      console.log('✅ Acceso concedido');
-      return res.json({
-        success: true,
-        message: 'Contraseña correcta'
-      });
-    } else {
-      console.log('❌ Intento de acceso fallido');
-      return res.status(401).json({
-        success: false,
-        error: 'Contraseña incorrecta'
-      });
+    const { error } = await supabaseAuth.auth.signUp({ email, password });
+    if (error) {
+      const msg = error.message === 'User already registered'
+        ? 'Este email ya está registrado'
+        : error.message;
+      return res.status(400).json({ success: false, error: msg });
     }
+
+    console.log('✅ Nuevo usuario registrado (pendiente confirmación):', email);
+    res.json({ success: true, message: 'Revisa tu correo para confirmar la cuenta.' });
   } catch (error) {
-    console.error('Error en verificación:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Error al verificar contraseña'
-    });
+    console.error('Error en register:', error.message);
+    res.status(500).json({ success: false, error: 'Error al registrar usuario' });
+  }
+});
+
+// Login de usuario
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
+    }
+
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+    if (error) {
+      let msg = 'Credenciales incorrectas';
+      if (error.message.includes('Email not confirmed')) {
+        msg = 'Debes confirmar tu correo antes de iniciar sesión';
+      }
+      return res.status(401).json({ success: false, error: msg });
+    }
+
+    console.log('✅ Login exitoso:', email);
+    res.json({ success: true, token: data.session.access_token, email: data.user.email });
+  } catch (error) {
+    console.error('Error en login:', error.message);
+    res.status(500).json({ success: false, error: 'Error al iniciar sesión' });
   }
 });
 
@@ -274,126 +311,78 @@ Ejemplo de formato:
   }
 });
 
-// Almacenamiento temporal de propiedades (en memoria)
-let properties = [];
+// ==================== PROPERTIES (Supabase + JWT) ====================
 
-// Endpoint para guardar una propiedad
-app.post('/api/properties', async (req, res) => {
+// Obtener propiedades del usuario autenticado
+app.get('/api/properties', verifyToken, async (req, res) => {
   try {
-    const propertyData = req.body;
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('user_id', req.user.userId)
+      .order('created_at', { ascending: false });
 
-    // Usar el ID existente (si viene del análisis) o generar uno nuevo
-    const property = {
-      id: propertyData.id || Date.now().toString(),
-      ...propertyData,
-      createdAt: new Date().toISOString()
-    };
+    if (error) throw error;
+    res.json({ success: true, properties: data });
+  } catch (error) {
+    console.error('Error al obtener propiedades:', error.message);
+    res.status(500).json({ success: false, error: 'Error al obtener las propiedades' });
+  }
+});
 
-    properties.push(property);
+// Guardar nueva propiedad
+app.post('/api/properties', verifyToken, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .insert({ ...req.body, user_id: req.user.userId })
+      .select()
+      .single();
 
-    console.log('\n=== Propiedad guardada ===');
-    console.log('ID:', property.id);
-    console.log('Nombre:', property.nombre);
-
-    res.json({
-      success: true,
-      property
-    });
-
+    if (error) throw error;
+    console.log('✅ Propiedad guardada:', data.id);
+    res.json({ success: true, property: data });
   } catch (error) {
     console.error('Error al guardar propiedad:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Error al guardar la propiedad',
-      details: error.message
-    });
+    res.status(500).json({ success: false, error: 'Error al guardar la propiedad' });
   }
 });
 
-// Endpoint para obtener todas las propiedades
-app.get('/api/properties', (req, res) => {
-  res.json({
-    success: true,
-    properties
-  });
-});
-
-// Endpoint para eliminar una propiedad
-app.delete('/api/properties/:id', async (req, res) => {
+// Actualizar propiedad (solo si pertenece al usuario)
+app.put('/api/properties/:id', verifyToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const index = properties.findIndex(p => p.id === id);
+    const { data, error } = await supabase
+      .from('properties')
+      .update({ ...req.body, updated_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.userId)
+      .select()
+      .single();
 
-    if (index === -1) {
-      return res.status(404).json({
-        success: false,
-        error: 'Propiedad no encontrada'
-      });
-    }
-
-    // Borrar la propiedad del array
-    properties.splice(index, 1);
-
-    res.json({
-      success: true,
-      message: 'Propiedad eliminada correctamente'
-    });
-
-  } catch (error) {
-    console.error('Error al eliminar propiedad:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Error al eliminar la propiedad',
-      details: error.message
-    });
-  }
-});
-
-// Endpoint para actualizar una propiedad existente
-app.put('/api/properties/:id', (req, res) => {
-  try {
-    const { id } = req.params;
-    const updatedData = req.body;
-    
-    const index = properties.findIndex(p => p.id === id);
-    
-    if (index === -1) {
-      return res.status(404).json({
-        success: false,
-        error: 'Propiedad no encontrada'
-      });
-    }
-    
-    // Actualizar la propiedad manteniendo el ID y createdAt original
-    properties[index] = {
-      ...properties[index],
-      ...updatedData,
-      id: properties[index].id,
-      createdAt: properties[index].createdAt,
-      updatedAt: new Date().toISOString()
-    };
-    
-    console.log('\n=== Propiedad actualizada ===');
-    console.log('ID:', id);
-    console.log('Precio:', properties[index].precio);
-    console.log('Alquiler mensual:', properties[index].alquilerMensual);
-    console.log('Gastos anuales:', properties[index].gastosAnuales);
-    console.log('Capital propio:', properties[index].capitalPropio);
-    console.log('Plazo hipoteca:', properties[index].plazoHipoteca);
-    console.log('Tipo interés:', properties[index].tipoInteres);
-    
-    res.json({
-      success: true,
-      property: properties[index]
-    });
-    
+    if (error) throw error;
+    console.log('✅ Propiedad actualizada:', req.params.id);
+    res.json({ success: true, property: data });
   } catch (error) {
     console.error('Error al actualizar propiedad:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Error al actualizar la propiedad',
-      details: error.message
-    });
+    res.status(500).json({ success: false, error: 'Error al actualizar la propiedad' });
+  }
+});
+
+// Eliminar propiedad (solo si pertenece al usuario)
+app.delete('/api/properties/:id', verifyToken, async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('properties')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.userId);
+
+    if (error) throw error;
+    console.log('✅ Propiedad eliminada:', req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error al eliminar propiedad:', error.message);
+    res.status(500).json({ success: false, error: 'Error al eliminar la propiedad' });
   }
 });
 
@@ -680,57 +669,92 @@ Devuelve SOLO un JSON con estos campos (números enteros, sin símbolos):
 
 RESPONDE SOLO CON EL JSON, sin texto adicional ni markdown.`;
 
-    const response = await openai.responses.create({
-      model: 'gpt-5-mini',
-      input: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      text: {
-        format: {
-          type: 'text'
-        }
-      },
-      reasoning: {
-        effort: 'medium'
-      },
-      tools: [
-        {
-          type: 'web_search'
-        }
-      ],
-      store: true
-    });
+    let housingExpenses;
 
-    let gptResponse;
-    if (response.output_text) {
-      gptResponse = response.output_text;
-    } else if (response.output && response.output.length > 0) {
-      const messageOutput = response.output.find(item => item.type === 'message');
-      if (messageOutput && messageOutput.content && messageOutput.content.length > 0) {
-        gptResponse = messageOutput.content[0].text;
-      } else {
-        gptResponse = null;
+    try {
+      const response = await openai.responses.create({
+        model: 'gpt-5-mini',
+        input: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        text: {
+          format: {
+            type: 'text'
+          }
+        },
+        reasoning: {
+          effort: 'medium'
+        },
+        tools: [
+          {
+            type: 'web_search'
+          }
+        ],
+        store: true
+      });
+
+      let gptResponse;
+      if (response.output_text) {
+        gptResponse = response.output_text;
+      } else if (response.output && response.output.length > 0) {
+        const messageOutput = response.output.find(item => item.type === 'message');
+        if (messageOutput && messageOutput.content && messageOutput.content.length > 0) {
+          gptResponse = messageOutput.content[0].text;
+        } else {
+          gptResponse = null;
+        }
       }
+
+      console.log('Respuesta GPT-5-mini (gastos vivienda):', gptResponse);
+
+      if (!gptResponse) {
+        throw new Error('No se obtuvo respuesta del modelo');
+      }
+
+      // Limpiar respuesta
+      gptResponse = gptResponse.trim();
+      if (gptResponse.startsWith('```json')) {
+        gptResponse = gptResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (gptResponse.startsWith('```')) {
+        gptResponse = gptResponse.replace(/```\n?/g, '');
+      }
+
+      housingExpenses = JSON.parse(gptResponse);
+      console.log('✅ Gastos vivienda con GPT-5-mini + web search exitosa');
+
+    } catch (gpt5Error) {
+      // Fallback a GPT-4o sin web search
+      console.log('⚠️ Fallback a GPT-4o (gastos vivienda):', gpt5Error.message);
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un analista inmobiliario experto en España. Responde SOLO con JSON válido, sin texto adicional ni markdown. Si la ubicación no es reconocible, estima valores razonables basándote en el precio y superficie de la propiedad.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.2,
+        max_completion_tokens: 400
+      });
+
+      let fallbackResponse = completion.choices[0].message.content.trim();
+      if (fallbackResponse.startsWith('```json')) {
+        fallbackResponse = fallbackResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (fallbackResponse.startsWith('```')) {
+        fallbackResponse = fallbackResponse.replace(/```\n?/g, '');
+      }
+
+      housingExpenses = JSON.parse(fallbackResponse);
+      console.log('✅ Gastos vivienda con GPT-4o (fallback) exitosa:', housingExpenses);
     }
-
-    console.log('Respuesta GPT-5-mini (gastos vivienda):', gptResponse);
-
-    if (!gptResponse) {
-      throw new Error('No se obtuvo respuesta del modelo');
-    }
-
-    // Limpiar respuesta
-    gptResponse = gptResponse.trim();
-    if (gptResponse.startsWith('```json')) {
-      gptResponse = gptResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    } else if (gptResponse.startsWith('```')) {
-      gptResponse = gptResponse.replace(/```\n?/g, '');
-    }
-
-    const housingExpenses = JSON.parse(gptResponse);
 
     res.json({
       success: true,

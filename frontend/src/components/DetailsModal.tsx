@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { PropertyData, calculateITP, calculateIVA, ITP_BY_COMUNIDAD } from "@/services/api";
 
 interface DetailsModalProps {
@@ -32,12 +33,7 @@ interface DetailsModalProps {
   setComunidadFilter: (val: string) => void;
   showComunidadDropdown: boolean;
   setShowComunidadDropdown: (show: boolean) => void;
-  porcentajeMantenimiento: number;
-  setPorcentajeMantenimiento: (val: number) => void;
-  porcentajeSeguroHogar: number;
-  setPorcentajeSeguroHogar: (val: number) => void;
-  porcentajeSeguroImpago: number;
-  setPorcentajeSeguroImpago: (val: number) => void;
+  // mantenimiento, seguroHogar, seguroImpago se editan en € directo via selectedProperty
   porcentajePeriodosVacantes: number;
   setPorcentajePeriodosVacantes: (val: number) => void;
   porcentajeSeguroVida: number;
@@ -65,6 +61,7 @@ interface DetailsModalProps {
   onCalcularCuota: () => void;
   onSaveDetails: () => void;
   onDeleteProperty: (id: string) => void;
+  onDuplicateProperty: () => Promise<void>;
 }
 
 export default function DetailsModal(props: DetailsModalProps) {
@@ -82,9 +79,7 @@ export default function DetailsModal(props: DetailsModalProps) {
     showSeguroVidaInfo, setShowSeguroVidaInfo,
     comunidadFilter, setComunidadFilter,
     showComunidadDropdown, setShowComunidadDropdown,
-    porcentajeMantenimiento, setPorcentajeMantenimiento,
-    porcentajeSeguroHogar, setPorcentajeSeguroHogar,
-    porcentajeSeguroImpago, setPorcentajeSeguroImpago,
+    // mantenimiento, seguroHogar, seguroImpago se editan directo en € via selectedProperty
     porcentajePeriodosVacantes, setPorcentajePeriodosVacantes,
     porcentajeSeguroVida, setPorcentajeSeguroVida,
     porcentajeIBI, setPorcentajeIBI,
@@ -96,8 +91,18 @@ export default function DetailsModal(props: DetailsModalProps) {
     onClose, onNavigateToDashboard, onCalculateAllExpenses,
     onEstimateRent, onConsultarEuribor,
     onCapitalPropioChange, onTipoHipotecaChange, onCalcularCuota,
-    onSaveDetails, onDeleteProperty,
+    onSaveDetails, onDeleteProperty, onDuplicateProperty,
   } = props;
+
+  const [editingNombre, setEditingNombre] = useState(false);
+  const [editingPrecio, setEditingPrecio] = useState(false);
+
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateSuccess, setDuplicateSuccess] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -106,7 +111,28 @@ export default function DetailsModal(props: DetailsModalProps) {
         <div className="sticky top-0 bg-slate-800 p-6 border-b border-slate-700 z-10">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2">{selectedProperty.nombre}</h2>
+              {editingNombre ? (
+                <input
+                  autoFocus
+                  type="text"
+                  value={selectedProperty.nombre}
+                  onChange={(e) => setSelectedProperty({ ...selectedProperty, nombre: e.target.value })}
+                  onBlur={() => setEditingNombre(false)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditingNombre(false); }}
+                  className="text-3xl font-bold text-white mb-2 bg-slate-700/80 border border-teal-500/60 rounded-lg px-3 py-1 focus:outline-none focus:border-teal-400 w-full max-w-lg"
+                />
+              ) : (
+                <h2
+                  className="text-3xl font-bold text-white mb-2 cursor-pointer hover:text-teal-300 transition-colors group flex items-center gap-2"
+                  onDoubleClick={() => setEditingNombre(true)}
+                  title="Doble click para editar"
+                >
+                  {selectedProperty.nombre}
+                  <svg className="w-4 h-4 opacity-0 group-hover:opacity-40 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </h2>
+              )}
               <p className="text-gray-400">{selectedProperty.direccion}</p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
@@ -236,8 +262,34 @@ export default function DetailsModal(props: DetailsModalProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                     <label className="block text-sm font-medium text-gray-300 mb-2">Compraventa</label>
-                    <div className="text-3xl font-bold text-white">{selectedProperty.precio.toLocaleString()}€</div>
-                    <p className="text-xs text-gray-400 mt-1">Precio de compra</p>
+                    {editingPrecio ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          autoFocus
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={selectedProperty.precio}
+                          onChange={(e) => setSelectedProperty({ ...selectedProperty, precio: parseInt(e.target.value) || 0 })}
+                          onBlur={() => setEditingPrecio(false)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditingPrecio(false); }}
+                          className="text-2xl font-bold text-white bg-slate-700/80 border border-teal-500/60 rounded-lg px-2 py-1 focus:outline-none focus:border-teal-400 w-full"
+                        />
+                        <span className="text-2xl font-bold text-white">€</span>
+                      </div>
+                    ) : (
+                      <div
+                        className="text-3xl font-bold text-white cursor-pointer hover:text-teal-300 transition-colors group flex items-center gap-2"
+                        onDoubleClick={() => setEditingPrecio(true)}
+                        title="Doble click para editar"
+                      >
+                        {selectedProperty.precio.toLocaleString()}€
+                        <svg className="w-4 h-4 opacity-0 group-hover:opacity-40 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">Precio de compra · doble click para editar</p>
                   </div>
 
                   <div className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-lg border border-slate-700">
@@ -504,26 +556,26 @@ export default function DetailsModal(props: DetailsModalProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Comunidad año</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Comunidad (€/año)</label>
                     <input type="number" value={selectedProperty.comunidadAnual || ''} onChange={(e) => { setComunidadEstimadaIA(false); setSelectedProperty({ ...selectedProperty, comunidadAnual: parseInt(e.target.value) || null }); }} placeholder="600€" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
                     {comunidadEstimadaIA && selectedProperty.comunidadAnual && selectedProperty.comunidadAnual > 0 && <p className="mt-2 text-xs text-amber-400/80">Valor estimado por IA. Se recomienda consultar a la inmobiliaria para obtener el dato real.</p>}
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Mantenimiento (% del precio)</label>
-                    <input type="number" step="0.01" min="0" max="100" value={porcentajeMantenimiento === 0 ? '' : porcentajeMantenimiento} onChange={(e) => { const inputValue = e.target.value; if (inputValue === '') { setPorcentajeMantenimiento(0); setSelectedProperty({ ...selectedProperty, mantenimiento: 0 }); } else { const porcentaje = parseFloat(inputValue); setPorcentajeMantenimiento(porcentaje); const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100)); setSelectedProperty({ ...selectedProperty, mantenimiento: valorCalculado }); } }} placeholder="0.10%" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
-                    <p className="mt-2 text-xs text-gray-400">💡 Valor calculado: {selectedProperty.mantenimiento?.toLocaleString() || '0'}€ ({porcentajeMantenimiento}% del precio)</p>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Mantenimiento anual (€/año)</label>
+                    <input type="number" step="10" min="0" value={selectedProperty.mantenimiento || ''} onChange={(e) => { const val = parseInt(e.target.value) || 0; setSelectedProperty({ ...selectedProperty, mantenimiento: val }); }} placeholder="150€" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    <p className="mt-2 text-xs text-gray-400">💡 Por defecto ~0.10% del precio ({Math.round(selectedProperty.precio * 0.001).toLocaleString()}€/año)</p>
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Hogar (% del precio)</label>
-                    <input type="number" step="0.01" min="0" max="100" value={porcentajeSeguroHogar === 0 ? '' : porcentajeSeguroHogar} onChange={(e) => { const inputValue = e.target.value; if (inputValue === '') { setPorcentajeSeguroHogar(0); setSelectedProperty({ ...selectedProperty, seguroHogar: 0 }); } else { const porcentaje = parseFloat(inputValue); setPorcentajeSeguroHogar(porcentaje); const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100)); setSelectedProperty({ ...selectedProperty, seguroHogar: valorCalculado }); } }} placeholder="0.01%" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
-                    <p className="mt-2 text-xs text-gray-400">💡 Valor calculado: {selectedProperty.seguroHogar?.toLocaleString() || '0'}€ ({porcentajeSeguroHogar}% del precio)</p>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Hogar anual (€/año)</label>
+                    <input type="number" step="5" min="0" value={selectedProperty.seguroHogar || ''} onChange={(e) => { const val = parseInt(e.target.value) || 0; setSelectedProperty({ ...selectedProperty, seguroHogar: val }); }} placeholder="15€" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    <p className="mt-2 text-xs text-gray-400">💡 Por defecto ~0.01% del precio ({Math.round(selectedProperty.precio * 0.0001).toLocaleString()}€/año)</p>
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-300">Seguro Vida Hipoteca</label>
+                      <label className="block text-sm font-medium text-gray-300">Seguro Vida Hipoteca (€/año)</label>
                       <button type="button" onClick={() => setShowSeguroVidaInfo(!showSeguroVidaInfo)} className="p-1.5 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 text-blue-300 rounded-lg transition-all flex items-center gap-1 text-xs font-medium">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </button>
@@ -539,7 +591,7 @@ export default function DetailsModal(props: DetailsModalProps) {
                     <div className="flex items-center gap-3 bg-slate-700/30 rounded-lg p-2.5">
                       <div className="flex-1"><span className="text-xs text-gray-400">Tarifa</span><p className="text-lg font-bold text-blue-400">{porcentajeSeguroVida}%</p></div>
                       <div className="w-px h-8 bg-slate-600"></div>
-                      <div className="flex-1"><span className="text-xs text-gray-400">Coste anual</span><p className="text-lg font-bold text-white">{selectedProperty.seguroVidaHipoteca?.toLocaleString() || '0'}€</p></div>
+                      <div className="flex-1"><span className="text-xs text-gray-400">Coste anual</span><p className="text-lg font-bold text-white">{selectedProperty.seguroVidaHipoteca?.toLocaleString() || '0'}€/año</p></div>
                     </div>
                     <p className="mt-1.5 text-[10px] text-gray-500">Calculado sobre el importe financiado: {Math.max(0, calcularCostoTotal() - capitalPropio).toLocaleString()}€</p>
                     <div className={`overflow-hidden ${showSeguroVidaInfo ? 'max-h-[300px] opacity-100 mt-3 scale-100' : 'max-h-0 opacity-0 mt-0 scale-[0.97]'}`} style={{ transformOrigin: 'top center', transition: showSeguroVidaInfo ? 'max-height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease-out, margin 0.5s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'max-height 0.9s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s ease-in, margin 0.6s ease, transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -556,26 +608,25 @@ export default function DetailsModal(props: DetailsModalProps) {
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Impago (%)</label>
-                    <input type="number" step="0.1" min="0" max="100" value={porcentajeSeguroImpago === 0 ? '' : porcentajeSeguroImpago} onChange={(e) => { const inputValue = e.target.value; if (inputValue === '') { setPorcentajeSeguroImpago(0); setSelectedProperty({ ...selectedProperty, seguroImpago: 0 }); setShowSeguroImpagoWarning(false); } else { const porcentaje = parseFloat(inputValue); setPorcentajeSeguroImpago(porcentaje); const rentaAnual = (selectedProperty.alquilerMensual || 0) * 12; const valorCalculado = Math.round(rentaAnual * (porcentaje / 100)); setSelectedProperty({ ...selectedProperty, seguroImpago: valorCalculado }); setShowSeguroImpagoWarning(porcentaje < 5 && porcentaje > 0); } }} placeholder="5%" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Seguro Impago anual (€/año)</label>
+                    <input type="number" step="5" min="0" value={selectedProperty.seguroImpago || ''} onChange={(e) => { const val = parseInt(e.target.value) || 0; setSelectedProperty({ ...selectedProperty, seguroImpago: val }); const rentaAnual = (selectedProperty.alquilerMensual || 0) * 12; setShowSeguroImpagoWarning(val > 0 && rentaAnual > 0 && (val / rentaAnual) < 0.05); }} placeholder={`${Math.round((selectedProperty.alquilerMensual || 0) * 12 * 0.05)}€`} className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
                     {selectedProperty.alquilerMensual ? (
                       <>
-                        <p className="mt-2 text-xs text-gray-400">💡 Valor calculado: {selectedProperty.seguroImpago?.toLocaleString() || '0'}€ ({porcentajeSeguroImpago}% de la renta anual)</p>
-                        <p className="mt-1 text-xs text-gray-500">Recomendado: 5% = {Math.round(selectedProperty.alquilerMensual * 12 * 0.05).toLocaleString()}€</p>
+                        <p className="mt-2 text-xs text-gray-400">💡 Por defecto ~5% de la renta anual ({Math.round(selectedProperty.alquilerMensual * 12 * 0.05).toLocaleString()}€/año)</p>
                       </>
                     ) : (
-                      <p className="mt-2 text-xs text-yellow-400">⚠️ Primero debes establecer el Alquiler Mensual para calcular este valor</p>
+                      <p className="mt-2 text-xs text-yellow-400">⚠️ Primero debes establecer el Alquiler Mensual para calcular el valor recomendado</p>
                     )}
                     <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showSeguroImpagoWarning ? 'max-h-12 opacity-100 mt-1.5' : 'max-h-0 opacity-0'}`}>
                       <div className="flex items-center gap-1 px-2 py-1 bg-red-900/20 border border-red-500/30 rounded">
                         <svg className="w-3 h-3 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        <p className="text-[10px] text-red-300 leading-tight">⚠️ Muy recomendado contratar seguro de impago (mínimo 5%)</p>
+                        <p className="text-[10px] text-red-300 leading-tight">⚠️ Muy recomendado contratar seguro de impago (mínimo ~{Math.round((selectedProperty.alquilerMensual || 0) * 12 * 0.05).toLocaleString()}€)</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-1">IBI (% del precio)</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">IBI anual (% del precio)</label>
                     <p className="text-[10px] text-gray-500 mb-2">Detectado automáticamente desde la dirección. Puedes cambiarlo.</p>
                     <div className="grid grid-cols-2 gap-1.5 mb-3">
                       {([
@@ -590,24 +641,24 @@ export default function DetailsModal(props: DetailsModalProps) {
                     <div className="flex items-center gap-3 bg-slate-700/30 rounded-lg p-2.5">
                       <div className="flex-1"><span className="text-xs text-gray-400">Tarifa</span><p className="text-lg font-bold text-teal-400">{porcentajeIBI}%</p></div>
                       <div className="w-px h-8 bg-slate-600"></div>
-                      <div className="flex-1"><span className="text-xs text-gray-400">IBI anual</span><p className="text-lg font-bold text-white">{selectedProperty.ibi?.toLocaleString() || '0'}€</p></div>
+                      <div className="flex-1"><span className="text-xs text-gray-400">IBI anual</span><p className="text-lg font-bold text-white">{selectedProperty.ibi?.toLocaleString() || '0'}€/año</p></div>
                     </div>
                   </div>
 
                   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Periodos Vacantes (% del precio)</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Periodos Vacantes anual (% del precio)</label>
                     <input type="number" step="0.01" min="0" max="100" value={porcentajePeriodosVacantes === 0 ? '' : porcentajePeriodosVacantes} onChange={(e) => { const inputValue = e.target.value; if (inputValue === '') { setPorcentajePeriodosVacantes(0); setSelectedProperty({ ...selectedProperty, periodosVacantes: 0 }); } else { const porcentaje = parseFloat(inputValue); setPorcentajePeriodosVacantes(porcentaje); const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100)); setSelectedProperty({ ...selectedProperty, periodosVacantes: valorCalculado }); } }} placeholder="0.03%" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
-                    <p className="mt-2 text-xs text-gray-400">💡 Valor calculado: {selectedProperty.periodosVacantes?.toLocaleString() || '0'}€ ({porcentajePeriodosVacantes}% del precio)</p>
+                    <p className="mt-2 text-xs text-gray-400">💡 Valor anual: {selectedProperty.periodosVacantes?.toLocaleString() || '0'}€/año ({porcentajePeriodosVacantes}% del precio)</p>
                   </div>
                 </div>
 
                 <div className="mt-6 bg-gradient-to-r from-orange-900/30 to-red-900/30 border border-orange-500/50 rounded-xl p-6">
                   <h4 className="text-lg font-semibold text-white mb-2">Total Gastos Anuales</h4>
                   <p className="text-3xl font-bold text-orange-400">
-                    {((selectedProperty.comunidadAnual || 0) + (selectedProperty.mantenimiento || 0) + (selectedProperty.seguroHogar || 0) + (selectedProperty.seguroVidaHipoteca || 0) + (selectedProperty.seguroImpago || 0) + (selectedProperty.ibi || 0) + (selectedProperty.periodosVacantes || 0)).toLocaleString()}€
+                    {((selectedProperty.comunidadAnual || 0) + (selectedProperty.mantenimiento || 0) + (selectedProperty.seguroHogar || 0) + (selectedProperty.seguroVidaHipoteca || 0) + (selectedProperty.seguroImpago || 0) + (selectedProperty.ibi || 0) + (selectedProperty.periodosVacantes || 0)).toLocaleString()}€/año
                   </p>
                   <p className="text-sm text-gray-400 mt-2">
-                    Mensual: {Math.round(((selectedProperty.comunidadAnual || 0) + (selectedProperty.mantenimiento || 0) + (selectedProperty.seguroHogar || 0) + (selectedProperty.seguroVidaHipoteca || 0) + (selectedProperty.seguroImpago || 0) + (selectedProperty.ibi || 0) + (selectedProperty.periodosVacantes || 0)) / 12).toLocaleString()}€
+                    Equivalente mensual: {Math.round(((selectedProperty.comunidadAnual || 0) + (selectedProperty.mantenimiento || 0) + (selectedProperty.seguroHogar || 0) + (selectedProperty.seguroVidaHipoteca || 0) + (selectedProperty.seguroImpago || 0) + (selectedProperty.ibi || 0) + (selectedProperty.periodosVacantes || 0)) / 12).toLocaleString()}€/mes
                   </p>
                 </div>
               </div>
@@ -619,8 +670,25 @@ export default function DetailsModal(props: DetailsModalProps) {
             <button onClick={onSaveDetails} disabled={loading} className="flex-1 px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? 'Guardando...' : 'Guardar Cambios'}
             </button>
-            <button onClick={(e) => { e.stopPropagation(); if (confirm("¿Estás seguro de eliminar esta propiedad?")) { onDeleteProperty(selectedProperty.id!); onClose(); } }} className="px-6 py-3 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 text-red-400 rounded-lg font-semibold transition-all whitespace-nowrap">
-              Eliminar Propiedad
+            <button
+              onClick={() => setShowDuplicateConfirm(true)}
+              disabled={duplicating || duplicateSuccess}
+              className="px-6 py-3 bg-indigo-900/30 hover:bg-indigo-900/50 border border-indigo-500/30 text-indigo-400 hover:text-indigo-300 rounded-lg font-semibold transition-all whitespace-nowrap flex items-center gap-2 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Duplicar
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={deleting || deleteSuccess}
+              className="px-6 py-3 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 text-red-400 hover:text-red-300 rounded-lg font-semibold transition-all whitespace-nowrap flex items-center gap-2 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Eliminar
             </button>
             <button onClick={onClose} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-all">
               Cancelar
@@ -628,6 +696,281 @@ export default function DetailsModal(props: DetailsModalProps) {
           </div>
         </div>
       </div>
+
+      {/* Overlay de confirmación de duplicado */}
+      <div
+        className={`fixed inset-0 z-[70] flex items-center justify-center transition-all duration-300 ${
+          showDuplicateConfirm ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => { if (!duplicating) setShowDuplicateConfirm(false); }}
+      >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div
+          className={`relative bg-gradient-to-br from-slate-800 via-slate-800 to-indigo-900/30 border border-indigo-500/40 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-indigo-500/10 transition-all duration-500 ${
+            showDuplicateConfirm ? 'scale-100 translate-y-0' : 'scale-90 translate-y-8'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Estado: Éxito */}
+          {duplicateSuccess ? (
+            <div className="flex flex-col items-center text-center">
+              {/* Animación de check */}
+              <div className="relative w-24 h-24 mb-4">
+                <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-[bounceIn_0.5s_ease-out]">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeDasharray: 30, strokeDashoffset: 0, animation: 'draw 0.6s ease-out forwards' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Propiedad duplicada</h3>
+              <p className="text-gray-400 text-sm mb-6">La copia se ha creado correctamente</p>
+              <button
+                onClick={() => { setShowDuplicateConfirm(false); setDuplicateSuccess(false); onClose(); }}
+                className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
+              >
+                Perfecto
+              </button>
+            </div>
+          ) : duplicating ? (
+            /* Estado: Duplicando */
+            <div className="flex flex-col items-center text-center py-4">
+              {/* Animación de duplicación: dos tarjetas */}
+              <div className="relative w-32 h-24 mb-6">
+                {/* Tarjeta original */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-16 bg-slate-700 border border-slate-500 rounded-lg shadow-lg flex items-center justify-center animate-[slideLeft_0.8s_ease-out_forwards]">
+                  <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+                {/* Tarjeta duplicada */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-16 bg-indigo-900/60 border border-indigo-400/50 rounded-lg shadow-lg shadow-indigo-500/20 flex items-center justify-center animate-[slideRight_0.8s_ease-out_forwards] opacity-0" style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}>
+                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+                {/* Partículas */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                  {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-1.5 h-1.5 bg-indigo-400 rounded-full opacity-0"
+                      style={{
+                        animation: `particle 1s ease-out ${0.5 + i * 0.08}s forwards`,
+                        transform: `rotate(${deg}deg) translateY(0px)`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">Duplicando propiedad...</h3>
+              <p className="text-gray-400 text-sm">Creando una copia exacta</p>
+            </div>
+          ) : (
+            /* Estado: Confirmación */
+            <>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-indigo-500/20 border border-indigo-500/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Duplicar propiedad</h3>
+                  <p className="text-sm text-gray-400">Se creará una copia con todos los datos</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 mb-6">
+                <p className="text-sm text-gray-300">
+                  Se va a duplicar <span className="text-indigo-400 font-semibold">{selectedProperty.nombre}</span> con todos sus datos de adquisición, hipoteca y gastos de vivienda.
+                </p>
+                <p className="text-xs text-gray-500 mt-2">La copia se creará con el nombre &quot;{selectedProperty.nombre} (copia)&quot;</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    setDuplicating(true);
+                    await new Promise(r => setTimeout(r, 1200));
+                    await onDuplicateProperty();
+                    setDuplicating(false);
+                    setDuplicateSuccess(true);
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Confirmar duplicado
+                </button>
+                <button
+                  onClick={() => setShowDuplicateConfirm(false)}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Overlay de confirmación de eliminación */}
+      <div
+        className={`fixed inset-0 z-[70] flex items-center justify-center transition-all duration-300 ${
+          showDeleteConfirm ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => { if (!deleting) setShowDeleteConfirm(false); }}
+      >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div
+          className={`relative bg-gradient-to-br from-slate-800 via-slate-800 to-red-900/20 border border-red-500/40 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-red-500/10 transition-all duration-500 ${
+            showDeleteConfirm ? 'scale-100 translate-y-0' : 'scale-90 translate-y-8'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Estado: Éxito */}
+          {deleteSuccess ? (
+            <div className="flex flex-col items-center text-center">
+              <div className="relative w-24 h-24 mb-4">
+                <div className="absolute inset-0 bg-red-500/20 rounded-full animate-ping" style={{ animationDuration: '1.5s' }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg shadow-red-500/30 animate-[bounceIn_0.5s_ease-out]">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ strokeDasharray: 30, strokeDashoffset: 0, animation: 'draw 0.6s ease-out forwards' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Propiedad eliminada</h3>
+              <p className="text-gray-400 text-sm mb-6">Se ha eliminado correctamente</p>
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteSuccess(false); onClose(); }}
+                className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
+              >
+                Cerrar
+              </button>
+            </div>
+          ) : deleting ? (
+            /* Estado: Eliminando */
+            <div className="flex flex-col items-center text-center py-4">
+              <div className="relative w-28 h-24 mb-6">
+                {/* Tarjeta que se desintegra */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-16 bg-slate-700 border border-red-500/40 rounded-lg shadow-lg flex items-center justify-center animate-[shrinkAway_1s_ease-in_forwards]">
+                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+                {/* Partículas rojas que se dispersan */}
+                {[
+                  { x: 35, y: 0 }, { x: 25, y: 25 }, { x: 0, y: 35 }, { x: -25, y: 25 },
+                  { x: -35, y: 0 }, { x: -25, y: -25 }, { x: 0, y: -35 }, { x: 25, y: -25 },
+                ].map((pos, i) => (
+                  <div
+                    key={i}
+                    className="absolute left-1/2 top-1/2 w-2 h-2 rounded-full"
+                    style={{
+                      background: i % 2 === 0 ? '#ef4444' : '#f97316',
+                      animation: `explode-${i} 0.9s ease-out ${0.4 + i * 0.05}s forwards`,
+                      opacity: 0,
+                      ['--tx' as string]: `${pos.x}px`,
+                      ['--ty' as string]: `${pos.y}px`,
+                    }}
+                  />
+                ))}
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">Eliminando propiedad...</h3>
+              <p className="text-gray-400 text-sm">Borrando todos los datos</p>
+            </div>
+          ) : (
+            /* Estado: Confirmación */
+            <>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Eliminar propiedad</h3>
+                  <p className="text-sm text-red-400/80">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+
+              <div className="bg-red-950/30 border border-red-500/20 rounded-xl p-4 mb-6">
+                <p className="text-sm text-gray-300">
+                  Se va a eliminar <span className="text-red-400 font-semibold">{selectedProperty.nombre}</span> permanentemente, incluyendo todos sus datos de adquisición, hipoteca y gastos.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    await new Promise(r => setTimeout(r, 1100));
+                    onDeleteProperty(selectedProperty.id!);
+                    setDeleting(false);
+                    setDeleteSuccess(true);
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Sí, eliminar
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes slideLeft {
+          from { transform: translate(-50%, -50%) translateX(0); }
+          to { transform: translate(-50%, -50%) translateX(-14px); }
+        }
+        @keyframes slideRight {
+          from { transform: translate(-50%, -50%) translateX(0); opacity: 0; }
+          to { transform: translate(-50%, -50%) translateX(14px); opacity: 1; }
+        }
+        @keyframes particle {
+          0% { opacity: 1; transform: rotate(var(--deg)) translateY(0px) scale(1); }
+          100% { opacity: 0; transform: rotate(var(--deg)) translateY(-30px) scale(0); }
+        }
+        @keyframes bounceIn {
+          0% { transform: scale(0); }
+          50% { transform: scale(1.15); }
+          100% { transform: scale(1); }
+        }
+        @keyframes draw {
+          from { stroke-dashoffset: 30; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes shrinkAway {
+          0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+          40% { transform: translate(-50%, -50%) scale(1.05) rotate(-2deg); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(0) rotate(8deg); opacity: 0; }
+        }
+        @keyframes explode-0 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(calc(-50% + 35px), -50%) scale(0); opacity:0; } }
+        @keyframes explode-1 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(calc(-50% + 25px), calc(-50% + 25px)) scale(0); opacity:0; } }
+        @keyframes explode-2 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(-50%, calc(-50% + 35px)) scale(0); opacity:0; } }
+        @keyframes explode-3 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(calc(-50% - 25px), calc(-50% + 25px)) scale(0); opacity:0; } }
+        @keyframes explode-4 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(calc(-50% - 35px), -50%) scale(0); opacity:0; } }
+        @keyframes explode-5 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(calc(-50% - 25px), calc(-50% - 25px)) scale(0); opacity:0; } }
+        @keyframes explode-6 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(-50%, calc(-50% - 35px)) scale(0); opacity:0; } }
+        @keyframes explode-7 { 0% { transform: translate(-50%,-50%) scale(1); opacity:1; } 100% { transform: translate(calc(-50% + 25px), calc(-50% - 25px)) scale(0); opacity:0; } }
+      `}</style>
     </div>
   );
 }

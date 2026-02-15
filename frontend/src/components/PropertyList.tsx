@@ -15,7 +15,7 @@ interface PropertyListProps {
 
 export default function PropertyList({ properties, calculateROI, onOpenDetails, onDeleteProperty }: PropertyListProps) {
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       {properties.length === 0 ? (
         <div className="text-center py-16">
           <svg className="w-24 h-24 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,7 +27,7 @@ export default function PropertyList({ properties, calculateROI, onOpenDetails, 
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {properties.map((property) => (
             <PropertyCard
               key={`${property.id}-${property.precio}-${property.alquilerMensual}-${property.gastosAnuales}-${property.capitalPropio}`}

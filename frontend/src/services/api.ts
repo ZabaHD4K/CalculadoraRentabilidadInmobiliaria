@@ -1,5 +1,60 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+// ─── JWT helpers ──────────────────────────────────────────────────────────────
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('authToken');
+}
+
+function authHeaders(): HeadersInit {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+export async function signUp(email: string, password: string): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const res = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    return await res.json();
+  } catch {
+    return { success: false, error: 'Error de conexión' };
+  }
+}
+
+export async function signIn(email: string, password: string): Promise<{ success: boolean; token?: string; email?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      localStorage.setItem('authToken', data.token);
+    }
+    return data;
+  } catch {
+    return { success: false, error: 'Error de conexión' };
+  }
+}
+
+export function signOut(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('authToken');
+  }
+}
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
+
 export interface ApiResponse {
   success: boolean;
   response?: string;
@@ -79,58 +134,198 @@ export interface PropertiesResponse {
   message?: string;
 }
 
+// ─── Mapeo camelCase ↔ snake_case ────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toDbRow(property: PropertyData): Record<string, any> {
+  return {
+    nombre: property.nombre,
+    direccion: property.direccion,
+    precio: property.precio,
+    superficie: property.superficie,
+    habitaciones: property.habitaciones,
+    banos: property.banos,
+    descripcion: property.descripcion,
+    caracteristicas: property.caracteristicas,
+    imagenes: property.imagenes,
+    estado: property.estado,
+    tipo_propiedad: property.tipoPropiedad,
+    piso_ocupado: property.pisoOcupado ?? false,
+    piso_alquilado: property.pisoAlquilado ?? false,
+    notas_adicionales: property.notasAdicionales ?? null,
+    url_imagen: property.urlImagen ?? null,
+    comunidad_autonoma: property.comunidadAutonoma ?? null,
+    es_obra_nueva: property.esObraNueva ?? false,
+    alquiler_mensual: property.alquilerMensual ?? null,
+    alquiler_estimado: property.alquilerEstimado ?? null,
+    alquiler_justificacion: property.alquilerJustificacion ?? null,
+    alquiler_confianza: property.alquilerConfianza ?? null,
+    gastos_anuales: property.gastosAnuales ?? null,
+    itp: property.itp ?? null,
+    iva: property.iva ?? null,
+    ajd: property.ajd ?? null,
+    notaria_compra: property.notariaCompra ?? null,
+    registro_compra: property.registroCompra ?? null,
+    reforma: property.reforma ?? null,
+    comision_agencia: property.comisionAgencia ?? null,
+    gestoria_hipoteca: property.gestoriaHipoteca ?? null,
+    tasacion: property.tasacion ?? null,
+    comision_apertura: property.comisionApertura ?? null,
+    ibi: property.ibi ?? null,
+    comunidad_anual: property.comunidadAnual ?? null,
+    mantenimiento: property.mantenimiento ?? null,
+    seguro_hogar: property.seguroHogar ?? null,
+    seguro_vida_hipoteca: property.seguroVidaHipoteca ?? null,
+    seguro_impago: property.seguroImpago ?? null,
+    intereses_hipoteca: property.interesesHipoteca ?? null,
+    periodos_vacantes: property.periodosVacantes ?? null,
+    capital_propio: property.capitalPropio ?? null,
+    plazo_hipoteca: property.plazoHipoteca ?? null,
+    tipo_interes: property.tipoInteres ?? null,
+    cuota_mensual: property.cuotaMensual ?? null,
+    tipo_hipoteca: property.tipoHipoteca ?? null,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fromDbRow(row: Record<string, any>): PropertyData {
+  return {
+    id: row.id,
+    nombre: row.nombre ?? '',
+    direccion: row.direccion ?? '',
+    precio: row.precio ?? 0,
+    superficie: row.superficie ?? 0,
+    habitaciones: row.habitaciones ?? 0,
+    banos: row.banos ?? 0,
+    descripcion: row.descripcion ?? '',
+    caracteristicas: row.caracteristicas ?? [],
+    imagenes: row.imagenes ?? [],
+    estado: row.estado ?? 'disponible',
+    tipoPropiedad: row.tipo_propiedad ?? 'piso',
+    pisoOcupado: row.piso_ocupado ?? false,
+    pisoAlquilado: row.piso_alquilado ?? false,
+    notasAdicionales: row.notas_adicionales ?? undefined,
+    urlImagen: row.url_imagen ?? undefined,
+    createdAt: row.created_at ?? undefined,
+    comunidadAutonoma: row.comunidad_autonoma ?? undefined,
+    esObraNueva: row.es_obra_nueva ?? false,
+    alquilerMensual: row.alquiler_mensual ?? null,
+    alquilerEstimado: row.alquiler_estimado ?? null,
+    alquilerJustificacion: row.alquiler_justificacion ?? null,
+    alquilerConfianza: row.alquiler_confianza ?? null,
+    gastosAnuales: row.gastos_anuales ?? null,
+    itp: row.itp ?? null,
+    iva: row.iva ?? null,
+    ajd: row.ajd ?? null,
+    notariaCompra: row.notaria_compra ?? null,
+    registroCompra: row.registro_compra ?? null,
+    reforma: row.reforma ?? null,
+    comisionAgencia: row.comision_agencia ?? null,
+    gestoriaHipoteca: row.gestoria_hipoteca ?? null,
+    tasacion: row.tasacion ?? null,
+    comisionApertura: row.comision_apertura ?? null,
+    ibi: row.ibi ?? null,
+    comunidadAnual: row.comunidad_anual ?? null,
+    mantenimiento: row.mantenimiento ?? null,
+    seguroHogar: row.seguro_hogar ?? null,
+    seguroVidaHipoteca: row.seguro_vida_hipoteca ?? null,
+    seguroImpago: row.seguro_impago ?? null,
+    interesesHipoteca: row.intereses_hipoteca ?? null,
+    periodosVacantes: row.periodos_vacantes ?? null,
+    capitalPropio: row.capital_propio ?? null,
+    plazoHipoteca: row.plazo_hipoteca ?? null,
+    tipoInteres: row.tipo_interes ?? null,
+    cuotaMensual: row.cuota_mensual ?? null,
+    tipoHipoteca: row.tipo_hipoteca ?? null,
+  };
+}
+
+// ─── CRUD de propiedades (via Express + JWT) ──────────────────────────────────
+
+export async function getProperties(): Promise<PropertiesResponse> {
+  try {
+    const res = await fetch(`${API_URL}/api/properties`, {
+      headers: authHeaders(),
+    });
+    const data = await res.json();
+    if (!data.success) return { success: false, error: data.error };
+    return { success: true, properties: (data.properties || []).map(fromDbRow) };
+  } catch {
+    return { success: false, error: 'Error al obtener las propiedades' };
+  }
+}
+
+export async function saveProperty(propertyData: PropertyData): Promise<PropertiesResponse> {
+  try {
+    const res = await fetch(`${API_URL}/api/properties`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(toDbRow(propertyData)),
+    });
+    const data = await res.json();
+    if (!data.success) return { success: false, error: data.error };
+    return { success: true, property: fromDbRow(data.property) };
+  } catch {
+    return { success: false, error: 'Error al guardar la propiedad' };
+  }
+}
+
+export async function updateProperty(propertyData: PropertyData): Promise<PropertiesResponse> {
+  try {
+    if (!propertyData.id) return { success: false, error: 'ID de propiedad requerido' };
+    const res = await fetch(`${API_URL}/api/properties/${propertyData.id}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(toDbRow(propertyData)),
+    });
+    const data = await res.json();
+    if (!data.success) return { success: false, error: data.error };
+    return { success: true, property: fromDbRow(data.property) };
+  } catch {
+    return { success: false, error: 'Error al actualizar la propiedad' };
+  }
+}
+
+export async function deleteProperty(id: string): Promise<PropertiesResponse> {
+  try {
+    const res = await fetch(`${API_URL}/api/properties/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await res.json();
+    return data;
+  } catch {
+    return { success: false, error: 'Error al eliminar la propiedad' };
+  }
+}
+
+// ─── Funciones de IA (siguen en Express) ─────────────────────────────────────
+
 export async function sendQueryToGPT(text: string): Promise<ApiResponse> {
   try {
-    console.log('Enviando a:', `${API_URL}/api/test`);
-    console.log('Texto:', text);
-
     const response = await fetch(`${API_URL}/api/test`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
-
-    console.log('Response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error response:', errorText);
-      return {
-        success: false,
-        error: `Error del servidor: ${response.status}`,
-        details: errorText,
-      };
+      return { success: false, error: `Error del servidor: ${response.status}`, details: errorText };
     }
-
-    const data = await response.json();
-    console.log('Respuesta:', data);
-    return data;
+    return await response.json();
   } catch (error) {
-    console.error('Error en fetch:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-      details: error instanceof Error ? error.message : 'Error desconocido',
-    };
+    return { success: false, error: 'Error al conectar con el servidor', details: error instanceof Error ? error.message : 'Error desconocido' };
   }
 }
 
 export async function analyzeProperty(url: string): Promise<AnalyzePropertyResponse> {
   try {
-    console.log('Analizando propiedad:', url);
-    console.log('Esto puede tardar 30-60 segundos...');
-
-    // Crear un AbortController para timeout manual
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutos
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
 
     const response = await fetch(`${API_URL}/api/analyze-property`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
       signal: controller.signal,
     });
@@ -139,143 +334,15 @@ export async function analyzeProperty(url: string): Promise<AnalyzePropertyRespo
 
     if (!response.ok) {
       const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || 'Error al analizar la propiedad',
-        details: errorData.details,
-      };
+      return { success: false, error: errorData.error || 'Error al analizar la propiedad', details: errorData.details };
     }
 
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
-    console.error('Error en analyzeProperty:', error);
-
     if (error instanceof Error && error.name === 'AbortError') {
-      return {
-        success: false,
-        error: 'La solicitud tardó demasiado tiempo (timeout después de 2 minutos)',
-        details: 'El análisis de la propiedad excedió el tiempo límite',
-      };
+      return { success: false, error: 'La solicitud tardó demasiado tiempo (timeout después de 2 minutos)', details: 'El análisis de la propiedad excedió el tiempo límite' };
     }
-
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-      details: error instanceof Error ? error.message : 'Error desconocido',
-    };
-  }
-}
-
-export async function saveProperty(propertyData: PropertyData): Promise<PropertiesResponse> {
-  try {
-    const response = await fetch(`${API_URL}/api/properties`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(propertyData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || 'Error al guardar la propiedad',
-      };
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en saveProperty:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-    };
-  }
-}
-
-export async function updateProperty(propertyData: PropertyData): Promise<PropertiesResponse> {
-  try {
-    if (!propertyData.id) {
-      return {
-        success: false,
-        error: 'ID de propiedad requerido para actualizar',
-      };
-    }
-
-    const response = await fetch(`${API_URL}/api/properties/${propertyData.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(propertyData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || 'Error al actualizar la propiedad',
-      };
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en updateProperty:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-    };
-  }
-}
-
-export async function getProperties(): Promise<PropertiesResponse> {
-  try {
-    const response = await fetch(`${API_URL}/api/properties`);
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: 'Error al obtener las propiedades',
-      };
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en getProperties:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-    };
-  }
-}
-
-export async function deleteProperty(id: string): Promise<PropertiesResponse> {
-  try {
-    const response = await fetch(`${API_URL}/api/properties/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || 'Error al eliminar la propiedad',
-      };
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en deleteProperty:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-    };
+    return { success: false, error: 'Error al conectar con el servidor', details: error instanceof Error ? error.message : 'Error desconocido' };
   }
 }
 
@@ -294,28 +361,17 @@ export async function estimateRent(propertyData: PropertyData): Promise<Estimate
   try {
     const response = await fetch(`${API_URL}/api/estimate-rent`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(propertyData),
     });
-
     if (!response.ok) {
       const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || 'Error al estimar el alquiler',
-      };
+      return { success: false, error: errorData.error || 'Error al estimar el alquiler' };
     }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en estimateRent:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-    };
+    return await response.json();
+  } catch (err) {
+    console.error('Error en estimateRent:', err);
+    return { success: false, error: 'Error al conectar con el servidor' };
   }
 }
 
@@ -329,28 +385,17 @@ export async function calculateExpenses(propertyData: PropertyData): Promise<Cal
   try {
     const response = await fetch(`${API_URL}/api/calculate-expenses`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(propertyData),
     });
-
     if (!response.ok) {
       const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || 'Error al calcular gastos',
-      };
+      return { success: false, error: errorData.error || 'Error al calcular gastos' };
     }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en calculateExpenses:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-    };
+    return await response.json();
+  } catch (err) {
+    console.error('Error en calculateExpenses:', err);
+    return { success: false, error: 'Error al conectar con el servidor' };
   }
 }
 
@@ -358,32 +403,47 @@ export async function calculateHousingExpenses(propertyData: PropertyData): Prom
   try {
     const response = await fetch(`${API_URL}/api/calculate-housing-expenses`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(propertyData),
     });
-
     if (!response.ok) {
       const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || 'Error al calcular gastos de vivienda',
-      };
+      return { success: false, error: errorData.error || 'Error al calcular gastos de vivienda' };
     }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en calculateHousingExpenses:', error);
-    return {
-      success: false,
-      error: 'Error al conectar con el servidor',
-    };
+    return await response.json();
+  } catch (err) {
+    console.error('Error en calculateHousingExpenses:', err);
+    return { success: false, error: 'Error al conectar con el servidor' };
   }
 }
 
-// Tabla de ITP por comunidad autónoma (2024)
+export async function getEuribor(): Promise<{ success: boolean; euribor: number; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/euribor`);
+    const data = await response.json();
+    return { success: data.success, euribor: data.euribor, error: data.error };
+  } catch (err) {
+    console.error('Error en getEuribor:', err);
+    return { success: false, euribor: 2.5, error: 'Error de conexión' };
+  }
+}
+
+export async function sendFeedback(data: { tipo: string; mensaje: string; email?: string }): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (err) {
+    console.error('Error en sendFeedback:', err);
+    return { success: false, error: 'Error de conexión' };
+  }
+}
+
+// ─── Cálculos de impuestos (locales) ─────────────────────────────────────────
+
 export const ITP_BY_COMUNIDAD: { [key: string]: number } = {
   'Andalucía': 7,
   'Aragón': 8,
@@ -407,16 +467,15 @@ export const ITP_BY_COMUNIDAD: { [key: string]: number } = {
 };
 
 export function calculateITP(precio: number, comunidadAutonoma: string): number {
-  const porcentaje = ITP_BY_COMUNIDAD[comunidadAutonoma] || 7; // Default 7%
+  const porcentaje = ITP_BY_COMUNIDAD[comunidadAutonoma] || 7;
   return Math.round((precio * porcentaje) / 100);
 }
 
 export function calculateIVA(precio: number): number {
-  return Math.round((precio * 10) / 100); // IVA 10% para vivienda
+  return Math.round((precio * 10) / 100);
 }
 
 export function calculateAJD(precio: number, comunidadAutonoma: string): number {
-  // AJD varía entre 0.5% y 1.5% según la comunidad autónoma
   const porcentajes: { [key: string]: number } = {
     'Andalucía': 1.2,
     'Aragón': 1.5,
@@ -440,40 +499,4 @@ export function calculateAJD(precio: number, comunidadAutonoma: string): number 
   };
   const porcentaje = porcentajes[comunidadAutonoma] || 1;
   return Math.round((precio * porcentaje) / 100);
-}
-
-// Obtener el Euribor actual desde GPT
-export async function getEuribor(): Promise<{ success: boolean; euribor: number; error?: string }> {
-  try {
-    const response = await fetch(`${API_URL}/api/euribor`);
-    const data = await response.json();
-
-    return {
-      success: data.success,
-      euribor: data.euribor,
-      error: data.error
-    };
-  } catch (error) {
-    console.error('Error al obtener Euribor:', error);
-    return {
-      success: false,
-      euribor: 2.5, // Valor de fallback
-      error: 'Error de conexión'
-    };
-  }
-}
-
-// Enviar feedback como GitHub Issue
-export async function sendFeedback(data: { tipo: string; mensaje: string; email?: string }): Promise<{ success: boolean; error?: string }> {
-  try {
-    const response = await fetch(`${API_URL}/api/feedback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return await response.json();
-  } catch (error) {
-    console.error('Error al enviar feedback:', error);
-    return { success: false, error: 'Error de conexión' };
-  }
 }

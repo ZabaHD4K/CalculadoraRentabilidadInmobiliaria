@@ -13,6 +13,7 @@ import ExpenseEditor from "@/components/ExpenseEditor";
 import AmortizationTable from "@/components/AmortizationTable";
 import FinancingComparison from "@/components/FinancingComparison";
 import FloatingSaveButton from "@/components/FloatingSaveButton";
+import { generatePDF, PDFReportData } from "@/utils/generatePDF";
 
 export default function FinancialDashboard() {
   const router = useRouter();
@@ -34,10 +35,10 @@ export default function FinancialDashboard() {
   // Estados para gastos editables (en euros para valores fijos)
   const [comunidadAnual, setComunidadAnual] = useState(0);
 
-  // Estados para gastos en porcentajes (misma lógica que la parte simple)
-  const [mantenimientoPct, setMantenimientoPct] = useState(0.10); // % del precio inmueble
-  const [seguroHogarPct, setSeguroHogarPct] = useState(0.01); // % del precio inmueble
-  const [seguroImpagoPct, setSeguroImpagoPct] = useState(5.0); // % de la renta anual
+  // Estados para gastos en euros (el % solo define el valor inicial por defecto)
+  const [mantenimiento, setMantenimiento] = useState(0);
+  const [seguroHogar, setSeguroHogar] = useState(0);
+  const [seguroImpago, setSeguroImpago] = useState(0);
   const [periodosVacantesPct, setPeriodosVacantesPct] = useState(0.03); // % del precio inmueble
   const [porcentajeIBI, setPorcentajeIBI] = useState(0.30); // % del precio según municipio
   const [tipoMunicipioIBI, setTipoMunicipioIBI] = useState<'pueblo' | 'ciudad_media' | 'gran_ciudad' | 'capital'>('ciudad_media');
@@ -54,7 +55,11 @@ export default function FinancialDashboard() {
   const [cambiosGuardados, setCambiosGuardados] = useState(false);
 
   useEffect(() => {
-    loadProperty();
+    if (!localStorage.getItem('authToken')) {
+      router.push('/');
+    } else {
+      loadProperty();
+    }
   }, [propertyId]);
 
   const handleGuardarCambios = async () => {
@@ -63,27 +68,22 @@ export default function FinancialDashboard() {
     setGuardando(true);
     
     try {
-      // Calcular valores desde porcentajes (misma lógica que page.tsx)
-      const mantenimientoCalc = (mantenimientoPct / 100) * precioInmueble;
-      const seguroHogarCalc = (seguroHogarPct / 100) * precioInmueble;
-      const rentaAnual = alquilerMensualSimulado * 12;
-      const seguroImpago = (seguroImpagoPct / 100) * rentaAnual;
+      // Calcular valores que siguen usando porcentajes
       const periodosVacantesCalc = (periodosVacantesPct / 100) * precioInmueble;
       const ibiCalc = (porcentajeIBI / 100) * precioInmueble;
       const importeHipoteca = Math.max(0, precioTotal - capitalPropio);
       const seguroVidaCalc = Math.round(importeHipoteca * (porcentajeSeguroVida / 100));
 
-      // Calcular gastosAnuales
+      // Calcular gastosAnuales (mantenimiento, seguroHogar, seguroImpago son directos en €)
       const gastosAnualesCalculados =
         comunidadAnual +
-        mantenimientoCalc +
-        seguroHogarCalc +
+        mantenimiento +
+        seguroHogar +
         seguroVidaCalc +
         seguroImpago +
         ibiCalc +
         periodosVacantesCalc;
 
-      // Actualizar la propiedad con todos los valores editados
       const updatedProperty: PropertyData = {
         ...property,
         precio: precioInmueble,
@@ -92,9 +92,9 @@ export default function FinancialDashboard() {
         plazoHipoteca: plazoHipoteca,
         tipoInteres: tipoInteres,
         comunidadAnual: comunidadAnual,
-        seguroHogar: Math.round(seguroHogarCalc),
+        seguroHogar: Math.round(seguroHogar),
         ibi: Math.round(ibiCalc),
-        mantenimiento: Math.round(mantenimientoCalc),
+        mantenimiento: Math.round(mantenimiento),
         seguroImpago: Math.round(seguroImpago),
         periodosVacantes: Math.round(periodosVacantesCalc),
         seguroVidaHipoteca: seguroVidaCalc,
@@ -162,17 +162,14 @@ export default function FinancialDashboard() {
           // Inicializar gastos fijos
           setComunidadAnual(foundProperty.comunidadAnual || 0);
 
-          // Calcular porcentajes iniciales desde los valores guardados (misma lógica que page.tsx)
+          // Inicializar gastos en € (si guardados, usar esos; si no, calcular desde % por defecto)
           const rentaAnual = (foundProperty.alquilerMensual || 0) * 12;
-          if (foundProperty.mantenimiento && foundProperty.precio > 0) {
-            setMantenimientoPct(Math.round((foundProperty.mantenimiento / foundProperty.precio) * 10000) / 100);
-          }
-          if (foundProperty.seguroHogar && foundProperty.precio > 0) {
-            setSeguroHogarPct(Math.round((foundProperty.seguroHogar / foundProperty.precio) * 10000) / 100);
-          }
-          if (foundProperty.seguroImpago && rentaAnual > 0) {
-            setSeguroImpagoPct(Math.round((foundProperty.seguroImpago / rentaAnual) * 10000) / 100);
-          }
+          const defaultMantenimiento = (0.10 / 100) * foundProperty.precio;
+          const defaultSeguroHogar = (0.01 / 100) * foundProperty.precio;
+          const defaultSeguroImpago = (5.0 / 100) * rentaAnual;
+          setMantenimiento(foundProperty.mantenimiento || Math.round(defaultMantenimiento));
+          setSeguroHogar(foundProperty.seguroHogar || Math.round(defaultSeguroHogar));
+          setSeguroImpago(foundProperty.seguroImpago || Math.round(defaultSeguroImpago));
           if (foundProperty.periodosVacantes && foundProperty.precio > 0) {
             setPeriodosVacantesPct(Math.round((foundProperty.periodosVacantes / foundProperty.precio) * 10000) / 100);
           }
@@ -267,10 +264,7 @@ export default function FinancialDashboard() {
   const alquilerMensual = alquilerMensualSimulado;
   const rentaAnual = alquilerMensual * 12;
 
-  // Calcular gastos desde porcentajes (misma lógica que page.tsx)
-  const mantenimiento = (mantenimientoPct / 100) * precioInmueble;
-  const seguroHogar = (seguroHogarPct / 100) * precioInmueble;
-  const seguroImpago = (seguroImpagoPct / 100) * rentaAnual;
+  // mantenimiento, seguroHogar, seguroImpago son estados directos en €
   const periodosVacantes = (periodosVacantesPct / 100) * precioInmueble;
   const ibi = (porcentajeIBI / 100) * precioInmueble;
   const importeFinanciado = Math.max(0, precioTotal - capitalPropio);
@@ -547,6 +541,67 @@ export default function FinancialDashboard() {
 
   const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
+  // Exportar PDF
+  const handleExportPDF = () => {
+    const reportData: PDFReportData = {
+      nombre: property.nombre,
+      direccion: property.direccion,
+      precio: precioInmueble,
+      superficie: property.superficie,
+      habitaciones: property.habitaciones,
+      banos: property.banos,
+      tipoPropiedad: property.tipoPropiedad,
+      estado: property.estado,
+      descripcion: property.descripcion,
+      caracteristicas: property.caracteristicas,
+      alquilerMensual,
+      rentaAnual,
+      itp: property.itp || 0,
+      iva: property.iva || 0,
+      notariaCompra: property.notariaCompra || 0,
+      registroCompra: property.registroCompra || 0,
+      comisionAgencia: property.comisionAgencia || 0,
+      gestoriaHipoteca: property.gestoriaHipoteca || 0,
+      tasacion: property.tasacion || 0,
+      comisionApertura: property.comisionApertura || 0,
+      reforma: property.reforma || 0,
+      gastosAdquisicion,
+      precioTotal,
+      capitalPropio,
+      capitalFinanciado,
+      plazoHipoteca,
+      tipoInteres,
+      cuotaMensualHipoteca,
+      cuotaAnualHipoteca,
+      comunidadAnual,
+      mantenimiento,
+      seguroHogar,
+      seguroVidaHipoteca,
+      seguroImpago,
+      ibi,
+      periodosVacantes,
+      gastosAnuales,
+      cashFlowAnual,
+      cashFlowMensual,
+      rentabilidadBruta,
+      rentabilidadNeta,
+      roiSimple,
+      roi,
+      gananciaTotal,
+      amortizacionAnual,
+      revalorizacionAnual,
+      paybackPeriod,
+      tir,
+      van,
+      inflacion,
+      incrementoAlquiler,
+      tablaAmortizacion,
+      evolucionRentabilidad,
+      datosGastos,
+      comparativa,
+    };
+    generatePDF(reportData);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
@@ -556,6 +611,7 @@ export default function FinancialDashboard() {
           propertyName={property.nombre}
           propertyAddress={property.direccion}
           onBack={() => { window.location.href = '/'; }}
+          onExportPDF={handleExportPDF}
         />
 
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
@@ -603,12 +659,12 @@ export default function FinancialDashboard() {
             setMostrarEditarGastos={setMostrarEditarGastos}
             comunidadAnual={comunidadAnual}
             setComunidadAnual={setComunidadAnual}
-            mantenimientoPct={mantenimientoPct}
-            setMantenimientoPct={setMantenimientoPct}
-            seguroHogarPct={seguroHogarPct}
-            setSeguroHogarPct={setSeguroHogarPct}
-            seguroImpagoPct={seguroImpagoPct}
-            setSeguroImpagoPct={setSeguroImpagoPct}
+            mantenimiento={mantenimiento}
+            setMantenimiento={setMantenimiento}
+            seguroHogar={seguroHogar}
+            setSeguroHogar={setSeguroHogar}
+            seguroImpago={seguroImpago}
+            setSeguroImpago={setSeguroImpago}
             porcentajeIBI={porcentajeIBI}
             setPorcentajeIBI={setPorcentajeIBI}
             periodosVacantesPct={periodosVacantesPct}
@@ -619,9 +675,8 @@ export default function FinancialDashboard() {
             setEdadAsegurado={setEdadAsegurado}
             tipoMunicipioIBI={tipoMunicipioIBI}
             setTipoMunicipioIBI={setTipoMunicipioIBI}
-            mantenimiento={mantenimiento}
-            seguroHogar={seguroHogar}
-            seguroImpago={seguroImpago}
+            precioInmueble={precioInmueble}
+            rentaAnual={rentaAnual}
             periodosVacantes={periodosVacantes}
             ibi={ibi}
             seguroVidaHipoteca={seguroVidaHipoteca}
