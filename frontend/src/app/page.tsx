@@ -42,6 +42,12 @@ export default function Home() {
   const [showSeguroImpagoWarning, setShowSeguroImpagoWarning] = useState(false);
   const [consultingEuribor, setConsultingEuribor] = useState(false);
   const [consultingRent, setConsultingRent] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null);
+
+  const showToast = (msg: string, type: 'error' | 'success' = 'error') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // mantenimiento, seguroHogar, seguroImpago se editan en € directo (via selectedProperty)
   const [porcentajePeriodosVacantes, setPorcentajePeriodosVacantes] = useState<number>(0.03);
@@ -163,13 +169,6 @@ export default function Home() {
     const result = await getProperties();
     if (result.success && result.properties) {
       setProperties(result.properties);
-      console.log('🏠 Propiedades cargadas:', result.properties.map(p => ({
-        nombre: p.nombre,
-        precio: p.precio,
-        alquilerMensual: p.alquilerMensual,
-        gastosAnuales: p.gastosAnuales,
-        capitalPropio: p.capitalPropio
-      })));
 
       // Sincronizar selectedProperty si está abierto el modal de detalles
       if (selectedProperty?.id) {
@@ -319,18 +318,6 @@ export default function Home() {
     const gananciaTotal = cashFlowAnual + amortizacionAnual + revalorizacionAnual;
     const roi = (gananciaTotal / capitalInvertido) * 100;
 
-    console.log(`📊 ROI calculado para ${property.nombre}:`, {
-      ingresosAnuales,
-      gastosAnuales,
-      capitalInvertido,
-      inversionTotal,
-      cashFlowAnual: Math.round(cashFlowAnual),
-      amortizacionAnual: Math.round(amortizacionAnual),
-      revalorizacionAnual: Math.round(revalorizacionAnual),
-      gananciaTotal: Math.round(gananciaTotal),
-      roi: roi.toFixed(2) + '%'
-    });
-
     return { value: roi, status: 'calculated' };
   };
 
@@ -352,7 +339,7 @@ export default function Home() {
         urlImagen: result.data.imagenes && result.data.imagenes.length > 0 ? result.data.imagenes[0] : "",
       });
     } else {
-      alert(`Error: ${result.error}`);
+      showToast(`Error: ${result.error}`);
     }
 
     setAnalyzingUrl(false);
@@ -367,7 +354,7 @@ export default function Home() {
       setShowModal(false);
       resetForm();
     } else {
-      alert(`Error: ${result.error}`);
+      showToast(`Error: ${result.error}`);
     }
 
     setLoading(false);
@@ -412,7 +399,7 @@ export default function Home() {
           : p
       ));
     } else {
-      alert(`Error: ${result.error}`);
+      showToast(`Error: ${result.error}`);
     }
 
     setEstimatingRent(null);
@@ -463,7 +450,7 @@ export default function Home() {
     if (!selectedProperty) return;
 
     if (!selectedProperty.alquilerMensual || selectedProperty.alquilerMensual <= 0) {
-      alert('⚠️ Debes rellenar el precio de alquiler mensual antes de usar el cálculo automático con GPT.');
+      showToast('Debes rellenar el precio de alquiler mensual antes de usar el cálculo automático con GPT.');
       return;
     }
 
@@ -474,7 +461,7 @@ export default function Home() {
       const purchaseResult = await calculateExpenses(selectedProperty);
 
       if (!purchaseResult.success || !purchaseResult.expenses) {
-        alert(`Error al calcular gastos de compra: ${purchaseResult.error}`);
+        showToast(`Error al calcular gastos de compra: ${purchaseResult.error}`);
         setCalculatingExpenses(false);
         return;
       }
@@ -496,7 +483,7 @@ export default function Home() {
       const housingResult = await calculateHousingExpenses(selectedProperty);
 
       if (!housingResult.success || !housingResult.expenses) {
-        alert(`Error al calcular gastos de vivienda: ${housingResult.error}`);
+        showToast(`Error al calcular gastos de vivienda: ${housingResult.error}`);
         setCalculatingExpenses(false);
         return;
       }
@@ -558,8 +545,7 @@ export default function Home() {
       // Rellenar automáticamente el capital propio
       rellenarCapitalPropio();
     } catch (error) {
-      console.error('Error al calcular gastos:', error);
-      alert('Error al calcular gastos');
+      showToast('Error al calcular gastos');
     }
 
     setCalculatingExpenses(false);
@@ -599,8 +585,7 @@ export default function Home() {
       // Recargar propiedades para sincronizar con el backend
       await loadProperties();
     } else {
-      console.error('Error al guardar detalles:', result.error);
-      alert('Error al guardar los cambios: ' + result.error);
+      showToast('Error al guardar los cambios: ' + result.error);
     }
 
     setShowDetailsModal(false);
@@ -676,7 +661,6 @@ export default function Home() {
     const result = await getEuribor();
     if (result.success) {
       setEuriborActual(result.euribor);
-      console.log('Euribor actualizado:', result.euribor);
     }
   };
 
@@ -724,8 +708,7 @@ export default function Home() {
         }
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al estimar el alquiler. Por favor, inténtalo de nuevo.');
+      showToast('Error al estimar el alquiler. Por favor, inténtalo de nuevo.');
     } finally {
       setConsultingRent(false);
     }
@@ -813,7 +796,7 @@ export default function Home() {
     const importeFinanciar = precioTotal - capitalPropio;
 
     if (importeFinanciar <= 0 || plazoHipoteca <= 0 || tipoInteres <= 0) {
-      alert('Por favor, completa todos los campos correctamente');
+      showToast('Por favor, completa todos los campos correctamente');
       return;
     }
 
@@ -861,6 +844,17 @@ export default function Home() {
   return (
     <>
       <FeedbackButton />
+
+      {toast && (
+        <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium transition-all animate-fadeIn ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-teal-600 text-white'}`}>
+          {toast.type === 'error' ? (
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          ) : (
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          )}
+          {toast.msg}
+        </div>
+      )}
 
       {isLoggingOut && (
         <div

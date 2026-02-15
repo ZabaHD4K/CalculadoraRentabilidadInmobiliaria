@@ -369,8 +369,7 @@ export async function estimateRent(propertyData: PropertyData): Promise<Estimate
       return { success: false, error: errorData.error || 'Error al estimar el alquiler' };
     }
     return await response.json();
-  } catch (err) {
-    console.error('Error en estimateRent:', err);
+  } catch {
     return { success: false, error: 'Error al conectar con el servidor' };
   }
 }
@@ -393,8 +392,7 @@ export async function calculateExpenses(propertyData: PropertyData): Promise<Cal
       return { success: false, error: errorData.error || 'Error al calcular gastos' };
     }
     return await response.json();
-  } catch (err) {
-    console.error('Error en calculateExpenses:', err);
+  } catch {
     return { success: false, error: 'Error al conectar con el servidor' };
   }
 }
@@ -411,8 +409,7 @@ export async function calculateHousingExpenses(propertyData: PropertyData): Prom
       return { success: false, error: errorData.error || 'Error al calcular gastos de vivienda' };
     }
     return await response.json();
-  } catch (err) {
-    console.error('Error en calculateHousingExpenses:', err);
+  } catch {
     return { success: false, error: 'Error al conectar con el servidor' };
   }
 }
@@ -422,8 +419,7 @@ export async function getEuribor(): Promise<{ success: boolean; euribor: number;
     const response = await fetch(`${API_URL}/api/euribor`);
     const data = await response.json();
     return { success: data.success, euribor: data.euribor, error: data.error };
-  } catch (err) {
-    console.error('Error en getEuribor:', err);
+  } catch {
     return { success: false, euribor: 2.5, error: 'Error de conexión' };
   }
 }
@@ -436,8 +432,7 @@ export async function sendFeedback(data: { tipo: string; mensaje: string; email?
       body: JSON.stringify(data),
     });
     return await response.json();
-  } catch (err) {
-    console.error('Error en sendFeedback:', err);
+  } catch {
     return { success: false, error: 'Error de conexión' };
   }
 }

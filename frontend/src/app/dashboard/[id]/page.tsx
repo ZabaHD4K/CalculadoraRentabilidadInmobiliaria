@@ -53,6 +53,12 @@ export default function FinancialDashboard() {
   // Estado para guardar cambios
   const [guardando, setGuardando] = useState(false);
   const [cambiosGuardados, setCambiosGuardados] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null);
+
+  const showToast = (msg: string, type: 'error' | 'success' = 'error') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     if (!localStorage.getItem('authToken')) {
@@ -101,28 +107,18 @@ export default function FinancialDashboard() {
         gastosAnuales: Math.round(gastosAnualesCalculados),
       };
       
-      console.log('📊 Guardando propiedad con ROI data:', {
-        precio: updatedProperty.precio,
-        alquilerMensual: updatedProperty.alquilerMensual,
-        gastosAnuales: updatedProperty.gastosAnuales,
-        capitalPropio: updatedProperty.capitalPropio,
-        plazoHipoteca: updatedProperty.plazoHipoteca,
-        tipoInteres: updatedProperty.tipoInteres
-      });
-      
       const result = await updateProperty(updatedProperty);
-      
+
       if (result.success) {
         setCambiosGuardados(true);
         setTimeout(() => setCambiosGuardados(false), 3000);
         // Actualizar el state local con la propiedad guardada
         setProperty(updatedProperty);
       } else {
-        alert('Error al guardar: ' + result.error);
+        showToast('Error al guardar: ' + result.error);
       }
-    } catch (error) {
-      console.error('Error guardando:', error);
-      alert('Error al guardar los cambios');
+    } catch {
+      showToast('Error al guardar los cambios');
     } finally {
       setGuardando(false);
     }
@@ -216,8 +212,8 @@ export default function FinancialDashboard() {
           }
         }
       }
-    } catch (error) {
-      console.error('Error cargando propiedad:', error);
+    } catch {
+      // silent
     } finally {
       setLoading(false);
     }
@@ -606,6 +602,17 @@ export default function FinancialDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <FeedbackButton />
+
+      {toast && (
+        <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-teal-600 text-white'}`}>
+          {toast.type === 'error' ? (
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          ) : (
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          )}
+          {toast.msg}
+        </div>
+      )}
       <div className="max-w-[1800px] mx-auto">
         <DashboardHeader
           propertyName={property.nombre}
