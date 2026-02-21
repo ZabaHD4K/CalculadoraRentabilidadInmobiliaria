@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { PropertyData, getProperties, updateProperty } from "@/services/api";
+import { PropertyData, getProperties, updateProperty, TRAMOS_IRPF, TramoIRPF, verifyAuth } from "@/services/api";
 import FeedbackButton from "@/components/FeedbackButton";
 import DashboardHeader from "@/components/DashboardHeader";
 import BenefitsCards from "@/components/BenefitsCards";
@@ -12,7 +12,6 @@ import ProfitabilityChart from "@/components/ProfitabilityChart";
 import ExpenseEditor from "@/components/ExpenseEditor";
 import AmortizationTable from "@/components/AmortizationTable";
 import FinancingComparison from "@/components/FinancingComparison";
-import FloatingSaveButton from "@/components/FloatingSaveButton";
 import { generatePDF, PDFReportData } from "@/utils/generatePDF";
 
 export default function FinancialDashboard() {
@@ -47,6 +46,9 @@ export default function FinancialDashboard() {
   const [edadAsegurado, setEdadAsegurado] = useState(30);
   const [porcentajeSeguroVida, setPorcentajeSeguroVida] = useState(0.20);
   
+  // IRPF
+  const [tramoIRPF, setTramoIRPF] = useState<TramoIRPF>('tramo3');
+
   // Estado para el desplegable de edición de gastos
   const [mostrarEditarGastos, setMostrarEditarGastos] = useState(false);
   
@@ -54,6 +56,8 @@ export default function FinancialDashboard() {
   const [guardando, setGuardando] = useState(false);
   const [cambiosGuardados, setCambiosGuardados] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
 
   const showToast = (msg: string, type: 'error' | 'success' = 'error') => {
     setToast({ msg, type });
@@ -61,12 +65,31 @@ export default function FinancialDashboard() {
   };
 
   useEffect(() => {
-    if (!localStorage.getItem('authToken')) {
-      router.push('/');
-    } else {
-      loadProperty();
-    }
+    const check = async () => {
+      const { valid } = await verifyAuth();
+      if (valid) {
+        loadProperty();
+      } else {
+        router.push('/');
+      }
+    };
+    check();
   }, [propertyId]);
+
+  // Marcar que la carga inicial ha terminado cuando property se establece
+  useEffect(() => {
+    if (property) isFirstRender.current = false;
+  }, [property]);
+
+  // Auto-guardado: se activa 1s después del último cambio en sliders/gastos
+  useEffect(() => {
+    if (isFirstRender.current || !property) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      handleGuardarCambios();
+    }, 1000);
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, [precioInmueble, capitalPropio, plazoHipoteca, tipoInteres, alquilerMensualSimulado, incrementoAlquiler, inflacion, comunidadAnual, mantenimiento, seguroHogar, seguroImpago, periodosVacantesPct, porcentajeIBI, porcentajeSeguroVida, tramoIRPF]);
 
   const handleGuardarCambios = async () => {
     if (!property) return;
@@ -92,6 +115,7 @@ export default function FinancialDashboard() {
 
       const updatedProperty: PropertyData = {
         ...property,
+        tramoIRPF,
         precio: precioInmueble,
         alquilerMensual: alquilerMensualSimulado,
         capitalPropio: capitalPropio,
@@ -210,6 +234,11 @@ export default function FinancialDashboard() {
           if (foundProperty.tipoInteres) {
             setTipoInteres(foundProperty.tipoInteres);
           }
+
+          // Cargar tramo IRPF
+          if (foundProperty.tramoIRPF) {
+            setTramoIRPF(foundProperty.tramoIRPF as TramoIRPF);
+          }
         }
       }
     } catch {
@@ -266,8 +295,8 @@ export default function FinancialDashboard() {
   const importeFinanciado = Math.max(0, precioTotal - capitalPropio);
   const seguroVidaHipoteca = Math.round(importeFinanciado * (porcentajeSeguroVida / 100));
 
-  // Gastos anuales de vivienda (usando valores simulados)
-  const gastosAnuales =
+  // Gastos anuales de vivienda (sin IRPF, se añade después)
+  const gastosAnualesSinIRPF =
     comunidadAnual +
     mantenimiento +
     seguroHogar +
@@ -277,16 +306,6 @@ export default function FinancialDashboard() {
     periodosVacantes;
 
   const cuotaAnualHipoteca = cuotaMensualHipoteca * 12;
-
-  // CASH FLOW ANUAL
-  const cashFlowAnual = rentaAnual - gastosAnuales - cuotaAnualHipoteca;
-  const cashFlowMensual = cashFlowAnual / 12;
-
-  // RENTABILIDAD BRUTA (yield bruto)
-  const rentabilidadBruta = precioTotal > 0 ? (rentaAnual / precioTotal) * 100 : 0;
-
-  // RENTABILIDAD NETA (yield neto - sin considerar financiación)
-  const rentabilidadNeta = precioTotal > 0 ? ((rentaAnual - gastosAnuales) / precioTotal) * 100 : 0;
 
   // AMORTIZACIÓN ANUAL DE HIPOTECA (primer año)
   const tasaMensual = tipoInteres / 100 / 12;
@@ -299,6 +318,25 @@ export default function FinancialDashboard() {
     amortizacionAnual += amortizacionMes;
     saldoHipoteca -= amortizacionMes;
   }
+
+  // IRPF sobre rendimiento del capital inmobiliario
+  const tipoMarginalIRPF = TRAMOS_IRPF.find(t => t.id === tramoIRPF)?.tipo ?? 30;
+  const interesHipotecaAnual = Math.max(0, cuotaAnualHipoteca - amortizacionAnual);
+  const gastosDeduciblesIRPF = interesHipotecaAnual + ibi + comunidadAnual + seguroHogar + seguroImpago + mantenimiento;
+  const rdtNetoAlquiler = Math.max(0, rentaAnual - gastosDeduciblesIRPF);
+  const irpf = Math.round(rdtNetoAlquiler * (tipoMarginalIRPF / 100));
+
+  const gastosAnuales = gastosAnualesSinIRPF + irpf;
+
+  // CASH FLOW ANUAL
+  const cashFlowAnual = rentaAnual - gastosAnuales - cuotaAnualHipoteca;
+  const cashFlowMensual = cashFlowAnual / 12;
+
+  // RENTABILIDAD BRUTA (yield bruto)
+  const rentabilidadBruta = precioTotal > 0 ? (rentaAnual / precioTotal) * 100 : 0;
+
+  // RENTABILIDAD NETA (yield neto - sin considerar financiación)
+  const rentabilidadNeta = precioTotal > 0 ? ((rentaAnual - gastosAnuales) / precioTotal) * 100 : 0;
 
   // REVALORIZACIÓN ANUAL DEL INMUEBLE (usando inflación como proxy)
   const revalorizacionAnual = precioInmueble * (inflacion / 100);
@@ -533,6 +571,7 @@ export default function FinancialDashboard() {
     { name: 'Seguros', value: Math.round(seguroHogar + seguroVidaHipoteca + seguroImpago), color: '#10b981' },
     { name: 'IBI', value: Math.round(ibi), color: '#3b82f6' },
     { name: 'Periodos Vacantes', value: Math.round(periodosVacantes), color: '#ef4444' },
+    { name: 'IRPF', value: irpf, color: '#f97316' },
   ].filter(item => item.value > 0);
 
   const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
@@ -691,6 +730,9 @@ export default function FinancialDashboard() {
             gastosAnuales={gastosAnuales}
             datosGastos={datosGastos}
             calcularPorcentajeSeguroVida={calcularPorcentajeSeguroVida}
+            tramoIRPF={tramoIRPF}
+            setTramoIRPF={setTramoIRPF}
+            irpf={irpf}
           />
         </div>
 
@@ -698,11 +740,16 @@ export default function FinancialDashboard() {
         <FinancingComparison comparativa={comparativa} roi={roi} />
       </div>
       
-      <FloatingSaveButton
-        onSave={handleGuardarCambios}
-        guardando={guardando}
-        cambiosGuardados={cambiosGuardados}
-      />
+      {/* Indicador de auto-guardado */}
+      {(guardando || cambiosGuardados) && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shadow-lg transition-all ${cambiosGuardados ? 'bg-teal-700/80 text-teal-100' : 'bg-slate-700/80 text-slate-300'}`}>
+          {guardando ? (
+            <><div className="w-3 h-3 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" /><span>Guardando...</span></>
+          ) : (
+            <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg><span>Guardado</span></>
+          )}
+        </div>
+      )}
     </div>
   );
 }

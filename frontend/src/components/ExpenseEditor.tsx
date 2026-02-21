@@ -1,6 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { TRAMOS_IRPF, TramoIRPF } from '@/services/api';
 
 interface ExpenseEditorProps {
   mostrarEditarGastos: boolean;
@@ -32,6 +33,9 @@ interface ExpenseEditorProps {
   gastosAnuales: number;
   datosGastos: Array<{ name: string; value: number; color: string }>;
   calcularPorcentajeSeguroVida: (edad: number) => number;
+  tramoIRPF: TramoIRPF;
+  setTramoIRPF: (val: TramoIRPF) => void;
+  irpf: number;
 }
 
 export default function ExpenseEditor({
@@ -64,6 +68,9 @@ export default function ExpenseEditor({
   gastosAnuales,
   datosGastos,
   calcularPorcentajeSeguroVida,
+  tramoIRPF,
+  setTramoIRPF,
+  irpf,
 }: ExpenseEditorProps) {
   // Calcular % equivalente para referencia visual
   const mantenimientoPctRef = precioInmueble > 0 ? (mantenimiento / precioInmueble) * 100 : 0;
@@ -275,6 +282,32 @@ export default function ExpenseEditor({
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">Calculado sobre el importe financiado: {importeFinanciado.toLocaleString('es-ES')}€</p>
+            </div>
+            {/* IRPF - Tramo del contribuyente */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                IRPF (Tramo marginal): <span className="text-teal-400 font-bold">{TRAMOS_IRPF.find(t => t.id === tramoIRPF)?.tipo ?? 30}%</span>
+                <span className="text-gray-400 text-xs ml-2">({irpf.toLocaleString('es-ES')}€/año)</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {TRAMOS_IRPF.map((tramo) => (
+                  <button
+                    key={tramo.id}
+                    onClick={() => setTramoIRPF(tramo.id)}
+                    className={`px-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      tramoIRPF === tramo.id
+                        ? 'bg-teal-600 text-white ring-2 ring-teal-400'
+                        : 'bg-slate-700 text-gray-400 hover:bg-slate-600'
+                    }`}
+                  >
+                    <div>{tramo.rango}</div>
+                    <div className="text-[10px] mt-0.5 opacity-75">{tramo.tipo}%</div>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                El IRPF grava el rendimiento neto del alquiler (ingresos menos gastos deducibles).
+              </p>
             </div>
           </div>
           <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">

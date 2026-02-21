@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn, signUp } from '@/services/api';
 
 interface AuthModalProps {
-  onAuthenticated: () => void;
+  onAuthenticated: (email?: string) => void;
 }
 
 type Mode = 'login' | 'register';
@@ -53,7 +53,7 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
           setLoginSuccess(true);
           setTimeout(() => {
             setIsClosing(true);
-            setTimeout(() => onAuthenticated(), 700);
+            setTimeout(() => onAuthenticated(email), 700);
           }, 2000);
         }
       }

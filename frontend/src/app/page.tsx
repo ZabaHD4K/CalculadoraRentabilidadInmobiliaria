@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor, getAuthToken, signOut } from "@/services/api";
+import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor, signOut, verifyAuth } from "@/services/api";
 import AuthModal from "@/components/AuthModal";
 import FeedbackButton from "@/components/FeedbackButton";
 import PageHeader from "@/components/PageHeader";
@@ -18,6 +18,7 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -86,11 +87,15 @@ export default function Home() {
 
   const [idealistaUrl, setIdealistaUrl] = useState("");
 
-  // Verificar autenticación al cargar (JWT en localStorage)
+  // Verificar autenticación al cargar (valida JWT contra el backend)
   useEffect(() => {
-    const token = getAuthToken();
-    setIsAuthenticated(!!token);
-    setCheckingAuth(false);
+    const check = async () => {
+      const { valid, email } = await verifyAuth();
+      setIsAuthenticated(valid);
+      setUserEmail(email ?? null);
+      setCheckingAuth(false);
+    };
+    check();
   }, []);
 
   // Cargar propiedades al iniciar (solo si está autenticado)
@@ -880,33 +885,24 @@ export default function Home() {
         </div>
       )}
 
-      {isAuthenticated && (
-        <button
-          onClick={async () => {
-            setIsLoggingOut(true);
-            await new Promise(r => setTimeout(r, 1000));
-            signOut();
-            setIsAuthenticated(false);
-            setProperties([]);
-            setIsLoggingOut(false);
-          }}
-          className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-3 py-2 bg-slate-800/90 hover:bg-red-900/60 border border-slate-600/60 hover:border-red-500/50 text-slate-400 hover:text-red-400 rounded-xl backdrop-blur-sm transition-all text-xs font-medium shadow-lg group"
-          title="Cerrar sesión"
-        >
-          <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Cerrar sesión
-        </button>
-      )}
-
       {!isAuthenticated && !checkingAuth && (
-        <AuthModal onAuthenticated={() => setIsAuthenticated(true)} />
+        <AuthModal onAuthenticated={(email) => { setIsAuthenticated(true); setUserEmail(email ?? null); }} />
       )}
 
       {isAuthenticated && (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 p-8">
-          <PageHeader />
+          <PageHeader
+            userEmail={userEmail}
+            onSignOut={async () => {
+              setIsLoggingOut(true);
+              await new Promise(r => setTimeout(r, 1000));
+              signOut();
+              setIsAuthenticated(false);
+              setUserEmail(null);
+              setProperties([]);
+              setIsLoggingOut(false);
+            }}
+          />
           <AddPropertyButton onClick={() => setShowModal(true)} />
           <PropertyList
             properties={properties}

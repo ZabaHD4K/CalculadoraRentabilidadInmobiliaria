@@ -172,3 +172,103 @@ body {
 .financial-button-unlock {
   animation: button-unlock 0.8s ease-out forwards;
 }
+
+/* ─── Animaciones switch de vista tarjetas ──────────────────────────────── */
+@keyframes viewEnterGrid {
+  0%   { opacity: 0; transform: scale(0.96) translateY(12px); filter: blur(4px); }
+  60%  { filter: blur(0px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+}
+@keyframes viewEnterList {
+  0%   { opacity: 0; transform: translateX(-16px); filter: blur(3px); }
+  60%  { filter: blur(0px); }
+  100% { opacity: 1; transform: translateX(0); filter: blur(0px); }
+}
+@keyframes viewExit {
+  0%   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+  100% { opacity: 0; transform: scale(0.97) translateY(-8px); filter: blur(4px); }
+}
+@keyframes cardStagger {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes rowStagger {
+  0%   { opacity: 0; transform: translateX(-20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.view-enter-grid {
+  animation: viewEnterGrid 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.view-enter-list {
+  animation: viewEnterList 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.view-exit {
+  animation: viewExit 0.18s ease-in forwards;
+  pointer-events: none;
+}
+
+/* Stagger individual para cada tarjeta */
+.card-stagger > * {
+  opacity: 0;
+  animation: cardStagger 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.card-stagger > *:nth-child(1)  { animation-delay: 0.03s; }
+.card-stagger > *:nth-child(2)  { animation-delay: 0.07s; }
+.card-stagger > *:nth-child(3)  { animation-delay: 0.11s; }
+.card-stagger > *:nth-child(4)  { animation-delay: 0.15s; }
+.card-stagger > *:nth-child(5)  { animation-delay: 0.19s; }
+.card-stagger > *:nth-child(6)  { animation-delay: 0.23s; }
+.card-stagger > *:nth-child(7)  { animation-delay: 0.27s; }
+.card-stagger > *:nth-child(8)  { animation-delay: 0.31s; }
+
+.row-stagger > * {
+  opacity: 0;
+  animation: rowStagger 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.row-stagger > *:nth-child(1)  { animation-delay: 0.02s; }
+.row-stagger > *:nth-child(2)  { animation-delay: 0.05s; }
+.row-stagger > *:nth-child(3)  { animation-delay: 0.08s; }
+.row-stagger > *:nth-child(4)  { animation-delay: 0.11s; }
+.row-stagger > *:nth-child(5)  { animation-delay: 0.14s; }
+.row-stagger > *:nth-child(6)  { animation-delay: 0.17s; }
+.row-stagger > *:nth-child(7)  { animation-delay: 0.20s; }
+.row-stagger > *:nth-child(8)  { animation-delay: 0.23s; }
+
+/* Animación de reordenado al cambiar el sort */
+@keyframes sortCardIn {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.96); filter: blur(3px); }
+  60%  { filter: blur(0px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+}
+@keyframes sortRowIn {
+  0%   { opacity: 0; transform: translateX(14px); filter: blur(2px); }
+  60%  { filter: blur(0px); }
+  100% { opacity: 1; transform: translateX(0); filter: blur(0px); }
+}
+
+.sort-card-stagger > * {
+  opacity: 0;
+  animation: sortCardIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.sort-card-stagger > *:nth-child(1)  { animation-delay: 0.02s; }
+.sort-card-stagger > *:nth-child(2)  { animation-delay: 0.05s; }
+.sort-card-stagger > *:nth-child(3)  { animation-delay: 0.09s; }
+.sort-card-stagger > *:nth-child(4)  { animation-delay: 0.13s; }
+.sort-card-stagger > *:nth-child(5)  { animation-delay: 0.17s; }
+.sort-card-stagger > *:nth-child(6)  { animation-delay: 0.21s; }
+.sort-card-stagger > *:nth-child(7)  { animation-delay: 0.25s; }
+.sort-card-stagger > *:nth-child(8)  { animation-delay: 0.29s; }
+
+.sort-row-stagger > * {
+  opacity: 0;
+  animation: sortRowIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.sort-row-stagger > *:nth-child(1)  { animation-delay: 0.02s; }
+.sort-row-stagger > *:nth-child(2)  { animation-delay: 0.05s; }
+.sort-row-stagger > *:nth-child(3)  { animation-delay: 0.08s; }
+.sort-row-stagger > *:nth-child(4)  { animation-delay: 0.11s; }
+.sort-row-stagger > *:nth-child(5)  { animation-delay: 0.14s; }
+.sort-row-stagger > *:nth-child(6)  { animation-delay: 0.17s; }
+.sort-row-stagger > *:nth-child(7)  { animation-delay: 0.20s; }
+.sort-row-stagger > *:nth-child(8)  { animation-delay: 0.23s; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PropertyData, calculateITP, calculateIVA, ITP_BY_COMUNIDAD } from "@/services/api";
+import { PropertyData, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, TRAMOS_IRPF, TramoIRPF } from "@/services/api";
 
 interface DetailsModalProps {
   selectedProperty: PropertyData;
@@ -649,6 +649,29 @@ export default function DetailsModal(props: DetailsModalProps) {
                     <label className="block text-sm font-medium text-gray-300 mb-2">Periodos Vacantes anual (% del precio)</label>
                     <input type="number" step="0.01" min="0" max="100" value={porcentajePeriodosVacantes === 0 ? '' : porcentajePeriodosVacantes} onChange={(e) => { const inputValue = e.target.value; if (inputValue === '') { setPorcentajePeriodosVacantes(0); setSelectedProperty({ ...selectedProperty, periodosVacantes: 0 }); } else { const porcentaje = parseFloat(inputValue); setPorcentajePeriodosVacantes(porcentaje); const valorCalculado = Math.round(selectedProperty.precio * (porcentaje / 100)); setSelectedProperty({ ...selectedProperty, periodosVacantes: valorCalculado }); } }} placeholder="0.03%" className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
                     <p className="mt-2 text-xs text-gray-400">💡 Valor anual: {selectedProperty.periodosVacantes?.toLocaleString() || '0'}€/año ({porcentajePeriodosVacantes}% del precio)</p>
+                  </div>
+
+                  <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      IRPF — Tramo marginal: <span className="text-teal-400 font-bold">{TRAMOS_IRPF.find(t => t.id === (selectedProperty.tramoIRPF || 'tramo3'))?.tipo ?? 30}%</span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {TRAMOS_IRPF.map((tramo) => (
+                        <button
+                          key={tramo.id}
+                          onClick={() => setSelectedProperty({ ...selectedProperty, tramoIRPF: tramo.id })}
+                          className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                            (selectedProperty.tramoIRPF || 'tramo3') === tramo.id
+                              ? 'bg-teal-600 text-white ring-2 ring-teal-400'
+                              : 'bg-slate-700 text-gray-400 hover:bg-slate-600'
+                          }`}
+                        >
+                          <div>{tramo.rango}</div>
+                          <div className="text-[10px] mt-0.5 opacity-75">{tramo.tipo}%</div>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400">Reducción 60% por vivienda habitual. Se calcula en el análisis avanzado.</p>
                   </div>
                 </div>
 

@@ -35,6 +35,9 @@ export default function SimulationSliders({
   onAlquilerChange,
   onIncrementoAlquilerChange,
 }: SimulationSlidersProps) {
+  const precioMin = Math.max(10000, Math.round(property.precio * 0.5 / 1000) * 1000);
+  const precioMax = Math.round(property.precio * 1.5 / 1000) * 1000;
+
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
       <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
@@ -113,16 +116,16 @@ export default function SimulationSliders({
           </label>
           <input
             type="range"
-            min={property.precio * 0.8}
-            max={property.precio * 1.2}
+            min={precioMin}
+            max={precioMax}
             step={1000}
             value={precioInmueble}
             onChange={(e) => onPrecioInmuebleChange(Number(e.target.value))}
             className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>{(property.precio * 0.8).toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-            <span>{(property.precio * 1.2).toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+            <span>{precioMin.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+            <span>{precioMax.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
           </div>
           <p className="text-xs text-gray-400 mt-2">
             Precio total: {precioTotal.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ (Inmueble + {gastosAdquisicion.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ costes de adquisición)

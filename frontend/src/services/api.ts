@@ -7,6 +7,11 @@ export function getAuthToken(): string | null {
   return localStorage.getItem('authToken');
 }
 
+export function getAuthEmail(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('authEmail');
+}
+
 function authHeaders(): HeadersInit {
   const token = getAuthToken();
   return {
@@ -40,6 +45,7 @@ export async function signIn(email: string, password: string): Promise<{ success
     const data = await res.json();
     if (data.success && data.token) {
       localStorage.setItem('authToken', data.token);
+      if (data.email) localStorage.setItem('authEmail', data.email);
     }
     return data;
   } catch {
@@ -50,6 +56,23 @@ export async function signIn(email: string, password: string): Promise<{ success
 export function signOut(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('authEmail');
+  }
+}
+
+export async function verifyAuth(): Promise<{ valid: boolean; email?: string }> {
+  const token = getAuthToken();
+  if (!token) return { valid: false };
+  try {
+    const res = await fetch(`${API_URL}/api/properties`, { headers: authHeaders() });
+    if (res.status === 401) {
+      signOut();
+      return { valid: false };
+    }
+    const email = getAuthEmail() ?? undefined;
+    return { valid: true, email };
+  } catch {
+    return { valid: false };
   }
 }
 
@@ -100,6 +123,9 @@ export interface PropertyData {
   tasacion?: number | null;
   comisionApertura?: number | null;
 
+  // IRPF
+  tramoIRPF?: string | null;
+
   // Gastos de la vivienda
   ibi?: number | null;
   comunidadAnual?: number | null;
@@ -117,6 +143,19 @@ export interface PropertyData {
   cuotaMensual?: number | null;
   tipoHipoteca?: string | null;
 }
+
+// ─── IRPF ─────────────────────────────────────────────────────────────────────
+
+export type TramoIRPF = 'tramo1' | 'tramo2' | 'tramo3' | 'tramo4' | 'tramo5' | 'tramo6';
+
+export const TRAMOS_IRPF: Array<{ id: TramoIRPF; rango: string; tipo: number }> = [
+  { id: 'tramo1', rango: 'Hasta 12.450€',       tipo: 19 },
+  { id: 'tramo2', rango: '12.450 – 20.200€',    tipo: 24 },
+  { id: 'tramo3', rango: '20.200 – 35.200€',    tipo: 30 },
+  { id: 'tramo4', rango: '35.200 – 60.000€',    tipo: 37 },
+  { id: 'tramo5', rango: '60.000 – 300.000€',   tipo: 45 },
+  { id: 'tramo6', rango: 'Más de 300.000€',      tipo: 47 },
+];
 
 export interface AnalyzePropertyResponse {
   success: boolean;
@@ -184,6 +223,7 @@ function toDbRow(property: PropertyData): Record<string, any> {
     tipo_interes: property.tipoInteres ?? null,
     cuota_mensual: property.cuotaMensual ?? null,
     tipo_hipoteca: property.tipoHipoteca ?? null,
+    tramo_irpf: property.tramoIRPF ?? null,
   };
 }
 
@@ -237,6 +277,7 @@ function fromDbRow(row: Record<string, any>): PropertyData {
     tipoInteres: row.tipo_interes ?? null,
     cuotaMensual: row.cuota_mensual ?? null,
     tipoHipoteca: row.tipo_hipoteca ?? null,
+    tramoIRPF: row.tramo_irpf ?? null,
   };
 }
 

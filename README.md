@@ -190,15 +190,17 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
 
 ## ⚡ Características Principales
 
-### 🔐 Sistema de Autenticación (NUEVO v2.1.2)
+### 🔐 Sistema de Autenticación (mejorado v2.8.0)
 
-- **Acceso Controlado:** Modal de autenticación con contraseña para proteger la demo
+- **Acceso Controlado:** Modal de autenticación con Supabase Auth (email + contraseña)
+- **Verificación real de JWT:** Cada carga de página valida el token contra el backend — no se puede saltar el login manipulando localStorage
+- **Email del usuario visible:** Se muestra en la esquina superior izquierda junto al botón "Cerrar sesión"
 - **Animaciones Espectaculares:**
   - Entrada con rotación + escala + fade (0.8s)
   - Salida con rotación inversa + expansión (0.6s)
   - Partículas flotantes animadas en el fondo
   - Efecto "shake" al introducir contraseña incorrecta
-- **Seguridad Robusta:** Contraseña hasheada con bcrypt (nunca en texto plano)
+- **Seguridad Robusta:** Supabase Auth gestiona las credenciales; tokens JWT con expiración automática
 - **Diseño Premium:** Gradientes teal/cyan, efectos de brillo, hover dinámico
 
 ### 🤖 Automatización Inteligente
@@ -251,6 +253,22 @@ URL de Idealista → Análisis en 2-3 minutos → Decisión informada
   - ⏳ Spinner animado durante búsqueda de propiedades
   - 💬 Mensaje informativo: "Puede tardar hasta 50 segundos"
   - ⚡ Mejora la experiencia del usuario con feedback visual claro
+
+### 💸 IRPF sobre Rendimiento del Alquiler (NUEVO v2.8.0)
+
+- **Selector de tramo IRPF** en el análisis avanzado (dashboard) y en el análisis básico (modal de detalles)
+- **6 tramos según escala estatal española:** 19%, 21%, 23%, 37%, 45%, 47%
+- **Cálculo preciso:** IRPF = Rendimiento Neto × tipo marginal (sin reducción del 60%, ya que es inversión, no vivienda habitual)
+- **Rendimiento Neto:** ingresos alquiler − gastos deducibles (intereses hipoteca, IBI, comunidad, seguros, mantenimiento)
+- **Integrado en el desglose de gastos** (gráfico circular del dashboard) con color naranja distintivo
+- **Persistido en Supabase** (columna `tramo_irpf`)
+
+### 🗂️ Vista de Lista de Propiedades (NUEVO v2.8.0)
+
+- **Dos modos de visualización:** cuadrícula (cards) y lista (filas compactas)
+- **Toggle en la barra de herramientas** para cambiar entre vistas
+- **Vista lista:** muestra nombre, dirección, precio, ROI, alquiler y acciones en una fila compacta
+- **Animación FLIP** para transición suave entre vistas
 
 ### 💬 Sistema de Feedback Integrado (NUEVO v2.5.0)
 
@@ -406,7 +424,7 @@ RealEstateAI/
 │   │   │   │       └── page.tsx
 │   │   │   ├── layout.tsx      # Layout global
 │   │   │   └── globals.css     # Estilos globales
-│   │   ├── components/         # Componentes reutilizables (17)
+│   │   ├── components/         # Componentes reutilizables (18)
 │   │   │   ├── PageHeader.tsx         # Cabecera de la app
 │   │   │   ├── AddPropertyButton.tsx  # Botón añadir propiedad
 │   │   │   ├── PropertyCard.tsx       # Tarjeta de propiedad (badges ROI/alquiler)
@@ -422,6 +440,7 @@ RealEstateAI/
 │   │   │   ├── AmortizationTable.tsx  # Tabla de amortización
 │   │   │   ├── FinancingComparison.tsx# Comparativa financiación
 │   │   │   ├── FloatingSaveButton.tsx # Botón flotante de guardado
+│   │   │   ├── PropertyCardRow.tsx    # Tarjeta de propiedad en vista lista
 │   │   │   ├── AuthModal.tsx          # Modal de autenticación
 │   │   │   └── FeedbackButton.tsx     # Botón de feedback (crea GitHub Issues)
 │   │   └── services/
@@ -475,7 +494,7 @@ npm install
 # Crear archivo .env con tu API key de OpenAI
 echo "OPENAI_API_KEY=tu_clave_api_aqui" > .env
 
-# Iniciar el servidor (Puerto 3000)
+# Iniciar el servidor (Puerto 3001)
 npm start
 ```
 
@@ -484,14 +503,16 @@ npm start
 # OpenAI API
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Access Password (bcrypt hash of your chosen password)
-ACCESS_PASSWORD_HASH=<bcrypt_hash_of_your_password>
-
 # GitHub Token (para sistema de feedback → crea Issues)
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+# Supabase
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=<clave_anon>
+SUPABASE_SERVICE_ROLE_KEY=<clave_service_role>
+
 # Server Config
-PORT=3000
+PORT=3001
 NODE_ENV=development
 ```
 
@@ -504,7 +525,10 @@ cd frontend
 # Instalar dependencias
 npm install
 
-# Iniciar la aplicación (Puerto 3001)
+# Crear .env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3001" > .env.local
+
+# Iniciar la aplicación (Puerto 3000)
 npm run dev
 ```
 
@@ -512,8 +536,8 @@ npm run dev
 
 Abre tu navegador y visita:
 
-🌐 **Frontend:** [http://localhost:3001](http://localhost:3001)
-🔌 **Backend API:** [http://localhost:3000](http://localhost:3000)
+🌐 **Frontend:** [http://localhost:3000](http://localhost:3000)
+🔌 **Backend API:** [http://localhost:3001](http://localhost:3001)
 
 ---
 
@@ -616,7 +640,7 @@ Haz clic en **"📈 Análisis Financiero Avanzado"** para ver:
 ### Base URL
 
 ```
-http://localhost:3000
+http://localhost:3001
 ```
 
 ### Endpoints Disponibles
@@ -984,9 +1008,8 @@ Tests: 49 passed, 49 total
 
 ### Mejoras Prioritarias
 
-- [ ] Base de datos persistente (MongoDB/PostgreSQL) para reemplazar almacenamiento en memoria
+- [x] ~~Base de datos persistente~~ → Supabase (PostgreSQL) implementado
 - [ ] Rate limiting en endpoints de la API (`express-rate-limit`) para controlar el consumo de OpenAI
-- [ ] Pruebas unitarias automatizadas para funciones de cálculo financiero
 - [ ] Exportación a PDF con análisis completo y gráficos
 - [ ] Exportar/Importar propiedades como JSON para backup y portabilidad
 

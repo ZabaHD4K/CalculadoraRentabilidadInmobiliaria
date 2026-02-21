@@ -1348,6 +1348,16 @@ Envío del enlace a 100+ testers. Feedback inmediato: la UI era confusa en móvi
 
 **12 de febrero — Estado actual:** 49 tests unitarios (100% passing), 100+ testers activos, documentación en progreso. Pendiente: persistencia con base de datos y exportación PDF.
 
+### Semana 3 | Febrero 2026 — UX, IRPF y Seguridad
+
+**21 de febrero — v2.8.0:** Jornada intensa con múltiples features:
+
+**Vista de lista con animación FLIP**: Se añadió un segundo modo de visualización de propiedades (lista horizontal) con `PropertyCardRow.tsx`. El cambio más técnico fue la animación FLIP para el reordenamiento: al ordenar por nombre/rentabilidad/alquiler, las tarjetas no desaparecen sino que se desplazan físicamente a su nueva posición. Se usa `useLayoutEffect` para capturar posiciones DOM antes y después del render, aplicar la transformación inversa y animar a cero, todo sin parpadeo visual. El efecto de stagger por distancia da un resultado visual de "trilero". Se añadió también un dropdown animado que unifica las opciones de orden y vista.
+
+**IRPF en gastos de vivienda**: Se implementó el cálculo del IRPF sobre el rendimiento del capital inmobiliario. Se definieron los 6 tramos marginales españoles (19%–47%) como constante exportable `TRAMOS_IRPF`. El usuario selecciona su tramo mediante botones visuales tanto en el análisis básico (DetailsModal) como en el avanzado (ExpenseEditor/dashboard). El IRPF se calcula sobre el rendimiento neto (ingresos − gastos deducibles), sin la reducción del 60% ya que la herramienta está orientada a alquiler como inversión. Se creó la columna `tramo_irpf` en Supabase mediante SQL directo desde el Dashboard.
+
+**Seguridad auth**: Se detectó que bastaba manipular el localStorage para saltarse el login. Se implementó `verifyAuth()` que valida el JWT contra el backend real antes de mostrar contenido. El email del usuario ahora se persiste en localStorage al hacer login y se muestra en el PageHeader (arriba a la izquierda junto al botón de cerrar sesión).
+
 ---
 
 ## BIBLIOGRAFÍA

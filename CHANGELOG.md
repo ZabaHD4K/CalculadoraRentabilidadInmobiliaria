@@ -1,5 +1,50 @@
 # 📝 Notas de Cambios - RealEstate AI
 
+## Versión 2.8.0 - 21 de Febrero de 2026
+
+### 🔀 Vista de Lista + Animación FLIP en PropertyList
+
+- **Nuevo componente `PropertyCardRow.tsx`**: layout horizontal para la vista de lista, con borde izquierdo coloreado según ROI, badges de precio/alquiler/rentabilidad y botones de acción.
+- **Toggle grid/lista con animación FLIP**: las tarjetas se mueven físicamente a su nueva posición al reordenar (efecto "trilero"), usando `useLayoutEffect` para capturar posiciones antes y después del render sin parpadeo visual.
+- **Dropdown animado de ordenación + vista**: menú desplegable con opciones de orden (Nombre, Rentabilidad, Alquiler) y selector de vista (grid/lista). Click-outside para cerrar.
+- **Animaciones CSS adicionales** en `globals.css`: `sortCardIn`, `sortRowIn`, stagger por distancia para el efecto trilero.
+
+### 💶 IRPF en Gastos de Vivienda
+
+- **`TRAMOS_IRPF` y `TramoIRPF`** añadidos a `api.ts`: 6 tramos marginales del IRPF español (19%–47%) con sus rangos de renta.
+- **Cálculo en dashboard**: IRPF = rendimiento neto del alquiler (ingresos − gastos deducibles) × tipo marginal. Sin reducción del 60% (alquiler como inversión).
+- **Selector de tramo** en `ExpenseEditor` (análisis avanzado): 6 botones en grid 3×2 mostrando rango de ingresos y tipo impositivo. IRPF incluido en `gastosAnuales` y en el gráfico PieChart (color naranja).
+- **Selector de tramo** en `DetailsModal` (análisis básico): mismos 6 botones, al lado de Periodos Vacantes.
+- **Persistencia en Supabase**: nueva columna `tramo_irpf text` en la tabla `properties`. Mapeada en `toDbRow`/`fromDbRow`.
+
+### 🔐 Seguridad de Autenticación
+
+- **`verifyAuth()`** en `api.ts`: valida el JWT contra el backend real (llamada a `/api/properties`) al cargar la app. Si el token es inválido o expirado, hace `signOut()` automático y redirige al login. Evita que tokens manipulados localmente accedan al contenido.
+- **Email del usuario** guardado en `localStorage('authEmail')` al hacer login y limpiado al cerrar sesión.
+- **Email visible en la UI**: mostrado en `PageHeader` arriba a la izquierda junto al botón "Cerrar sesión".
+- **Dashboard protegido**: también usa `verifyAuth()` antes de cargar la propiedad.
+
+### ⚙️ Configuración de Puertos
+
+- `backend/.env`: añadida variable `PORT=3001` para evitar conflicto con Next.js (puerto 3000).
+- `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:3001`.
+
+#### Archivos modificados:
+- `frontend/src/components/PropertyList.tsx`: reescritura completa con toggle grid/lista y animación FLIP
+- `frontend/src/components/PropertyCardRow.tsx`: nuevo componente de fila horizontal
+- `frontend/src/app/globals.css`: animaciones FLIP y stagger
+- `frontend/src/services/api.ts`: `TRAMOS_IRPF`, `TramoIRPF`, `tramoIRPF` en `PropertyData`, `verifyAuth()`, `getAuthEmail()`
+- `frontend/src/app/dashboard/[id]/page.tsx`: cálculo IRPF, estado `tramoIRPF`, validación auth
+- `frontend/src/app/page.tsx`: `verifyAuth()`, estado `userEmail`, callback email en AuthModal
+- `frontend/src/components/ExpenseEditor.tsx`: selector IRPF con 6 tramos
+- `frontend/src/components/DetailsModal.tsx`: selector IRPF en panel gastosVivienda
+- `frontend/src/components/AuthModal.tsx`: callback `onAuthenticated(email)`
+- `frontend/src/components/PageHeader.tsx`: email + cerrar sesión arriba a la izquierda
+- `backend/.env`: `PORT=3001`
+- `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:3001`
+
+---
+
 ## Versión 2.7.0 - 9 de Febrero de 2026
 
 ### 🏗️ Refactorización del Frontend: Extracción de Componentes
