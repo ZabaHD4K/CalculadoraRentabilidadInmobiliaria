@@ -4,7 +4,7 @@ const cors = require('cors');
 const OpenAI = require('openai');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // Configuración de CORS para producción
 const allowedOrigins = [
@@ -53,9 +53,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Handler explícito para preflight OPTIONS (garantiza cabeceras CORS incluso en errores)
-app.options('*', cors(corsOptions));
 
 // Log adicional para debugging en producción
 app.use((req, res, next) => {
