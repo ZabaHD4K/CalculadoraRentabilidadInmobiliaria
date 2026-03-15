@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const OpenAI = require('openai');
 
 const app = express();
@@ -54,6 +55,36 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// ── Rate Limiting ─────────────────────────────────────────────────────────────
+// Limiter general: 100 req / 15 min por IP
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Demasiadas peticiones. Intenta de nuevo en 15 minutos.' },
+});
+
+// Limiter para endpoints de IA (GPT con web search): 10 req / 15 min por IP
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Límite de análisis alcanzado. Espera 15 minutos antes de continuar.' },
+});
+
+// Limiter para autenticación: 5 intentos / 15 min por IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Demasiados intentos de acceso. Intenta de nuevo en 15 minutos.' },
+});
+
+app.use(generalLimiter);
+
 // Log adicional para debugging en producción
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - Origin: ${req.get('origin') || 'sin origin'}`);
@@ -102,7 +133,7 @@ const verifyToken = async (req, res, next) => {
 // ==================== AUTHENTICATION ====================
 
 // Registro de usuario
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -129,7 +160,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login de usuario
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -156,7 +187,7 @@ app.post('/api/auth/login', async (req, res) => {
 // ==================== GPT ENDPOINTS ====================
 
 // Endpoint para analizar propiedad de Idealista
-app.post('/api/analyze-property', async (req, res) => {
+app.post('/api/analyze-property', aiLimiter, async (req, res) => {
   // Aumentar timeout para esta ruta específica
   req.setTimeout(120000); // 2 minutos
 
@@ -387,7 +418,7 @@ app.delete('/api/properties/:id', verifyToken, async (req, res) => {
 });
 
 // Endpoint para estimar alquiler con GPT-5-mini + web search
-app.post('/api/estimate-rent', async (req, res) => {
+app.post('/api/estimate-rent', aiLimiter, async (req, res) => {
   try {
     const propertyData = req.body;
 
@@ -610,7 +641,7 @@ IMPORTANTE:
 });
 
 // Endpoint para calcular gastos de la vivienda con GPT-5-mini + Web Search
-app.post('/api/calculate-housing-expenses', async (req, res) => {
+app.post('/api/calculate-housing-expenses', aiLimiter, async (req, res) => {
   try {
     const propertyData = req.body;
 
