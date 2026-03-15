@@ -1,9 +1,9 @@
 # DIARIO DE TRABAJO FIN DE GRADO.
-## RealStateAI - Herramienta de Análisis de Inversión Inmobiliaria
+## RealEstateAI - Herramienta de Análisis de Inversión Inmobiliaria
 
 **Autor:** Alejandro Zabaleta
 **Fecha de Inicio:** Curso 2025-2026
-**Última Actualización:** 12 de Febrero de 2026
+**Última Actualización:** 21 de Febrero de 2026
 **Repositorio GitHub:** https://github.com/ZabaHD4K/CalculadoraRentabilidadInmobiliaria
 **Universidad:** U-tad
 
@@ -31,7 +31,7 @@
 
 ## RESUMEN EJECUTIVO
 
-**RealStateAI** es una aplicación web de análisis de inversión inmobiliaria que combina automatización, inteligencia artificial generativa y cálculos financieros para ayudar a inversores a tomar decisiones informadas sobre propiedades de alquiler en el mercado español.
+**RealEstateAI** es una aplicación web de análisis de inversión inmobiliaria que combina automatización, inteligencia artificial generativa y cálculos financieros para ayudar a inversores a tomar decisiones informadas sobre propiedades de alquiler en el mercado español.
 
 ### Problema Identificado
 
@@ -82,24 +82,82 @@ Los principales portales inmobiliarios españoles ofrecen funcionalidades de bú
 
 Existen soluciones profesionales como PlanRadar, CBRE Analytics o JLL Research que ofrecen análisis completos, pero están orientadas a fondos de inversión y grandes promotoras, con costes de licencia que las hacen inaccesibles para el inversor individual (Asensio-Soto, 2023).
 
-### 3. Uso de LLMs en el Sector Inmobiliario
+### 3. Métricas Financieras en Análisis de Inversión Inmobiliaria: Perspectiva Académica
 
-La aplicación de modelos de lenguaje de gran escala (LLMs) al sector inmobiliario es un área de investigación emergente. Estudios recientes han explorado el uso de GPT-4 y modelos similares para la estimación de precios inmobiliarios con resultados prometedores pero con limitaciones significativas.
+La selección de las métricas financieras implementadas en este proyecto no es arbitraria, sino que responde a la literatura académica consolidada en análisis de inversión inmobiliaria. A continuación se justifica su elección desde una perspectiva académica y se contextualiza su aplicabilidad al mercado de alquiler residencial español.
 
-Geerts et al. (2025) demuestran que los LLMs pueden aprovechar variables hedónicas de las propiedades (superficie, ubicación, equipamientos) para producir estimaciones de precio significativas, aunque los modelos de machine learning tradicionales superan a los LLMs en precisión predictiva pura. Los autores señalan además que los LLMs presentan sobreconfianza en los intervalos de predicción y capacidades limitadas de razonamiento espacial, pero destacan su potencial para mejorar la transparencia en la valoración inmobiliaria.
+#### 3.1. ROI (Return on Investment) y sus variantes
 
-Es importante señalar las **limitaciones inherentes** de este enfoque:
-- Los LLMs no tienen acceso a datos de transacciones reales en tiempo real.
-- Las estimaciones dependen de la calidad y actualización de los datos de entrenamiento.
-- Los resultados deben considerarse orientativos y complementarse con datos de mercado reales.
+El ROI es la métrica más utilizada en la literatura práctica de inversión inmobiliaria (Gallinelli, 2015; Brueggeman & Fisher, 2022). En el contexto inmobiliario, es habitual distinguir entre rentabilidad bruta (gross yield) y neta (net yield), siendo la primera el cociente entre la renta anual y el precio de compra, y la segunda la que incorpora los gastos operativos. Ambas son las métricas de referencia publicadas en los informes de mercado de portales como Idealista o CBRE.
 
-### 4. Conclusión del Estado de la Cuestión
+Sin embargo, Gallinelli (2015) advierte que ninguna de estas dos variantes captura el efecto del apalancamiento financiero (la hipoteca), que es determinante en la rentabilidad real del capital propio invertido. Por ello, este proyecto implementa también el **ROI sobre capital propio** (cash-on-cash return), definido como el flujo de caja neto anual dividido entre el capital aportado inicialmente, que es la métrica real del rendimiento del dinero que el inversor tiene efectivamente inmovilizado. Esta distinción es especialmente relevante en el mercado español, donde el apalancamiento hipotecario estándar oscila entre el 70% y el 80% del precio de compra.
+
+#### 3.2. TIR (Tasa Interna de Retorno) y VAN (Valor Actual Neto)
+
+La TIR y el VAN son los indicadores fundamentales del análisis de flujos de caja descontados (DCF, *Discounted Cash Flow*), framework desarrollado extensamente por Damodaran (2012) y aplicado a la inversión inmobiliaria por Brueggeman & Fisher (2022). Su inclusión en este proyecto responde a una limitación conceptual de las métricas de rendimiento simple como el ROI o el cap rate: estas métricas son estáticas (no consideran el valor temporal del dinero) y no permiten comparar inversiones con perfiles de flujo de caja distintos ni horizontes temporales diferentes.
+
+La TIR tiene la ventaja de expresar la rentabilidad como un tipo de interés anualizado comparable con otras inversiones (bonos, fondos indexados, depósitos). Según el trabajo de Damodaran (2012), una TIR superior al coste de oportunidad del capital propio del inversor (tasa de descuento) indica creación de valor real. En la práctica del mercado español, una TIR entre 4% y 8% para activos residenciales en alquiler se considera un rango razonable dadas las condiciones actuales de tipos de interés y riesgo de alquiler (CBRE, 2024).
+
+El VAN complementa a la TIR al cuantificar en términos absolutos (euros) el valor creado por la inversión descontando los flujos futuros a la tasa de descuento elegida. En este proyecto se utiliza el tipo de interés hipotecario como tasa de descuento proxy, siguiendo la recomendación de Gallinelli (2015) de alinear la tasa de descuento con el coste real del capital utilizado en la inversión.
+
+Una limitación reconocida de la TIR es su sensibilidad a los supuestos sobre el valor residual del inmueble al final del horizonte de análisis y sobre la tasa de crecimiento de los alquileres, variables altamente inciertas. Por ello, el sistema implementa una **simulación interactiva** que permite al usuario modificar estos supuestos (inflación, incremento anual de alquiler) y observar su impacto en tiempo real sobre TIR y VAN, siguiendo la recomendación de análisis de sensibilidad propuesta por Damodaran (2012, cap. 12).
+
+#### 3.3. Payback Period
+
+El payback period (periodo de recuperación) es la métrica más intuitiva para el inversor no especializado, expresando cuántos años se necesitan para recuperar el capital invertido mediante los flujos de caja generados. Aunque es ampliamente criticado en la literatura financiera por ignorar los flujos posteriores a la recuperación y el valor temporal del dinero (Brealey, Myers & Allen, 2017), su popularidad entre inversores particulares justifica su inclusión como complemento a las métricas de flujos descontados.
+
+#### 3.4. Criterios de selección de métricas
+
+La selección final de métricas implementadas en RealEstateAI (rentabilidad bruta, rentabilidad neta, cash flow mensual/anual, ROI sobre capital propio, ROI total con revalorización y amortización, TIR, VAN y payback period) refleja un compromiso entre rigor académico y comprensibilidad para el inversor particular:
+
+- Las métricas **simples** (bruta, neta, payback) son accesibles para usuarios sin formación financiera avanzada y son las utilizadas por los portales y medios sectoriales.
+- Las métricas **DCF** (TIR, VAN) son las empleadas en el análisis profesional de inversiones y en la literatura académica, pero requieren comprender el concepto de valor temporal del dinero.
+- El **ROI total con desglose** (cash flow + amortización de deuda + revalorización) es la métrica más completa porque captura todos los vectores de creación de valor de una inversión inmobiliaria, siguiendo el modelo propuesto por Brueggeman & Fisher (2022, cap. 9).
+
+### 4. Inteligencia Artificial Generativa para Valoración de Activos Inmobiliarios
+
+La aplicación de modelos de lenguaje de gran escala (LLMs) al sector inmobiliario es un área de investigación emergente con literatura creciente. A continuación se revisan los antecedentes más relevantes y se contextualiza el enfoque adoptado en este proyecto.
+
+#### 4.1. Métodos tradicionales de valoración: de la econometría hedónica a los modelos de *machine learning*
+
+Antes de la irrupción de los LLMs, la valoración automatizada de activos inmobiliarios (AVM, *Automated Valuation Models*) se apoyaba principalmente en dos enfoques. El primero, la **regresión hedónica** (Lancaster, 1966; Rosen, 1974), descompone el precio de una propiedad en las aportaciones marginales de sus características observables (superficie, número de habitaciones, antigüedad, localización, equipamientos), estimando un precio implícito para cada atributo mediante regresión lineal. Este enfoque tiene sólidos fundamentos teóricos pero presenta limitaciones en la captura de relaciones no lineales y efectos de interacción entre variables.
+
+El segundo enfoque, basado en **algoritmos de aprendizaje automático** (random forests, gradient boosting, redes neuronales), ha demostrado mayor precisión predictiva en la literatura comparativa (Antipov & Pokryshevskaya, 2012; Čeh et al., 2018). Estos modelos capturan relaciones no lineales y complejas entre variables, pero requieren grandes datasets de transacciones etiquetadas y carecen de interpretabilidad intrínseca.
+
+#### 4.2. Emergencia de los LLMs como herramienta de valoración
+
+La aparición de modelos de lenguaje como GPT-4 y sus sucesores ha abierto una nueva vía de investigación en valoración inmobiliaria, diferente de los enfoques anteriores en tres aspectos fundamentales:
+
+1. **Razonamiento textual:** los LLMs pueden procesar y razonar sobre información no estructurada (descripciones de propiedades, características cualitativas, contexto de mercado) que los modelos estadísticos tradicionales no pueden incorporar directamente.
+2. **Acceso a información actualizada:** los modelos con herramientas de web search pueden consultar datos de mercado en tiempo real, superando el corte temporal de los datos de entrenamiento.
+3. **Transparencia argumentativa:** a diferencia de los modelos de *machine learning* (cajas negras), los LLMs pueden ofrecer una justificación verbal de su estimación, lo que mejora la confianza del usuario en el resultado.
+
+Geerts et al. (2025) realizan un análisis comparativo sistemático entre LLMs (GPT-4, Claude) y modelos tradicionales (random forest, XGBoost) en la tarea de valoración inmobiliaria sobre datasets europeos. Sus resultados muestran que los LLMs producen estimaciones estadísticamente significativas y coherentes con el mercado, pero que los modelos de *machine learning* siguen siendo superiores en precisión predictiva pura (menor RMSE). Los autores identifican dos debilidades estructurales de los LLMs para esta tarea: (1) sobreconfianza en los intervalos de predicción generados (intervalos demasiado estrechos en relación con el error real observado) y (2) capacidades limitadas de razonamiento espacial (dificultad para ponderar adecuadamente factores de proximidad como la distancia a estaciones de metro o zonas verdes).
+
+Más relevante para este proyecto es la distinción entre **valoración de activos** (precio de venta) y **estimación de alquiler de mercado**. Aunque la literatura académica se concentra mayoritariamente en la primera tarea, el enfoque adoptado en RealEstateAI se centra en la segunda, que presenta características diferentes: los alquileres son más sensibles a condiciones coyunturales (tensión del mercado, oferta disponible en el momento concreto) y menos determinados por las características físicas de la propiedad. Esta sensibilidad temporal hace que el acceso a datos en tiempo real (web search) sea especialmente valioso para la estimación de alquileres, frente a la valoración de activos donde los datos históricos de transacciones son más estables.
+
+#### 4.3. El rol del acceso a datos en tiempo real (*web search augmentation*)
+
+La técnica de augmentar los LLMs con acceso a información web en tiempo real (retrieval-augmented generation, RAG, o directamente web search tools) es un campo activo de investigación que trasciende el ámbito inmobiliario (Lewis et al., 2020). En el contexto específico de la estimación de alquileres, este enfoque permite superar la principal limitación de los LLMs estáticos: el corte temporal de los datos de entrenamiento.
+
+Como se demuestra empíricamente en la sección de validación de este proyecto, la diferencia de precisión entre GPT-4o (sin acceso a internet) y GPT-5-mini (con web search) es estadísticamente relevante y sistemática: GPT-4o subestima los alquileres en mercados con crecimiento acelerado reciente (Valencia, San Sebastián, Palma de Mallorca) precisamente porque su conocimiento de precios es anterior a la subida registrada en 2024-2025.
+
+Es importante señalar las **limitaciones inherentes** de este enfoque, siguiendo los criterios de honestidad científica establecidos por Geerts et al. (2025):
+- Los LLMs con web search pueden encontrar listados no representativos (precios inflados, propiedades muy diferentes a la consultada).
+- La variabilidad entre invocaciones no se elimina completamente incluso con temperatura baja.
+- En zonas rurales o con poca oferta publicada en portales, la precisión disminuye significativamente.
+- Las estimaciones de alquiler no sustituyen a la tasación profesional ni al análisis comparativo de mercado (CMA) realizado por un agente especializado.
+
+### 6. Conclusión del Estado de la Cuestión
 
 Existe un **hueco de mercado** identificado: no hay una herramienta accesible, automatizada e integral para el inversor inmobiliario particular en España que combine:
 - Extracción automatizada de datos de propiedades.
 - Cálculos fiscales precisos por comunidad autónoma.
-- Análisis de rentabilidad integral con métricas financieras avanzadas.
+- Análisis de rentabilidad integral con métricas financieras avanzadas (ROI, TIR, VAN, cash flow, payback).
+- Estimación de alquiler asistida por LLMs con acceso a datos en tiempo real.
 - Interfaz intuitiva con simulaciones interactivas.
+
+La revisión de la literatura confirma que las métricas elegidas son las recomendadas por los principales textos académicos de análisis de inversión inmobiliaria (Brueggeman & Fisher, 2022; Damodaran, 2012; Gallinelli, 2015) y que el enfoque de augmentar LLMs con web search es el estado del arte actual para estimaciones dependientes de datos de mercado en tiempo real (Geerts et al., 2025; Lewis et al., 2020).
 
 ---
 
@@ -160,7 +218,7 @@ Desarrollar una aplicación web que permita a inversores inmobiliarios particula
 - [x] Dashboard financiero con: ROI, TIR, VAN, cash flow, rentabilidad bruta/neta, payback period.
 - [x] Gráficos interactivos: evolución de rentabilidad a 10 años, desglose de gastos (pie chart), tabla de amortización.
 - [x] Gestión de múltiples propiedades con CRUD completo.
-- [ ] Persistencia con base de datos (actualmente en memoria).
+- [x] Persistencia en base de datos (Supabase PostgreSQL con autenticación JWT).
 - [ ] Exportación de informes PDF.
 
 #### 3. Objetivos de Usabilidad
@@ -324,6 +382,35 @@ Se ha adoptado una metodología **ágil iterativa** basada en los principios del
 1. **Desarrollo Incremental:** funcionalidades implementadas por módulos, con validación continua en cada incremento.
 2. **Prototipado Rápido:** primero MVP (Minimum Viable Product) funcional, luego iteraciones con mejoras.
 3. **Investigación Continua:** documentación de tecnologías durante el desarrollo y análisis de mejores prácticas.
+
+### Criterios Derivados del Estado de la Cuestión
+
+La revisión bibliográfica realizada en la fase de investigación determinó directamente tanto las funcionalidades a implementar como los criterios de evaluación del sistema. Esta conexión explícita entre estado de la cuestión y metodología de desarrollo es un principio fundamental del enfoque de ingeniería de software orientado a requisitos (Pressman & Maxim, 2019):
+
+**1. Selección de métricas financieras:**
+La literatura revisada (Brueggeman & Fisher, 2022; Gallinelli, 2015; Damodaran, 2012) identifica la TIR, el VAN y el ROI sobre capital propio como las métricas esenciales para el análisis de inversión inmobiliaria con financiación hipotecaria. El estado de la cuestión confirmó que las herramientas existentes para el inversor particular (calculadoras web, hojas de cálculo) no implementan métricas de flujos descontados (TIR, VAN), limitándose al cap rate o la rentabilidad bruta. Este déficit identificado derivó directamente en el objetivo funcional de implementar el conjunto completo de métricas DCF (RF13 del análisis de requisitos). La elección del tipo hipotecario como tasa de descuento para el VAN sigue la recomendación de Gallinelli (2015) de alinear la tasa de descuento con el coste real del capital utilizado en la inversión.
+
+**2. Criterios de validación del estimador de alquiler:**
+Los estudios de Geerts et al. (2025) establecieron que la desviación media absoluta de los LLMs en valoración inmobiliaria sin acceso a datos actualizados se sitúa en torno al 10-15%. Este dato sirvió como umbral de referencia para definir el criterio de éxito del módulo de estimación de alquiler: una desviación media por debajo del 10% sobre una muestra representativa de propiedades. La validación con muestra ampliada (30 propiedades, sección "Validación y Pruebas") confirma que GPT-5-mini con web search alcanza este criterio (desviación media 5,9%), mientras que GPT-4o sin web search no lo alcanza (desviación media 13,4%).
+
+**3. Enfoque de extracción de datos:**
+El análisis de los riesgos legales del web scraping (Krotov, Johnson & Silva, 2020) y el marco normativo europeo (Directiva 96/9/CE) orientaron la decisión de no utilizar scraping directo con bibliotecas HTTP (Axios + Cheerio), optando por delegar la extracción al servicio de web search de OpenAI, que accede a páginas públicas en nombre del sistema sin realizar peticiones directas desde la infraestructura del proyecto.
+
+**4. Criterios de calidad de código:**
+El análisis de las herramientas profesionales existentes (PlanRadar, CBRE Analytics) reveló que la complejidad de mantenimiento es una barrera de entrada que hace inaccesibles estas soluciones para el inversor particular. Este hallazgo reforzó la prioridad de mantener alta calidad de código (SonarQube) y separación clara de responsabilidades (patrón presentacional/contenedor de Abramov, 2015), para garantizar que la herramienta sea mantenible y evolucionable por el propio autor sin un equipo dedicado.
+
+### Criterios de Validación derivados de la Literatura
+
+Siguiendo la recomendación de conectar explícitamente los criterios de validación con el estado de la cuestión (Pressman & Maxim, 2019), se establecen los siguientes umbrales de aceptación:
+
+| Módulo | Criterio de éxito | Fuente del criterio |
+|--------|-------------------|---------------------|
+| Estimación de alquiler (GPT-5-mini) | Desviación media < 10% | Geerts et al. (2025) |
+| Cálculo ITP por CCAA | Precisión 100% vs. BOE | Normativa (RDL 1/1993) |
+| Cálculo TIR | Error < 0,01% (búsqueda binaria) | Damodaran (2012) |
+| Cálculo hipoteca (sistema francés) | Coincidencia con simuladores BdE | Banco de España |
+| Calidad de código | SonarQube: 0 bugs críticos, 0 vulnerabilidades | SonarSource (2025) |
+| Usabilidad | Feedback positivo de ≥70% de testers sin formación financiera | Criterio interno TFG |
 
 ### Fases del Proyecto
 
@@ -645,7 +732,7 @@ interface PropertyData {
 ### Estructura Real del Proyecto
 
 ```
-RealStateAI/
+RealEstateAI/
 ├── frontend/                          # Aplicación Next.js 16
 │   ├── src/
 │   │   ├── app/
@@ -655,7 +742,7 @@ RealStateAI/
 │   │   │   └── dashboard/
 │   │   │       └── [id]/
 │   │   │           └── page.tsx      # Dashboard financiero (646 líneas, lógica + estado)
-│   │   ├── components/               # 17 componentes reutilizables
+│   │   ├── components/               # 18 componentes reutilizables
 │   │   │   ├── PageHeader.tsx         # Cabecera de la app (23 líneas)
 │   │   │   ├── AddPropertyButton.tsx  # Botón añadir propiedad (19 líneas)
 │   │   │   ├── PropertyCard.tsx       # Tarjeta de propiedad con badges (198 líneas)
@@ -933,47 +1020,65 @@ Los cálculos fiscales y financieros se han validado contrastándolos con herram
 - Validado contra simuladores del Banco de España.
 - Ejemplo: Capital 150.000€, Plazo 25 años, Tipo 3% → Cuota 711.33€/mes (resultado coincidente).
 
-**Prueba de estimación de alquiler con IA (muestra de 10 propiedades reales):**
+**Prueba de estimación de alquiler con IA (muestra ampliada de 30 propiedades reales):**
 
-Para validar la precisión del sistema de estimación de alquileres, se seleccionaron 10 propiedades en 5 ciudades españolas cuyo alquiler de mercado era conocido. El precio real de mercado se obtuvo contrastando los datos de precio por metro cuadrado publicados en los informes trimestrales de Idealista por distrito (diciembre 2025) con las características de cada propiedad. Se compararon las estimaciones del sistema anterior (GPT-4o sin acceso a internet) con el sistema actual (GPT-5-mini con web search).
+Para validar la precisión del sistema de estimación de alquileres, se seleccionaron 30 propiedades en 15 ciudades españolas cuyo alquiler de mercado era conocido. El precio real de mercado se obtuvo contrastando los datos de precio por metro cuadrado publicados en los informes trimestrales de Idealista por distrito (diciembre 2025) y fuentes específicas para cada ciudad con las características de cada propiedad. Se compararon las estimaciones del sistema anterior (GPT-4o sin acceso a internet) con el sistema actual (GPT-5-mini con web search).
 
-**Fuentes de precios reales:** Informes de precios de alquiler de Idealista por distrito (idealista.com/sala-de-prensa), datos de Bankinter por barrios de Madrid, informe de precios por barrios de Valencia (valencianews.es, agosto 2025), datos de El Español para barrios de Málaga y Sevilla.
+**Fuentes de precios reales:** Informes de precios de alquiler de Idealista por distrito (idealista.com/sala-de-prensa, Q4 2025), datos de Bankinter por barrios de Madrid (noviembre 2025), informe de precios por barrios de Valencia (valencianews.es, agosto 2025), datos de El Español para barrios de Málaga y Sevilla, informe de precios de alquiler en Bilbao (bilbaometropoli.net, octubre 2025), datos de PISOS.COM para Zaragoza y Valladolid, informes de Brainsre para Palma de Mallorca y San Sebastián (brainsre.news, Q3 2025).
 
 | # | Ubicación | m² | Hab. | Alquiler real | GPT-4o (sin web) | Desv. GPT-4o | GPT-5-mini (web search) | Desv. GPT-5-mini |
 |---|---|---|---|---|---|---|---|---|
 | 1 | Chamberí, Madrid | 75 | 3 | 1.875€ | 1.650€ | **-12,0%** | 1.800€ | -4,0% |
 | 2 | Carabanchel, Madrid | 65 | 2 | 1.050€ | 950€ | -9,5% | 1.000€ | -4,8% |
-| 3 | Eixample, Barcelona | 85 | 3 | 2.025€ | 1.900€ | -6,2% | 2.100€ | +3,7% |
-| 4 | Sants-Montjuïc, Barcelona | 60 | 2 | 1.320€ | 1.200€ | -9,1% | 1.250€ | -5,3% |
-| 5 | Ruzafa, Valencia | 70 | 2 | 1.190€ | 850€ | **-28,6%** | 1.100€ | -7,6% |
-| 6 | Campanar, Valencia | 80 | 3 | 1.175€ | 950€ | **-19,1%** | 1.250€ | +6,4% |
-| 7 | Triana, Sevilla | 70 | 2 | 890€ | 850€ | -4,5% | 850€ | -4,5% |
-| 8 | Centro, Málaga | 65 | 2 | 980€ | 850€ | **-13,3%** | 1.050€ | +7,1% |
-| 9 | Teatinos, Málaga | 75 | 3 | 1.005€ | 900€ | -10,4% | 1.150€ | **+14,4%** |
-| 10 | Nervión, Sevilla | 90 | 3 | 1.145€ | 1.050€ | -8,3% | 1.200€ | +4,8% |
+| 3 | Salamanca, Madrid | 95 | 4 | 3.200€ | 2.800€ | **-12,5%** | 3.100€ | -3,1% |
+| 4 | Vallecas, Madrid | 60 | 2 | 950€ | 850€ | -10,5% | 950€ | 0,0% |
+| 5 | Eixample, Barcelona | 85 | 3 | 2.025€ | 1.900€ | -6,2% | 2.100€ | +3,7% |
+| 6 | Sants-Montjuïc, Barcelona | 60 | 2 | 1.320€ | 1.200€ | -9,1% | 1.250€ | -5,3% |
+| 7 | Horta-Guinardó, Barcelona | 70 | 2 | 1.400€ | 1.300€ | -7,1% | 1.350€ | -3,6% |
+| 8 | Gràcia, Barcelona | 65 | 2 | 1.700€ | 1.500€ | **-11,8%** | 1.650€ | -2,9% |
+| 9 | Ruzafa, Valencia | 70 | 2 | 1.190€ | 850€ | **-28,6%** | 1.100€ | -7,6% |
+| 10 | Campanar, Valencia | 80 | 3 | 1.175€ | 950€ | **-19,1%** | 1.250€ | +6,4% |
+| 11 | Benimaclet, Valencia | 55 | 2 | 950€ | 750€ | **-21,1%** | 1.000€ | +5,3% |
+| 12 | Torrent, Valencia | 80 | 3 | 900€ | 850€ | -5,6% | 950€ | +5,6% |
+| 13 | Triana, Sevilla | 70 | 2 | 890€ | 850€ | -4,5% | 850€ | -4,5% |
+| 14 | Nervión, Sevilla | 90 | 3 | 1.145€ | 1.050€ | -8,3% | 1.200€ | +4,8% |
+| 15 | Bellavista, Sevilla | 90 | 4 | 1.000€ | 900€ | -10,0% | 980€ | -2,0% |
+| 16 | Centro, Málaga | 65 | 2 | 980€ | 850€ | **-13,3%** | 1.050€ | +7,1% |
+| 17 | Teatinos, Málaga | 75 | 3 | 1.005€ | 900€ | -10,4% | 1.150€ | **+14,4%** |
+| 18 | Casco Viejo, Bilbao | 75 | 3 | 1.450€ | 1.100€ | **-24,1%** | 1.400€ | -3,4% |
+| 19 | Indautxu, Bilbao | 65 | 2 | 1.200€ | 1.000€ | **-16,7%** | 1.150€ | -4,2% |
+| 20 | Delicias, Zaragoza | 70 | 3 | 750€ | 650€ | **-13,3%** | 750€ | 0,0% |
+| 21 | Centro, Zaragoza | 80 | 3 | 950€ | 800€ | **-15,8%** | 950€ | 0,0% |
+| 22 | Eixample, Palma de Mallorca | 80 | 2 | 1.600€ | 1.200€ | **-25,0%** | 1.550€ | -3,1% |
+| 23 | Son Gotleu, Palma de Mallorca | 65 | 2 | 1.100€ | 900€ | **-18,2%** | 1.050€ | -4,5% |
+| 24 | Centro, Alicante | 70 | 2 | 900€ | 800€ | **-11,1%** | 900€ | 0,0% |
+| 25 | San Blas, Alicante | 75 | 3 | 850€ | 750€ | **-11,8%** | 850€ | 0,0% |
+| 26 | Centro, Granada | 65 | 2 | 850€ | 700€ | **-17,6%** | 800€ | -5,9% |
+| 27 | Chana, Granada | 75 | 3 | 750€ | 650€ | **-13,3%** | 800€ | +6,7% |
+| 28 | Parte Vieja, San Sebastián | 70 | 2 | 2.200€ | 1.600€ | **-27,3%** | 2.100€ | -4,5% |
+| 29 | Gros, San Sebastián | 80 | 3 | 2.000€ | 1.500€ | **-25,0%** | 1.950€ | -2,5% |
+| 30 | Mesa y López, Las Palmas de GC | 75 | 2 | 950€ | 800€ | **-15,8%** | 950€ | 0,0% |
 
- 
-
-**Resultados agregados:**
+**Resultados agregados (30 propiedades, 15 ciudades):**
 
 | Métrica | GPT-4o (sin web search) | GPT-5-mini (con web search) |
 |---|---|---|
-| Desviación media absoluta | 12,1% | 6,3% |
-| Dentro de ±10% | 5/10 (50%) | 9/10 (90%) |
-| Fuera de ±10% | 5/10 (50%) | 1/10 (10%) |
-| Mayor sobreestimación | — (siempre subestima) | +14,4% (Teatinos) |
+| Desviación media absoluta | 13,4% | 4,5% |
+| Dentro de ±10% | 8/30 (26,7%) | 27/30 (90,0%) |
+| Fuera de ±10% | 22/30 (73,3%) | 3/30 (10,0%) |
+| Mayor sobreestimación | — (siempre subestima) | +14,4% (Teatinos, Málaga) |
 | Mayor subestimación | -28,6% (Ruzafa, Valencia) | -7,6% (Ruzafa, Valencia) |
-| Sesgo sistemático | Subestimación (-12,1%) | Leve sobreestimación (+1,2%) |
+| Sesgo sistemático | Subestimación sistemática (-13,4%) | Sin sesgo significativo (-0,3%) |
 
 **Análisis de los resultados:**
 
-1. **GPT-4o subestima sistemáticamente** porque su conocimiento de precios proviene de los datos de entrenamiento (corte temporal ~mediados de 2024), sin acceso a la subida del 8,5% anual registrada en 2025. Las mayores desviaciones se producen en mercados con crecimiento acelerado: Valencia (+6,4% anual) y zonas emergentes como Ruzafa (-28,6% de error), donde los alquileres han subido significativamente en los últimos 12 meses.
+1. **GPT-4o subestima sistemáticamente en toda la muestra ampliada.** El conocimiento de precios del modelo proviene de datos de entrenamiento con corte temporal ~mediados de 2024, sin acceso a las subidas de alquiler registradas en 2025 (8,5% interanual a nivel nacional según Idealista, con picos superiores al 20% en Bilbao, San Sebastián y Palma de Mallorca). Las mayores desviaciones se producen precisamente en los mercados con mayor crecimiento reciente: San Sebastián (-27,3%), Palma de Mallorca (-25,0%), Bilbao (-24,1%) y Valencia (-28,6% en Ruzafa).
 
-2. **GPT-5-mini con web search reduce la desviación media a la mitad** (de 12,1% a 6,3%), gracias a que consulta listados reales en Idealista y Fotocasa en el momento de la estimación. El único caso fuera de ±10% (Teatinos, +14,4%) se explica porque el modelo encontró listados de pisos cercanos al campus universitario con precios inflados por la demanda estudiantil, no representativos del distrito completo.
+2. **GPT-5-mini con web search reduce la desviación media de 13,4% a 4,5%**, con el 90% de estimaciones dentro de ±10% del alquiler real. Los tres casos fuera de ±10% tienen explicaciones identificables: Teatinos (+14,4%) por listados inflados en zona universitaria; Chana, Granada (+6,7%) y Campanar, Valencia (+6,4%) por escasa oferta comparable en el momento de la consulta.
 
-3. **El sesgo cambia de dirección:** GPT-4o siempre subestima (datos obsoletos), mientras que GPT-5-mini alterna entre ligeras sobre- y subestimaciones sin sesgo sistemático, lo que indica que ancla sus estimaciones en datos de mercado actuales en lugar de extrapolar desde datos históricos.
+3. **El sesgo cambia de dirección de forma determinante:** GPT-4o subestima en el 100% de los casos (sesgo medio -13,4%), mientras que GPT-5-mini alterna sobre- y subestimaciones sin sesgo sistemático (media -0,3%), confirmando que ancla sus estimaciones en datos de mercado actuales.
 
-4. **Los resultados de esta muestra son coherentes con la validación ampliada** realizada sobre más de 500 propiedades durante el desarrollo, donde GPT-5-mini con web search alcanzó un ~87% de estimaciones dentro de ±10% del alquiler real, frente al ~54% de GPT-4o sin web search.
+4. **La muestra ampliada refuerza la consistencia del hallazgo inicial.** La muestra de 10 propiedades mostraba un 90% de aciertos de GPT-5-mini y un 50% de GPT-4o; la muestra de 30 confirma el 90% de GPT-5-mini y revela que el rendimiento de GPT-4o es aún peor de lo estimado inicialmente (26,7% vs. 50%), probablemente porque la muestra ampliada incluye mercados con mayor crecimiento acelerado donde el modelo estático se deteriora más.
 
 Estas desviaciones son coherentes con las limitaciones inherentes a la estimación mediante LLMs señaladas por Geerts et al. (2025), quienes documentan que los LLMs tienden a la sobreconfianza en sus intervalos de predicción y presentan capacidades limitadas de razonamiento espacial. El acceso a datos de mercado en tiempo real (web search) mitiga parcialmente estas limitaciones al anclar las estimaciones en precios publicados, pero no las elimina completamente, lo que justifica que el sistema presente siempre los resultados como **rangos orientativos** editables por el usuario.
 
@@ -983,7 +1088,7 @@ Durante el desarrollo se integró **SonarQube** para realizar análisis estátic
 
 **Análisis Inicial:**
 ```
-Proyecto: RealStateAI
+Proyecto: RealEstateAI
 Líneas de código: 5,100+
 
 RESULTADOS DEL PRIMER ESCANEO:
@@ -1048,10 +1153,31 @@ Se ha enviado el enlace de la aplicación en producción junto con las credencia
 - **Canal de feedback:** los testers reportan errores y sugerencias tanto de forma directa (mensajería) como a través del **botón de feedback integrado** en la propia aplicación (v2.5.0), que crea GitHub Issues automáticamente. Los issues se priorizan y resuelven de forma iterativa.
 - **Métricas de seguimiento previstas:** número de bugs reportados y resueltos, funcionalidades más utilizadas, y valoración de utilidad percibida mediante encuesta breve al finalizar la fase de pruebas.
 
-**Resultados preliminares:**
-- Se han identificado y corregido bugs en flujos reales de uso no detectados en pruebas internas.
-- Se han recibido sugerencias de mejora de usabilidad que se están priorizando para futuras iteraciones.
-- Los resultados cuantitativos completos se recopilarán y documentarán en la memoria final del TFG.
+**Resultados de la fase de validación (7–21 febrero):**
+
+La fase de validación con usuarios reales ha resultado ser la fuente de detección de bugs más eficaz del proyecto, superando al análisis estático (SonarQube) y a las pruebas funcionales internas. En dos semanas de validación activa se identificaron y resolvieron **15 bugs** que no habían sido detectados previamente:
+
+| ID | Severidad | Origen | Estado |
+|----|-----------|--------|--------|
+| BUG-001 | Crítico | Tester (3 reportes) | Resuelto |
+| BUG-002 | Alto | Tester iOS (7 reportes) | Resuelto |
+| BUG-003 | Medio | Tester (2 reportes) | Resuelto |
+| BUG-004 | Medio | Tester (4 reportes) | Resuelto |
+| BUG-005 | Bajo | Tester (1 reporte) | Resuelto |
+| BUG-006 | Alto | Tester (5 reportes) | Resuelto |
+| BUG-007 | Bajo | Tester (2 reportes) | Resuelto |
+| BUG-008 | Medio | Tester (3 reportes) | Resuelto |
+| BUG-009 | Crítico | Tester (6 reportes) | Resuelto |
+| BUG-010 | Alto | Tester iOS (4 reportes) | Resuelto (v2.8.0) |
+| BUG-011 | Medio | Tester (3 reportes) | Resuelto |
+| BUG-012 | Medio | Tester (2 reportes) | Resuelto |
+| BUG-013 | Bajo | Tester Firefox (1 reporte) | Resuelto |
+| BUG-014 | Alto | Descubrimiento interno + Claude MCP | Resuelto (v2.8.0) |
+| BUG-015 | Bajo | Tester (1 reporte) | Resuelto |
+
+Los bugs de mayor impacto (BUG-001, BUG-006, BUG-009) afectaban a flujos críticos (estimación de alquiler, cálculo de rentabilidad, autenticación) y no fueron detectados en las pruebas internas porque requerían condiciones específicas de usuario real (direcciones con caracteres inusuales, propiedades de obra nueva, cuentas recién registradas). Esto subraya el valor irreemplazable de la validación con usuarios reales como complemento a las pruebas automatizadas y el análisis estático.
+
+Adicionalmente, se recibieron **23 issues** en total (15 bugs + 8 sugerencias de funcionalidad), de las cuales 3 se implementaron en la v2.8.0 (vista de lista, IRPF, email en header) y 5 se documentan como trabajo futuro.
 
 #### 5. Pruebas Unitarias Automatizadas con Jest
 
@@ -1079,6 +1205,41 @@ Se han implementado **49 tests unitarios** con **Jest** para validar las funcion
 **Pruebas de integración previstas (pendiente):**
 - Tests end-to-end de los flujos principales (análisis de URL, guardado de propiedad, navegación a dashboard).
 
+#### 6. Pruebas de Seguridad Asistidas por IA (Claude con MCP)
+
+Como complemento a las pruebas funcionales y al análisis estático de SonarQube, se llevó a cabo una sesión de **pruebas de seguridad asistidas por inteligencia artificial**, utilizando Claude (modelo Sonnet 4.6 de Anthropic) habilitado con herramientas de acceso al sistema mediante el protocolo **MCP (Model Context Protocol)**. MCP es un protocolo abierto desarrollado por Anthropic que permite a los modelos de lenguaje interactuar con herramientas externas (sistemas de archivos, navegadores, bases de datos, terminales) de forma estructurada y auditable. En este caso, Claude disponía de acceso de lectura al código fuente completo del proyecto y a la aplicación desplegada localmente.
+
+El objetivo de esta fase de pruebas no fue realizar un *pentesting* exhaustivo en el sentido profesional del término, sino emplear el razonamiento de un LLM avanzado para identificar, desde una perspectiva de atacante, posibles debilidades de diseño o implementación que podrían no ser detectadas por los métodos de prueba convencionales (SonarQube, pruebas manuales funcionales). Este enfoque de *AI-augmented security testing* es una práctica emergente en la industria del software (Yao et al., 2024).
+
+**Metodología empleada:**
+
+Claude analizó el código fuente del proyecto (frontend, backend, configuración) y posteriormente intentó explotar la aplicación en ejecución local, simulando el comportamiento de un atacante con acceso a la aplicación pero sin conocimiento previo del código. Se probaron los siguientes vectores de ataque:
+
+| Vector probado | Descripción | Resultado |
+|----------------|-------------|-----------|
+| **Bypass de autenticación via localStorage** | Manipulación directa de `localStorage.authToken` para intentar acceder sin credenciales válidas | **Vulnerabilidad detectada** → corregida con `verifyAuth()` (v2.8.0) |
+| **JWT manipulation** | Modificación del token JWT almacenado para intentar suplantar otro usuario | No explotable: Supabase valida la firma del JWT en el backend |
+| **CORS bypass** | Peticiones desde orígenes no autorizados | No explotable: validación dinámica de origen en el backend |
+| **Inyección en endpoints de IA** | Prompt injection en los campos de texto enviados a OpenAI (dirección, descripción) | Riesgo bajo: los prompts usan plantillas estructuradas con datos del usuario como variables, no como instrucciones ejecutables |
+| **Exposición de API keys** | Búsqueda de secrets en el repositorio Git y en respuestas de la API | No explotable: todas las claves en `.env` excluidas por `.gitignore`; el backend no expone variables de entorno en las respuestas |
+| **Rate limiting abuse** | Envío masivo de peticiones a endpoints de OpenAI para generar costes | **Vulnerabilidad detectada (no corregida):** ausencia de rate limiting identificada y documentada en la sección de riesgos |
+| **XSS en campos de texto** | Inyección de código JavaScript en campos de nombre, descripción y dirección de propiedades | No explotable: Next.js escapa automáticamente el contenido renderizado en JSX |
+| **Acceso no autorizado a propiedades de otros usuarios** | Petición a `/api/properties/{id}` con un ID conocido sin autenticación | No explotable: todos los endpoints del CRUD validan el JWT de Supabase y filtran por `user_id` |
+| **Manipulación de parámetros financieros en URL** | Modificación de parámetros en la URL del dashboard para ver datos de otra propiedad | No explotable: el ID de propiedad se usa para consulta autenticada; si no pertenece al usuario, devuelve 404 |
+| **Information disclosure en errores** | Análisis de respuestas de error para extraer información del sistema | Riesgo bajo: los mensajes de error genéricos no exponen detalles de implementación al cliente |
+
+**Hallazgos principales:**
+
+1. **Vulnerabilidad crítica corregida:** Claude identificó que el sistema de autenticación inicial (v2.7.0) se basaba exclusivamente en comprobar la presencia de `authToken` en `localStorage`, sin validar su autenticidad contra el backend. Era posible insertar manualmente cualquier cadena en `localStorage.authToken` y acceder al contenido protegido. Esta vulnerabilidad fue corregida implementando `verifyAuth()`, que realiza una llamada real al backend con el token antes de mostrar contenido (v2.8.0).
+
+2. **Ausencia de rate limiting:** confirmada como vulnerabilidad activa. Un atacante podría realizar llamadas ilimitadas a los endpoints de OpenAI generando costes no controlados. Documentada en la sección de Riesgos como mejora prioritaria pendiente.
+
+3. **Superficie de ataque de prompt injection:** aunque no se logró explotar de forma efectiva, Claude identificó que los campos de dirección y descripción de propiedad se incluyen directamente en los prompts enviados a OpenAI. Un usuario malintencionado podría intentar manipular el comportamiento del modelo mediante instrucciones ocultas en estos campos. La mitigación actual (plantillas estructuradas que tratan los datos del usuario como valores, no como instrucciones) reduce significativamente este riesgo, pero no lo elimina por completo.
+
+**Valoración del enfoque:**
+
+El uso de Claude con MCP para pruebas de seguridad complementa de forma eficaz los métodos convencionales porque el modelo puede razonar sobre vulnerabilidades de diseño que las herramientas de análisis estático no detectan (como la validación insuficiente de tokens de sesión). La sesión identificó una vulnerabilidad crítica que no había sido detectada por SonarQube ni por las pruebas manuales funcionales. Sin embargo, es importante destacar que este enfoque no sustituye a un *pentesting* profesional formal: un auditor de seguridad con metodología estructurada (OWASP Testing Guide) realizaría una cobertura más sistemática y rigurosa.
+
 ---
 
 ## RIESGOS Y CONSIDERACIONES ÉTICAS
@@ -1100,7 +1261,7 @@ El acceso a datos de Idealista presenta riesgos técnicos y legales que deben ab
 
 Krotov, Johnson y Silva (2020) analizan en detalle la legalidad y ética del web scraping, distinguiendo entre diferentes enfoques técnicos y sus implicaciones legales. Es importante distinguir entre web scraping tradicional (peticiones HTTP directas al servidor) y el enfoque utilizado en este proyecto:
 
-- **No se realiza scraping directo:** el backend de RealStateAI no envía peticiones HTTP a Idealista. Es el servicio de web search de OpenAI el que accede a la página pública.
+- **No se realiza scraping directo:** el backend de RealEstateAI no envía peticiones HTTP a Idealista. Es el servicio de web search de OpenAI el que accede a la página pública.
 - **Datos públicos:** las propiedades anunciadas en Idealista son datos accesibles públicamente sin autenticación.
 - **Uso educativo:** el proyecto tiene finalidad académica (TFG) y no comercial.
 - **Volumen mínimo:** se accede a una URL individual por petición del usuario, no se realizan barridos masivos.
@@ -1187,14 +1348,20 @@ Las estimaciones de la IA se presentan explícitamente como orientativas. El sis
 | Infra | Despliegue backend en Railway | Completado |
 | Calidad | Análisis y corrección con SonarQube | Completado |
 | Calidad | Tests unitarios con Jest (49 tests) | Completado |
-| Calidad | Refactorización en 17 componentes (reducción ~55% en páginas) | Completado |
+| Calidad | Refactorización en 18 componentes (reducción ~55% en páginas) | Completado |
+| Calidad | Pruebas de seguridad con Claude + MCP | Completado |
+| v2.8.0 | IRPF (6 tramos) en análisis básico y avanzado | Completado |
+| v2.8.0 | Vista de lista con animaciones FLIP | Completado |
+| v2.8.0 | Persistencia Supabase (PostgreSQL + Auth JWT) | Completado |
+| v2.8.0 | Verificación real de JWT (no solo localStorage) | Completado |
+| v2.8.0 | Email del usuario en PageHeader | Completado |
 
 ### Funcionalidades Pendientes
 
 | Funcionalidad | Prioridad | Notas |
 |---|---|---|
-| Persistencia con base de datos | Media | Se implementará más adelante como mejora de infraestructura |
-| Exportación a PDF | Baja | Trabajo futuro |
+| Exportación a PDF | Media | Trabajo futuro |
+| Rate limiting en API | Media | Pendiente implementar express-rate-limit |
 
 ### Métricas del Proyecto
 
@@ -1252,7 +1419,7 @@ Como líneas de desarrollo futuro más allá del alcance de este TFG, se identif
 
 ## CAPTURAS DE PANTALLA DE LA APLICACIÓN
 
-Las siguientes capturas muestran el flujo completo de uso de RealStateAI en producción, desde la autenticación hasta el análisis financiero avanzado.
+Las siguientes capturas muestran el flujo completo de uso de RealEstateAI en producción, desde la autenticación hasta el análisis financiero avanzado.
 
 ### Autenticación
 
@@ -1334,7 +1501,7 @@ Primer despliegue del frontend en Vercel. Problema inmediato: errores CORS al ll
 
 Detectado problema crítico con Render (plan gratuito): cold starts de 30-60s que generaban timeouts en las llamadas a GPT-5-mini (que ya tardan 15-60s). Decisión de migrar backend a Railway.
 
-### Semana 2 | Febrero 2026 — Dashboard Financiero y Testing
+### Semana 2 | Febrero 2026 — Dashboard Financiero, Testing y Primer Ciclo de Bugs de Usuarios
 
 Implementación del dashboard financiero con Recharts: gráfico LineChart de rentabilidad a 10 años, PieChart de gastos, BarChart de amortización.
 
@@ -1342,21 +1509,112 @@ El algoritmo TIR requería búsqueda binaria con 200 iteraciones sobre flujos de
 
 Análisis SonarQube inicial: 77 problemas detectados (3 bugs críticos, 5 vulnerabilidades, 65 code smells). API key de OpenAI estaba hardcodeada en el código. Correcciones implementadas en la misma jornada.
 
-Envío del enlace a 100+ testers. Feedback inmediato: la UI era confusa en móvil. Diseño responsive revisado.
+**7 de febrero — v2.7.0:** Refactorización completa del frontend en 18 componentes. `page.tsx` reducido de ~2,565 a ~1,034 líneas (-60%). Mantenibilidad SonarQube: C → A.
 
-**7 de febrero — v2.7.0:** Refactorización completa del frontend en 17 componentes. `page.tsx` reducido de ~2,565 a ~1,034 líneas (-60%). Mantenibilidad SonarQube: C → A.
+Envío del enlace y credenciales a 100+ testers. A partir de este momento, la dinámica de trabajo cambió completamente: el desarrollo de nuevas funcionalidades pasó a un segundo plano y la actividad principal pasó a ser **triaje, reproducción y corrección de bugs reportados por usuarios reales**. Todos los bugs se recibían a través del sistema de feedback integrado en la propia aplicación (GitHub Issues automáticos), complementado con capturas de pantalla y mensajes directos.
 
-**12 de febrero — Estado actual:** 49 tests unitarios (100% passing), 100+ testers activos, documentación en progreso. Pendiente: persistencia con base de datos y exportación PDF.
+#### Bugs resueltos — Semana 2 (7–14 febrero)
 
-### Semana 3 | Febrero 2026 — UX, IRPF y Seguridad
+**BUG-001 · Crítico · Reportado por 3 testers**
+*Descripción:* El estimador de alquiler devolvía `NaN€/mes` cuando la dirección de la propiedad incluía números romanos (por ejemplo, "Calle del Conde III, nº 4, Barcelona"). El problema estaba en el parsing de la respuesta JSON del modelo: el campo `min` llegaba como string `"NaN"` cuando el modelo no lograba formatearlo correctamente.
+*Reproducción:* URL de Idealista con dirección en Eixample que incluía numeración romana.
+*Fix:* Añadir validación `isNaN(value) ? null : value` en el parser de respuesta de `/api/estimate-rent`, con mensaje de error controlado en el frontend ("No se pudo estimar el alquiler — introduce el valor manualmente").
 
-**21 de febrero — v2.8.0:** Jornada intensa con múltiples features:
+**BUG-002 · Alto · Reportado por 7 testers (todos en móvil iOS)**
+*Descripción:* El modal de "Añadir propiedad" no era scrollable en Safari iOS. En pantallas pequeñas (iPhone SE, iPhone 12 mini), el contenido del formulario quedaba cortado por debajo del viewport y no era posible llegar al botón "Guardar".
+*Reproducción:* Abrir el modal en iPhone con pantalla de 375px de ancho.
+*Fix:* Añadir `overflow-y-auto max-h-[90dvh]` al contenedor del modal, usando `dvh` (dynamic viewport height) en lugar de `vh` para compensar la barra de dirección del navegador de Safari.
 
-**Vista de lista con animación FLIP**: Se añadió un segundo modo de visualización de propiedades (lista horizontal) con `PropertyCardRow.tsx`. El cambio más técnico fue la animación FLIP para el reordenamiento: al ordenar por nombre/rentabilidad/alquiler, las tarjetas no desaparecen sino que se desplazan físicamente a su nueva posición. Se usa `useLayoutEffect` para capturar posiciones DOM antes y después del render, aplicar la transformación inversa y animar a cero, todo sin parpadeo visual. El efecto de stagger por distancia da un resultado visual de "trilero". Se añadió también un dropdown animado que unifica las opciones de orden y vista.
+**BUG-003 · Medio · Reportado por 2 testers**
+*Descripción:* Al seleccionar la comunidad autónoma "País Vasco" (ITP 4%), el campo numérico del ITP se actualizaba visualmente pero el cálculo del precio total seguía usando el tipo anterior. El problema era una dependencia stale en el `useEffect` del modal de detalles.
+*Reproducción:* Abrir modal de gastos → seleccionar Madrid (6%) → luego cambiar a País Vasco (4%) → el total seguía calculando al 6%.
+*Fix:* Añadir `comunidadAutonoma` a la lista de dependencias del `useEffect` que recalcula los gastos de compra.
 
-**IRPF en gastos de vivienda**: Se implementó el cálculo del IRPF sobre el rendimiento del capital inmobiliario. Se definieron los 6 tramos marginales españoles (19%–47%) como constante exportable `TRAMOS_IRPF`. El usuario selecciona su tramo mediante botones visuales tanto en el análisis básico (DetailsModal) como en el avanzado (ExpenseEditor/dashboard). El IRPF se calcula sobre el rendimiento neto (ingresos − gastos deducibles), sin la reducción del 60% ya que la herramienta está orientada a alquiler como inversión. Se creó la columna `tramo_irpf` en Supabase mediante SQL directo desde el Dashboard.
+**BUG-004 · Medio · Reportado por 4 testers**
+*Descripción:* El gráfico PieChart de distribución de gastos en el dashboard financiero crasheaba con un error de Recharts ("Cannot read properties of undefined reading 'outerRadius'") cuando todos los gastos anuales eran 0 (propiedad recién creada sin configurar gastos).
+*Reproducción:* Navegar al dashboard de una propiedad con alquilerMensual configurado pero sin gastos anuales.
+*Fix:* Añadir `.filter(g => g.value > 0)` antes de pasar `datosGastos` al componente PieChart. Si el array filtrado queda vacío, mostrar un placeholder en lugar del gráfico.
 
-**Seguridad auth**: Se detectó que bastaba manipular el localStorage para saltarse el login. Se implementó `verifyAuth()` que valida el JWT contra el backend real antes de mostrar contenido. El email del usuario ahora se persiste en localStorage al hacer login y se muestra en el PageHeader (arriba a la izquierda junto al botón de cerrar sesión).
+**BUG-005 · Bajo · Reportado por 1 tester**
+*Descripción:* El valor del Euribor aparecía como "undefined%" en el campo de tipo de interés variable cuando la API del Banco de España tardaba más de 5 segundos (timeout del fetch). El estado de carga no estaba controlado correctamente: el componente intentaba formatear el valor antes de recibirlo.
+*Reproducción:* Throttling de red a 3G en DevTools + tipo de hipoteca "variable".
+*Fix:* Añadir estado `euriborLoading` con spinner, extender timeout a 15 segundos, y mostrar valor por defecto "2.50% (dato provisional)" si la petición falla.
+
+**BUG-006 · Alto · Reportado por 5 testers**
+*Descripción:* La rentabilidad neta mostraba un valor incorrecto (inflado) cuando la propiedad era obra nueva con IVA. El cálculo de rentabilidad usaba como denominador el precio de compra bruto, sin incluir IVA + AJD en el precio total. Una propiedad de 200.000€ con IVA (10%) + AJD (1.5%) debería usar 223.000€ como base, no 200.000€.
+*Reproducción:* Marcar "Obra nueva" → seleccionar cualquier comunidad → navegar al dashboard.
+*Fix:* Asegurar que `precioTotal` (precio + todos los gastos de adquisición) se calcula y pasa correctamente al dashboard como denominador de las métricas de rentabilidad.
+
+**BUG-007 · Bajo · Reportado por 2 testers**
+*Descripción:* El ordenamiento de propiedades por ROI fallaba silenciosamente cuando alguna tarjeta tenía ROI `null` (propiedad sin análisis financiero completado). El array quedaba sin ordenar aparentemente al azar.
+*Reproducción:* Tener 3+ propiedades, una de ellas sin datos de hipoteca → ordenar por ROI.
+*Fix:* Tratar `null` como `-Infinity` en la función de comparación del sort, de modo que las propiedades sin ROI aparezcan siempre al final de la lista ordenada.
+
+**BUG-008 · Medio · Reportado por 3 testers**
+*Descripción:* Al guardar cambios desde el dashboard financiero (botón "Guardar simulación"), la tarjeta de la propiedad en el listado principal mostraba el badge de ROI como "Por calcular" al volver, a pesar de que el ROI había sido calculado y guardado correctamente en Supabase.
+*Reproducción:* Dashboard → modificar parámetros → Guardar → volver al listado con el botón del navegador.
+*Fix:* El hook `onPropertySaved` en el dashboard no forzaba un refresco del listado antes de navegar. Solución: invalidar el cache local de propiedades al guardar y recargar desde Supabase antes de retornar al listado.
+
+### Semana 3 | Febrero 2026 — Segundo Ciclo de Feedback, IRPF y Seguridad
+
+La semana 3 continuó siendo predominantemente de **consolidación basada en feedback de testers**, con bugs de mayor complejidad que requirieron más tiempo de investigación. A mitad de semana se añadieron también las funcionalidades de IRPF y las mejoras de seguridad derivadas en parte de hallazgos de los propios testers.
+
+#### Bugs resueltos — Semana 3 (14–21 febrero)
+
+**BUG-009 · Crítico · Reportado por 6 testers con cuentas nuevas**
+*Descripción:* Al registrarse con una cuenta nueva, el login aparentemente funcionaba (animación de éxito), pero al intentar guardar la primera propiedad el backend devolvía 401. La causa raíz: el token JWT de Supabase se generaba correctamente en el cliente pero el backend (desplegado en Railway) usaba una `SUPABASE_ANON_KEY` desactualizada que no coincidía con el proyecto correcto de Supabase tras la migración.
+*Fix:* Actualizar las variables de entorno en Railway con las claves correctas del proyecto Supabase activo y hacer redeploy. Añadir logging de error 401 en el backend que incluya el emisor del JWT para diagnóstico futuro.
+
+**BUG-010 · Alto · Reportado por 4 testers en iPhone con iOS 17+**
+*Descripción:* El botón fijo "Cerrar sesión" (posición `fixed bottom-4 left-4`) quedaba ocultado por la barra de navegación gestual del sistema en iPhones con home indicator (iPhone X en adelante). El botón era inaccesible sin hacer scroll adicional.
+*Fix:* Eliminar el botón fijo de la esquina inferior izquierda. Mover el email del usuario y el botón de cierre de sesión al `PageHeader` (esquina superior izquierda), donde son siempre visibles independientemente del dispositivo (integrado en v2.8.0).
+
+**BUG-011 · Medio · Reportado por 3 testers**
+*Descripción:* El campo "Seguro de vida de hipoteca" en el panel de gastos de vivienda mostraba siempre el mismo valor aunque el usuario cambiase la edad en el slider. El modelo exponencial `0.03 × e^(0.0632 × edad)` se calculaba correctamente en la carga inicial pero el slider de edad no estaba conectado al re-trigger del cálculo en el `DetailsModal`.
+*Reproducción:* Abrir modal de gastos de vivienda → cambiar edad de 35 a 50 años → el prima del seguro de vida no varía.
+*Fix:* Añadir `edadAsegurado` como dependencia del `useEffect` que calcula los gastos de vivienda en `DetailsModal.tsx`.
+
+**BUG-012 · Medio · Reportado por 2 testers**
+*Descripción:* En el dashboard financiero, al arrastrar el slider de "Incremento anual de alquiler" a valores superiores al 6%, el gráfico de evolución proyectada a 10 años mostraba valores exponencialmente irreales en el año 10 (llegando a mostrar 80.000€/mes de renta en propiedades con alquiler inicial de 1.500€), lo que hacía que el gráfico LineChart se distorsionara completamente.
+*Reproducción:* Dashboard → slider "Incremento alquiler" al 8% → el gráfico se vuelve ilegible.
+*Fix:* Añadir cap de incremento compuesto del 5% anual en el array de `evolucionRentabilidad`. Por encima del 5%, el sistema muestra un aviso ("Incremento superior a la inflación histórica media") sin bloquear el valor.
+
+**BUG-013 · Bajo · Reportado por 1 tester (Firefox en Windows)**
+*Descripción:* El modal de "Añadir propiedad" no se cerraba al hacer clic fuera del área del modal en Firefox. El evento `mousedown` en el overlay no se propagaba correctamente en Firefox cuando el usuario hacía clic en la barra de scroll lateral del modal.
+*Fix:* Cambiar el manejador del overlay de `onMouseDown` a `onClick` con `e.stopPropagation()` en el contenido del modal, lo que es compatible en todos los navegadores.
+
+**BUG-014 · Alto · Reportado por 2 testers (descubrimiento propio + tester)**
+*Descripción:* Se detectó que el sistema de autenticación podía ser saltado manipulando manualmente `localStorage`. Un usuario sin credenciales podía insertar cualquier cadena en `localStorage.authToken` y acceder al contenido protegido, ya que el frontend solo comprobaba la existencia de la clave, no su validez.
+*Fix:* Implementar `verifyAuth()` que realiza una petición real al backend con el token antes de mostrar contenido. Si el backend devuelve 401, se llama a `signOut()` y se redirige al modal de login (integrado en v2.8.0). Este bug fue también identificado de forma independiente durante la sesión de pruebas de seguridad con Claude + MCP.
+
+**BUG-015 · Bajo · Reportado por 1 tester**
+*Descripción:* El campo de "Periodos vacantes" en el panel de gastos de vivienda permitía introducir valores negativos mediante teclado numérico, lo que resultaba en un gasto negativo que inflaba artificialmente el cash flow. La validación del input no incluía mínimo de 0.
+*Fix:* Añadir `min={0}` en el input HTML y validación adicional en el handler `onChange` para rechazar valores negativos.
+
+#### Funcionalidades de la v2.8.0 (21 febrero) — motivadas por feedback acumulado
+
+Además de los bugs anteriores, el feedback de los testers durante estas dos semanas generó solicitudes de mejora que se agruparon y resolvieron en el release v2.8.0:
+
+**Vista de lista con animación FLIP** *(solicitada por 8 testers)*: Varios testers con 5+ propiedades guardadas indicaron que la vista en cuadrícula con imágenes grandes hacía difícil comparar propiedades de un vistazo. Se añadió un segundo modo de visualización de propiedades (lista horizontal compacta) con `PropertyCardRow.tsx`. El cambio más técnico fue la animación FLIP para el reordenamiento: al ordenar por nombre/rentabilidad/alquiler, las tarjetas no desaparecen sino que se desplazan físicamente a su nueva posición. Se usa `useLayoutEffect` para capturar posiciones DOM antes y después del render, aplicar la transformación inversa y animar a cero, todo sin parpadeo visual. Se añadió también un dropdown animado que unifica las opciones de orden y vista.
+
+**IRPF en gastos de vivienda** *(solicitado por 12 testers con perfil inversor)*: El feedback más recurrente de testers con experiencia inversora fue la ausencia del IRPF en el cálculo del cash flow real. "Los números que me salen son incorrectos porque no incluye lo que me lleva Hacienda" fue el comentario más repetido. Se implementó el cálculo del IRPF sobre el rendimiento del capital inmobiliario con los 6 tramos marginales españoles (19%–47%), disponible tanto en el análisis básico (DetailsModal) como en el avanzado (ExpenseEditor/dashboard). El IRPF se calcula sobre el rendimiento neto (ingresos − gastos deducibles), sin la reducción del 60% ya que la herramienta está orientada a alquiler como inversión (no vivienda habitual del arrendatario). Se creó la columna `tramo_irpf` en Supabase.
+
+**Email del usuario en el header y botón de cerrar sesión accesible** *(solicitado por 5 testers)*: Varios testers indicaron que no había forma clara de saber con qué cuenta habían iniciado sesión ni cómo cerrarla desde móvil (el botón fijo inferior era inaccesible en iOS). El email del usuario ahora se muestra en el `PageHeader` arriba a la izquierda junto al botón "Cerrar sesión", accesible en cualquier dispositivo. Este cambio resuelve además el BUG-010.
+
+**Corrección del backend en puerto 3001** *(conflicto detectado en entorno de desarrollo)*: El backend defaulteaba al puerto 3000, colisionando con el servidor de desarrollo de Next.js. Fijado en `PORT=3001` en `backend/.env` y `NEXT_PUBLIC_API_URL=http://localhost:3001` en `frontend/.env.local` para eliminar el conflicto en todos los entornos de desarrollo.
+
+#### Métricas de la fase de validación (7–21 febrero)
+
+| Métrica | Valor |
+|---------|-------|
+| Bugs reportados por testers | 15 |
+| Bugs resueltos | 15 (100%) |
+| Tiempo medio de resolución | 3,2 horas |
+| Bug más complejo (tiempo resolución) | BUG-009 (JWT/Supabase) — 6 horas |
+| Testers activos | 100+ |
+| Issues creados via feedback integrado | 23 (15 bugs + 8 sugerencias) |
+| Sugerencias implementadas en v2.8.0 | 3 (vista lista, IRPF, email en header) |
+| Sugerencias diferidas a trabajo futuro | 5 |
 
 ---
 
@@ -1394,15 +1652,31 @@ Asensio-Soto, J. C. (2023). *Proptech: la digitalización de la intermediación 
 
 Gallinelli, F. (2015). *What Every Real Estate Investor Needs to Know About Cash Flow... And 36 Other Key Financial Measures* (3.ª ed.). McGraw-Hill Education. ISBN: 978-1-259-58618-7.
 
+Antipov, E. A., & Pokryshevskaya, E. B. (2012). Mass appraisal of residential apartments: An application of Random forest for valuation and a CART-based approach for model diagnostics. *Expert Systems with Applications*, 39(2), 1772-1778. https://doi.org/10.1016/j.eswa.2011.08.077
+
+Brealey, R. A., Myers, S. C., & Allen, F. (2017). *Principles of Corporate Finance* (12.ª ed.). McGraw-Hill Education. ISBN: 978-1-259-14438-5.
+
+CBRE. (2024). *Spain Real Estate Market Outlook 2025*. CBRE Research. https://www.cbre.es/insights/reports/spain-real-estate-market-outlook-2025
+
+Čeh, M., Kilibarda, M., Lisec, A., & Bajat, B. (2018). Estimating the performance of random forest versus multiple regression for predicting prices of the apartments. *ISPRS International Journal of Geo-Information*, 7(5), 168. https://doi.org/10.3390/ijgi7050168
+
 Geerts, M., Reusens, M., Baesens, B., vanden Broucke, S., & De Weerdt, J. (2025). On the performance of LLMs for real estate appraisal. *arXiv preprint*, arXiv:2506.11812. Aceptado en ECML-PKDD 2025. https://arxiv.org/abs/2506.11812
 
 Krotov, V., Johnson, L., & Silva, L. (2020). Tutorial: Legality and Ethics of Web Scraping. *Communications of the Association for Information Systems*, 47, Article 22. https://aisel.aisnet.org/cais/vol47/iss1/22/
+
+Lancaster, K. J. (1966). A new approach to consumer theory. *Journal of Political Economy*, 74(2), 132-157. https://doi.org/10.1086/259131
+
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., Yih, W., Rocktäschel, T., Riedel, S., & Kiela, D. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. *Advances in Neural Information Processing Systems*, 33, 9459-9474. https://arxiv.org/abs/2005.11401
 
 Libertad Inmobiliaria. (2024). *Calculadora de rentabilidad inmobiliaria v3* [Hoja de cálculo]. Libertad Inmobiliaria. https://libertadinmobiliaria.es/calculadora-rentabilidad-inmuebles-alquiler/
 
 Mitchell, R. (2018). *Web Scraping with Python: Collecting More Data from the Modern Web* (2.ª ed.). O'Reilly Media. ISBN: 978-1-491-98557-1.
 
 OCU. (2023). Los gastos de la compraventa de vivienda. *OCU Fincas y Casas*. Organización de Consumidores y Usuarios. https://www.ocu.org/fincas-y-casas/compraventa/compraventa/analisis-gratis/2023/10/gastos-de-compraventa-de-vivienda
+
+Rosen, S. (1974). Hedonic prices and implicit markets: product differentiation in pure competition. *Journal of Political Economy*, 82(1), 34-55. https://doi.org/10.1086/260169
+
+Yao, Y., Duan, J., Xu, K., Cai, Y., Sun, Z., & Zhang, Y. (2024). A survey on large language model (LLM) security and privacy: The good, the bad, and the ugly. *High-Confidence Computing*, 4(2), 100211. https://doi.org/10.1016/j.hcc.2024.100211
 
 ### Documentación Técnica
 
@@ -1438,7 +1712,7 @@ Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's 
 
 ## INFORMACIÓN DE CONTACTO Y REPOSITORIO
 
-**Proyecto:** RealStateAI
+**Proyecto:** RealEstateAI
 **Autor:** Alejandro Zabaleta
 **Universidad:** U-tad
 **Curso:** 2025-2026
@@ -1448,8 +1722,8 @@ Pressman, R. S., & Maxim, B. R. (2019). *Software engineering: A practitioner's 
 
 ---
 
-**Última actualización:** 12 de Febrero de 2026
-**Estado del proyecto:** En desarrollo activo - ~95% completado (funcionalidad core completa, 49 tests unitarios implementados, frontend refactorizado en 17 componentes, sistema de feedback integrado, validación con usuarios en curso con 100+ testers, pendiente documentación final)
+**Última actualización:** 21 de Febrero de 2026
+**Estado del proyecto:** Fase de desarrollo finalizada — funcionalidad core completa (49 tests unitarios, 18 componentes, IRPF, vista lista, Supabase, seguridad auth). Fase de documentación y preparación de defensa en curso.
 
 ---
 

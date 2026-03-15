@@ -54,6 +54,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Handler explícito para preflight OPTIONS (garantiza cabeceras CORS incluso en errores)
+app.options('*', cors(corsOptions));
+
 // Log adicional para debugging en producción
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - Origin: ${req.get('origin') || 'sin origin'}`);
