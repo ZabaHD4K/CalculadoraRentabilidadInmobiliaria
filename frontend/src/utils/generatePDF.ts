@@ -135,7 +135,7 @@ export function generatePDF(data: PDFReportData): void {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.setTextColor(...WHITE);
-    doc.text('RealStateAI', M, 12);
+    doc.text('RealEstateAI', M, 12);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -600,5 +600,5 @@ export function generatePDF(data: PDFReportData): void {
   // ===========================
   const safeName = data.nombre.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').replace(/\s+/g, '_');
   const dateStr = new Date().toISOString().slice(0, 10);
-  doc.save(`RealStateAI_Informe_${safeName}_${dateStr}.pdf`);
+  doc.save(`RealEstateAI_Informe_${safeName}_${dateStr}.pdf`);
 }

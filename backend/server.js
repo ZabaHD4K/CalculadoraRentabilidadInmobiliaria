@@ -55,6 +55,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Confiar en el proxy de Koyeb para obtener la IP real del cliente
+app.set('trust proxy', 1);
+
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
 // Limiter general: 100 req / 15 min por IP
 const generalLimiter = rateLimit({
