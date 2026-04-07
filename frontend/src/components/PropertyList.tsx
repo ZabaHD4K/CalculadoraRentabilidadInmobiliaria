@@ -7,6 +7,7 @@ import PropertyCardRow from "./PropertyCardRow";
 
 interface ROIData {
   value: number | null;
+  roiSimple: number | null;
   status: 'pending' | 'calculated';
 }
 
@@ -20,6 +21,7 @@ interface PropertyListProps {
 type SortField = 'none' | 'nombre' | 'rentabilidad' | 'alquiler';
 type ViewMode = 'grid' | 'list';
 type SortOrder = 'asc' | 'desc';
+export type ROIMode = 'total' | 'cashflow';
 
 const SORT_FIELDS = ['nombre', 'rentabilidad', 'alquiler'] as const;
 const SORT_LABELS: Record<Exclude<SortField, 'none'>, string> = {
@@ -156,6 +158,7 @@ export default function PropertyList({ properties, calculateROI, onOpenDetails, 
   const [isOpen, setIsOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortField>('none');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [roiMode, setRoiMode] = useState<ROIMode>('total');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // FLIP animation refs
@@ -274,7 +277,31 @@ export default function PropertyList({ properties, calculateROI, onOpenDetails, 
       ) : (
         <>
           {/* Barra superior */}
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end items-center gap-2 mb-4">
+            {/* Toggle ROI mode */}
+            <div className="relative flex items-center bg-slate-800/60 border border-slate-700/40 rounded-xl p-0.5">
+              <div
+                className="absolute top-0.5 bottom-0.5 rounded-lg bg-teal-600/20 border border-teal-500/30 shadow-md transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                style={{ width: 'calc(50% - 2px)', left: roiMode === 'total' ? '2px' : 'calc(50%)' }}
+              />
+              <button
+                onClick={() => setRoiMode('total')}
+                className={`relative z-10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 whitespace-nowrap ${
+                  roiMode === 'total' ? 'text-teal-400' : 'text-slate-500 hover:text-slate-400'
+                }`}
+              >
+                ROI Total
+              </button>
+              <button
+                onClick={() => setRoiMode('cashflow')}
+                className={`relative z-10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 whitespace-nowrap ${
+                  roiMode === 'cashflow' ? 'text-teal-400' : 'text-slate-500 hover:text-slate-400'
+                }`}
+              >
+                ROI Cash Flow
+              </button>
+            </div>
+
             <div ref={dropdownRef} className="relative">
               <button
                 onClick={() => setIsOpen(o => !o)}
@@ -321,6 +348,7 @@ export default function PropertyList({ properties, calculateROI, onOpenDetails, 
                     <PropertyCard
                       property={property}
                       calculateROI={calculateROI}
+                      roiMode={roiMode}
                       onOpenDetails={onOpenDetails}
                       onDelete={onDeleteProperty}
                     />
@@ -341,6 +369,7 @@ export default function PropertyList({ properties, calculateROI, onOpenDetails, 
                     <PropertyCardRow
                       property={property}
                       calculateROI={calculateROI}
+                      roiMode={roiMode}
                       onOpenDetails={onOpenDetails}
                       onDelete={onDeleteProperty}
                     />

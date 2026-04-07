@@ -2,20 +2,23 @@
 
 import { useState } from "react";
 import { PropertyData } from "@/services/api";
+import type { ROIMode } from "./PropertyList";
 
 interface ROIData {
   value: number | null;
+  roiSimple: number | null;
   status: 'pending' | 'calculated';
 }
 
 interface PropertyCardProps {
   property: PropertyData;
   calculateROI: (property: PropertyData) => ROIData;
+  roiMode: ROIMode;
   onOpenDetails: (property: PropertyData) => void;
   onDelete: (id: string) => void;
 }
 
-export default function PropertyCard({ property, calculateROI, onOpenDetails, onDelete }: PropertyCardProps) {
+export default function PropertyCard({ property, calculateROI, roiMode, onOpenDetails, onDelete }: PropertyCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
@@ -52,12 +55,12 @@ export default function PropertyCard({ property, calculateROI, onOpenDetails, on
                 return 'bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900';
               }
 
-              const roi = roiData.value!;
-              if (roi < 5) {
+              const displayRoi = roiMode === 'cashflow' ? (roiData.roiSimple ?? roiData.value!) : roiData.value!;
+              if (displayRoi < 5) {
                 return 'bg-gradient-to-br from-red-900 via-red-800 to-slate-900';
-              } else if (roi >= 5 && roi < 10) {
+              } else if (displayRoi >= 5 && displayRoi < 10) {
                 return 'bg-gradient-to-br from-green-900 via-green-800 to-slate-900';
-              } else if (roi >= 10 && roi < 15) {
+              } else if (displayRoi >= 10 && displayRoi < 15) {
                 return 'bg-gradient-to-br from-green-700 via-green-800 to-emerald-900';
               } else {
                 return 'bg-gradient-to-br from-blue-700 via-cyan-800 to-teal-900';
@@ -81,21 +84,22 @@ export default function PropertyCard({ property, calculateROI, onOpenDetails, on
                 );
               }
 
-              const roi = roiData.value!;
+              const displayRoi = roiMode === 'cashflow' ? (roiData.roiSimple ?? roiData.value!) : roiData.value!;
+              const label = roiMode === 'cashflow' ? 'Cash Flow' : 'ROI Total';
               let bgColor = '';
               let textColor = '';
               let borderColor = '';
               let extraClass = '';
 
-              if (roi < 5) {
+              if (displayRoi < 5) {
                 bgColor = 'bg-red-900/90';
                 textColor = 'text-red-300';
                 borderColor = 'border-red-500';
-              } else if (roi >= 5 && roi < 10) {
+              } else if (displayRoi >= 5 && displayRoi < 10) {
                 bgColor = 'bg-green-900/90';
                 textColor = 'text-green-300';
                 borderColor = 'border-green-500';
-              } else if (roi >= 10 && roi < 15) {
+              } else if (displayRoi >= 10 && displayRoi < 15) {
                 bgColor = 'bg-green-900/90';
                 textColor = 'text-green-300';
                 borderColor = 'border-green-500';
@@ -108,9 +112,9 @@ export default function PropertyCard({ property, calculateROI, onOpenDetails, on
               }
 
               return (
-                <div className={`absolute top-2 left-2 px-2 py-1 backdrop-blur-sm border rounded-md shadow-lg ${bgColor} ${borderColor} ${extraClass}`}>
-                  <p className="text-[10px] font-semibold opacity-80">ROI</p>
-                  <p className={`text-sm font-bold ${textColor}`}>{roi.toFixed(1)}%</p>
+                <div className={`absolute top-2 left-2 px-2 py-1 backdrop-blur-sm border rounded-md shadow-lg transition-all duration-300 ${bgColor} ${borderColor} ${extraClass}`}>
+                  <p className="text-[10px] font-semibold opacity-80">{label}</p>
+                  <p className={`text-sm font-bold ${textColor} transition-all duration-300`}>{displayRoi.toFixed(1)}%</p>
                 </div>
               );
             })()}

@@ -2,35 +2,40 @@
 
 import { useState } from "react";
 import { PropertyData } from "@/services/api";
+import type { ROIMode } from "./PropertyList";
 
 interface ROIData {
   value: number | null;
+  roiSimple: number | null;
   status: 'pending' | 'calculated';
 }
 
 interface PropertyCardRowProps {
   property: PropertyData;
   calculateROI: (property: PropertyData) => ROIData;
+  roiMode: ROIMode;
   onOpenDetails: (property: PropertyData) => void;
   onDelete: (id: string) => void;
 }
 
-export default function PropertyCardRow({ property, calculateROI, onOpenDetails, onDelete }: PropertyCardRowProps) {
+export default function PropertyCardRow({ property, calculateROI, roiMode, onOpenDetails, onDelete }: PropertyCardRowProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   const roiData = calculateROI(property);
+  const displayRoi = roiData.status === 'pending' ? null : (roiMode === 'cashflow' ? (roiData.roiSimple ?? roiData.value!) : roiData.value!);
+  const roiLabel = roiMode === 'cashflow' ? 'CF' : 'ROI';
 
-  const roiStyle = roiData.status === 'pending'
+  const roiStyle = displayRoi === null
     ? { bar: 'bg-gray-600', text: 'text-gray-400', label: '—', bg: 'bg-gray-800/40' }
-    : roiData.value! < 5
-    ? { bar: 'bg-red-500', text: 'text-red-400', label: `${roiData.value!.toFixed(1)}%`, bg: 'bg-red-950/20' }
-    : roiData.value! < 10
-    ? { bar: 'bg-green-500', text: 'text-green-400', label: `${roiData.value!.toFixed(1)}%`, bg: 'bg-green-950/20' }
-    : roiData.value! < 15
-    ? { bar: 'bg-emerald-400', text: 'text-emerald-400', label: `${roiData.value!.toFixed(1)}%`, bg: 'bg-emerald-950/20' }
-    : { bar: 'bg-cyan-400', text: 'text-cyan-300', label: `${roiData.value!.toFixed(1)}%`, bg: 'bg-cyan-950/20' };
+    : displayRoi < 5
+    ? { bar: 'bg-red-500', text: 'text-red-400', label: `${displayRoi.toFixed(1)}%`, bg: 'bg-red-950/20' }
+    : displayRoi < 10
+    ? { bar: 'bg-green-500', text: 'text-green-400', label: `${displayRoi.toFixed(1)}%`, bg: 'bg-green-950/20' }
+    : displayRoi < 15
+    ? { bar: 'bg-emerald-400', text: 'text-emerald-400', label: `${displayRoi.toFixed(1)}%`, bg: 'bg-emerald-950/20' }
+    : { bar: 'bg-cyan-400', text: 'text-cyan-300', label: `${displayRoi.toFixed(1)}%`, bg: 'bg-cyan-950/20' };
 
   return (
     <>
@@ -86,9 +91,9 @@ export default function PropertyCardRow({ property, calculateROI, onOpenDetails,
               {property.alquilerMensual ? `${property.alquilerMensual}€/mes` : <span className="text-gray-600">—</span>}
             </p>
           </div>
-          <div className={`text-right min-w-[58px] px-2 py-1 rounded-lg ${roiStyle.bg}`}>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">ROI</p>
-            <p className={`text-sm font-bold ${roiStyle.text}`}>{roiStyle.label}</p>
+          <div className={`text-right min-w-[58px] px-2 py-1 rounded-lg transition-all duration-300 ${roiStyle.bg}`}>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">{roiLabel}</p>
+            <p className={`text-sm font-bold transition-all duration-300 ${roiStyle.text}`}>{roiStyle.label}</p>
           </div>
         </div>
 

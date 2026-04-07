@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, getEuribor, signOut, verifyAuth } from "@/services/api";
+import { PropertyData, analyzeProperty, saveProperty, updateProperty, getProperties, deleteProperty, estimateRent, calculateExpenses, calculateHousingExpenses, calculateITP, calculateIVA, ITP_BY_COMUNIDAD, TRAMOS_IRPF, getEuribor, signOut, verifyAuth } from "@/services/api";
 import AuthModal from "@/components/AuthModal";
 import FeedbackButton from "@/components/FeedbackButton";
 import PageHeader from "@/components/PageHeader";
@@ -225,7 +225,7 @@ export default function Home() {
   };
 
   // Función para calcular el ROI
-  const calculateROI = (property: PropertyData): { value: number | null, status: 'pending' | 'calculated' } => {
+  const calculateROI = (property: PropertyData): { value: number | null, roiSimple: number | null, status: 'pending' | 'calculated' } => {
     // Verificar si tiene TODOS los datos necesarios para un cálculo preciso
     const hasBasicData = property.precio > 0;
     const hasRentData = property.alquilerMensual !== null && 
@@ -254,7 +254,7 @@ export default function Home() {
 
     // Solo calcular ROI si tiene TODOS los datos esenciales
     if (!hasBasicData || !hasRentData || !hasExpenseData || !hasPurchaseExpenses || !hasNotaryOrRegistry) {
-      return { value: null, status: 'pending' };
+      return { value: null, roiSimple: null, status: 'pending' };
     }
 
     // Calcular ingresos anuales
@@ -284,16 +284,15 @@ export default function Home() {
 
     // Validar que la inversión sea mayor que 0
     if (capitalInvertido <= 0) {
-      return { value: null, status: 'pending' };
+      return { value: null, roiSimple: null, status: 'pending' };
     }
 
-    // Calcular beneficio neto (cash flow)
-    let cashFlowAnual = ingresosAnuales - gastosAnuales;
-    
     // Variables para el ROI total
     let amortizacionAnual = 0;
     let revalorizacionAnual = 0;
-    
+    let cuotaAnual = 0;
+    let interesHipotecaAnual = 0;
+
     // Si hay datos de hipoteca, calcular cuota y amortización
     if (property.capitalPropio && property.plazoHipoteca && property.tipoInteres) {
       const capitalFinanciado = inversionTotal - property.capitalPropio;
@@ -301,9 +300,8 @@ export default function Home() {
         const tasaMensual = property.tipoInteres / 100 / 12;
         const numPagos = property.plazoHipoteca * 12;
         const cuotaMensual = capitalFinanciado * (tasaMensual * Math.pow(1 + tasaMensual, numPagos)) / (Math.pow(1 + tasaMensual, numPagos) - 1);
-        const cuotaAnual = cuotaMensual * 12;
-        cashFlowAnual = cashFlowAnual - cuotaAnual;
-        
+        cuotaAnual = cuotaMensual * 12;
+
         // Calcular amortización del primer año (parte de la cuota que reduce la deuda)
         let saldoHipoteca = capitalFinanciado;
         for (let mes = 0; mes < 12; mes++) {
@@ -312,18 +310,39 @@ export default function Home() {
           amortizacionAnual += amortizacionMes;
           saldoHipoteca -= amortizacionMes;
         }
+        interesHipotecaAnual = cuotaAnual - amortizacionAnual;
       }
     }
-    
+
+    // IRPF sobre rendimiento del capital inmobiliario (igual que dashboard)
+    const tipoMarginalIRPF = TRAMOS_IRPF.find(t => t.id === (property.tramoIRPF || 'tramo3'))?.tipo ?? 30;
+    const gastosDeduciblesIRPF = interesHipotecaAnual +
+      (property.ibi || 0) +
+      (property.comunidadAnual || 0) +
+      (property.seguroHogar || 0) +
+      (property.seguroImpago || 0) +
+      (property.mantenimiento || 0);
+    const rdtNetoAlquiler = Math.max(0, ingresosAnuales - gastosDeduciblesIRPF);
+    const irpf = Math.round(rdtNetoAlquiler * (tipoMarginalIRPF / 100));
+
+    // Gastos totales incluyendo IRPF
+    const gastosConIRPF = gastosAnuales + irpf;
+
+    // Cash flow = Ingresos - Gastos (con IRPF) - Cuota hipoteca
+    const cashFlowAnual = ingresosAnuales - gastosConIRPF - cuotaAnual;
+
     // Revalorización anual del inmueble (2% por defecto como inflación típica)
     const tasaRevalorizacion = 0.02; // 2%
     revalorizacionAnual = property.precio * tasaRevalorizacion;
-    
+
+    // ROI SIMPLE (solo Cash Flow)
+    const roiSimple = capitalInvertido > 0 ? (cashFlowAnual / capitalInvertido) * 100 : 0;
+
     // ROI TOTAL = (Cash Flow + Amortización + Revalorización) / Capital Invertido * 100
     const gananciaTotal = cashFlowAnual + amortizacionAnual + revalorizacionAnual;
     const roi = (gananciaTotal / capitalInvertido) * 100;
 
-    return { value: roi, status: 'calculated' };
+    return { value: roi, roiSimple, status: 'calculated' };
   };
 
   const handleAnalyzeUrl = async () => {
@@ -523,10 +542,11 @@ export default function Home() {
       setPorcentajeSeguroVida(Math.round(porcentajeVida * 100) / 100);
 
       // 3. Actualizar TODOS los campos (gastos de compra + gastos de vivienda)
+      // Solo aplicar campos específicos de purchaseResult, NO hacer spread completo
+      // para evitar sobreescribir datos existentes como alquilerMensual
       setComunidadEstimadaIA(true); // Marcar que la comunidad fue estimada por IA
       setSelectedProperty({
         ...selectedProperty,
-        ...purchaseResult.expenses,
         comunidadAutonoma: comunidad,
         esObraNueva: esNueva,
         itp: itpCalculado,

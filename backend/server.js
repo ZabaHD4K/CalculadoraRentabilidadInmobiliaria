@@ -13,38 +13,38 @@ const allowedOrigins = [
   process.env.FRONTEND_URL, // URL desde variable de entorno
 ].filter(Boolean); // Eliminar valores undefined
 
-console.log('🌐 CORS: Orígenes permitidos:', allowedOrigins);
+console.log('CORS: Origenes permitidos:', allowedOrigins);
 
 // CORS config robusta para producción
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log('📨 Request desde origen:', origin);
+    console.log('Request desde origen:', origin);
 
     // Permite requests sin origin (Postman, server-to-server, mismo dominio)
     if (!origin) {
-      console.log('✅ Sin origin - permitido');
+      console.log('Sin origin - permitido');
       return callback(null, true);
     }
 
     // Verificar si el origin está en la lista permitida
     if (allowedOrigins.includes(origin)) {
-      console.log('✅ Origin en lista permitida');
+      console.log('Origin en lista permitida');
       return callback(null, true);
     }
 
     // Permitir todos los subdominios de Vercel (para preview deployments)
     if (origin.endsWith('.vercel.app')) {
-      console.log('✅ Dominio Vercel detectado - permitido');
+      console.log('Dominio Vercel detectado - permitido');
       return callback(null, true);
     }
 
     // En desarrollo, permitir localhost (siempre, no solo en development)
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      console.log('✅ Localhost detectado - permitido');
+      console.log('Localhost detectado - permitido');
       return callback(null, true);
     }
 
-    console.log('❌ CORS Error: Origin no permitido:', origin);
+    console.log('CORS Error: Origin no permitido:', origin);
     return callback(new Error(`CORS Error: ${origin} no permitido`));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -116,7 +116,7 @@ const supabaseAuth = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-console.log('🔐 Auth con Supabase Auth habilitado');
+console.log('Auth con Supabase Auth habilitado');
 
 // ── Keep-alive para evitar que Supabase pause el proyecto por inactividad ────
 // Ping cada 3.5 días (2 veces por semana)
@@ -125,16 +125,16 @@ const KEEP_ALIVE_INTERVAL = 3.5 * 24 * 60 * 60 * 1000;
 async function pingSupabase() {
   try {
     const { count } = await supabase.from('properties').select('*', { count: 'exact', head: true });
-    console.log(`🏓 Supabase keep-alive OK (${count ?? 0} properties)`);
+    console.log(`Supabase keep-alive OK (${count ?? 0} properties)`);
   } catch (err) {
-    console.error('🏓 Supabase keep-alive falló:', err.message);
+    console.error('Supabase keep-alive fallo:', err.message);
   }
 }
 
 // Ping al arrancar y luego cada 3.5 días
 pingSupabase();
 setInterval(pingSupabase, KEEP_ALIVE_INTERVAL);
-console.log('🗄️  Supabase service_role conectado');
+console.log('Supabase service_role conectado');
 
 // ── Middleware JWT ────────────────────────────────────────────────────────────
 const verifyToken = async (req, res, next) => {
@@ -171,7 +171,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, error: msg });
     }
 
-    console.log('✅ Nuevo usuario registrado (pendiente confirmación):', email);
+    console.log('Nuevo usuario registrado (pendiente confirmacion):', email);
     res.json({ success: true, message: 'Revisa tu correo para confirmar la cuenta.' });
   } catch (error) {
     console.error('Error en register:', error.message);
@@ -196,7 +196,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(401).json({ success: false, error: msg });
     }
 
-    console.log('✅ Login exitoso:', email);
+    console.log('Login exitoso:', email);
     res.json({ success: true, token: data.session.access_token, email: data.user.email });
   } catch (error) {
     console.error('Error en login:', error.message);
@@ -225,11 +225,11 @@ app.post('/api/analyze-property', aiLimiter, async (req, res) => {
     console.log('URL:', url);
 
     // PASO 1: Dejar que GPT extraiga todo (sistema simple que funcionaba ayer)
-    console.log('🖼️ GPT extraerá los datos y las URLs de las imágenes...');
+    console.log('GPT extraera los datos y las URLs de las imagenes...');
     const idealistaImage = null; // Simplificado: GPT hace todo
 
     // PASO 2: Usar GPT-5 para extraer toda la información
-    console.log('🔄 Extrayendo datos con GPT-5 (puede tardar 30-60 segundos)...');
+    console.log('Extrayendo datos con GPT-5 (puede tardar 30-60 segundos)...');
 
     let propertyData;
 
@@ -331,13 +331,13 @@ Ejemplo de formato:
       }
 
       propertyData = JSON.parse(cleanResponse);
-      console.log('✅ Datos parseados correctamente desde GPT');
+      console.log('Datos parseados correctamente desde GPT');
 
       // Generar ID único para la propiedad
       const propertyId = Date.now().toString();
       propertyData.id = propertyId;
     } catch (parseError) {
-      console.error('❌ Error al parsear JSON desde GPT:', parseError);
+      console.error('Error al parsear JSON desde GPT:', parseError);
       return res.status(500).json({
         success: false,
         error: 'No se pudo parsear la respuesta como JSON',
@@ -391,7 +391,7 @@ app.post('/api/properties', verifyToken, async (req, res) => {
       .single();
 
     if (error) throw error;
-    console.log('✅ Propiedad guardada:', data.id);
+    console.log('Propiedad guardada:', data.id);
     res.json({ success: true, property: data });
   } catch (error) {
     console.error('Error al guardar propiedad:', error.message);
@@ -411,7 +411,7 @@ app.put('/api/properties/:id', verifyToken, async (req, res) => {
       .single();
 
     if (error) throw error;
-    console.log('✅ Propiedad actualizada:', req.params.id);
+    console.log('Propiedad actualizada:', req.params.id);
     res.json({ success: true, property: data });
   } catch (error) {
     console.error('Error al actualizar propiedad:', error.message);
@@ -429,7 +429,7 @@ app.delete('/api/properties/:id', verifyToken, async (req, res) => {
       .eq('user_id', req.user.userId);
 
     if (error) throw error;
-    console.log('✅ Propiedad eliminada:', req.params.id);
+    console.log('Propiedad eliminada:', req.params.id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error al eliminar propiedad:', error.message);
@@ -477,7 +477,7 @@ El campo "confianza" debe ser "alta", "media" o "baja" según la cantidad de dat
 
     // Intentar con GPT-5-mini + web search (acceso a datos reales de mercado)
     try {
-      console.log('🔍 Intentando estimación con GPT-5-mini + web search...');
+      console.log('Intentando estimacion con GPT-5-mini + web search...');
       const response = await openai.responses.create({
         model: 'gpt-5-mini',
         input: [
@@ -523,14 +523,14 @@ El campo "confianza" debe ser "alta", "media" o "baja" según la cantidad de dat
         }
 
         estimate = JSON.parse(cleanResponse);
-        console.log('✅ Estimación con GPT-5-mini + web search exitosa:', estimate);
+        console.log('Estimacion con GPT-5-mini + web search exitosa:', estimate);
       } else {
         throw new Error('Sin respuesta de GPT-5-mini');
       }
 
     } catch (gpt5Error) {
       // Fallback a GPT-4o sin web search
-      console.log('⚠️ Fallback a GPT-4o:', gpt5Error.message);
+      console.log('Fallback a GPT-4o:', gpt5Error.message);
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
@@ -556,7 +556,7 @@ El campo "confianza" debe ser "alta", "media" o "baja" según la cantidad de dat
       }
 
       estimate = JSON.parse(fallbackResponse);
-      console.log('✅ Estimación con GPT-4o (fallback) exitosa:', estimate);
+      console.log('Estimacion con GPT-4o (fallback) exitosa:', estimate);
     }
 
     // Construir string de rango para compatibilidad con el frontend
@@ -774,11 +774,11 @@ RESPONDE SOLO CON EL JSON, sin texto adicional ni markdown.`;
       }
 
       housingExpenses = JSON.parse(gptResponse);
-      console.log('✅ Gastos vivienda con GPT-5-mini + web search exitosa');
+      console.log('Gastos vivienda con GPT-5-mini + web search exitosa');
 
     } catch (gpt5Error) {
       // Fallback a GPT-4o sin web search
-      console.log('⚠️ Fallback a GPT-4o (gastos vivienda):', gpt5Error.message);
+      console.log('Fallback a GPT-4o (gastos vivienda):', gpt5Error.message);
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
@@ -804,7 +804,7 @@ RESPONDE SOLO CON EL JSON, sin texto adicional ni markdown.`;
       }
 
       housingExpenses = JSON.parse(fallbackResponse);
-      console.log('✅ Gastos vivienda con GPT-4o (fallback) exitosa:', housingExpenses);
+      console.log('Gastos vivienda con GPT-4o (fallback) exitosa:', housingExpenses);
     }
 
     res.json({
@@ -862,7 +862,7 @@ app.get('/api/euribor', async (req, res) => {
     const euribor = euriborData.valor;
     const fechaValor = new Date(euriborData.fechaValor).toLocaleDateString('es-ES');
 
-    console.log('\n✓ Euribor obtenido exitosamente:', euribor + '%');
+    console.log('\nEuribor obtenido exitosamente:', euribor + '%');
     console.log('Fecha del dato:', fechaValor);
     console.log('====================\n');
 
@@ -898,7 +898,7 @@ app.post('/api/feedback', async (req, res) => {
 
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
     if (!GITHUB_TOKEN) {
-      console.error('⚠️ GITHUB_TOKEN no configurado');
+      console.error('GITHUB_TOKEN no configurado');
       return res.status(500).json({ success: false, error: 'Sistema de feedback no configurado' });
     }
 
@@ -927,7 +927,7 @@ app.post('/api/feedback', async (req, res) => {
     }
 
     const issue = await response.json();
-    console.log(`✅ Feedback enviado → Issue #${issue.number}: ${titulo}`);
+    console.log(`Feedback enviado -> Issue #${issue.number}: ${titulo}`);
 
     res.json({ success: true, message: 'Feedback enviado correctamente' });
 
