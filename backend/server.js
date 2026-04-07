@@ -117,6 +117,23 @@ const supabaseAuth = createClient(
 );
 
 console.log('🔐 Auth con Supabase Auth habilitado');
+
+// ── Keep-alive para evitar que Supabase pause el proyecto por inactividad ────
+// Ping cada 3.5 días (2 veces por semana)
+const KEEP_ALIVE_INTERVAL = 3.5 * 24 * 60 * 60 * 1000;
+
+async function pingSupabase() {
+  try {
+    const { count } = await supabase.from('properties').select('*', { count: 'exact', head: true });
+    console.log(`🏓 Supabase keep-alive OK (${count ?? 0} properties)`);
+  } catch (err) {
+    console.error('🏓 Supabase keep-alive falló:', err.message);
+  }
+}
+
+// Ping al arrancar y luego cada 3.5 días
+pingSupabase();
+setInterval(pingSupabase, KEEP_ALIVE_INTERVAL);
 console.log('🗄️  Supabase service_role conectado');
 
 // ── Middleware JWT ────────────────────────────────────────────────────────────
