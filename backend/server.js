@@ -68,19 +68,19 @@ const generalLimiter = rateLimit({
   message: { success: false, error: 'Demasiadas peticiones. Intenta de nuevo en 15 minutos.' },
 });
 
-// Limiter para endpoints de IA (GPT con web search): 10 req / 15 min por IP
+// Limiter para endpoints de IA (GPT con web search): 100 req / 15 min por IP
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Límite de análisis alcanzado. Espera 15 minutos antes de continuar.' },
 });
 
-// Limiter para autenticación: 5 intentos / 15 min por IP
+// Limiter para autenticación: 100 intentos / 15 min por IP
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Demasiados intentos de acceso. Intenta de nuevo en 15 minutos.' },
